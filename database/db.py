@@ -1,31 +1,100 @@
 """
-Turso(libsql) 연결 관리, 테이블 초기화, 공통 쿼리 함수.
+Turso(HTTP API) 또는 로컬 sqlite3 연결 관리, 테이블 초기화, 공통 쿼리 함수.
 pages/services는 이 모듈의 함수만 호출한다. DB를 직접 조작하지 않는다.
 """
 import json
+import sqlite3
 from datetime import datetime
+import requests
 import streamlit as st
 
-try:
-    import libsql_experimental as libsql
-except ImportError:
-    raise ImportError("pip install libsql-experimental")
+
+# ── Turso HTTP 래퍼 ────────────────────────────────────────────────────────────
+
+class _TursoCursor:
+    def __init__(self, result: dict):
+        cols = [c["name"] for c in result.get("cols", [])]
+        self.description = [(c,) for c in cols] if cols else None
+        self._data = [
+            tuple(_decode(cell) for cell in row)
+            for row in result.get("rows", [])
+        ]
+
+    def fetchall(self):
+        return self._data
+
+    def fetchone(self):
+        return self._data[0] if self._data else None
+
+
+def _decode(cell: dict):
+    t, v = cell.get("type"), cell.get("value")
+    if t == "null" or v is None:
+        return None
+    if t == "integer":
+        return int(v)
+    if t == "float":
+        return float(v)
+    return v
+
+
+class _TursoConn:
+    """sqlite3-호환 인터페이스. Turso HTTP API v2/pipeline 사용."""
+
+    def __init__(self, url: str, token: str):
+        self._url = url.replace("libsql://", "https://") + "/v2/pipeline"
+        self._headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+    def execute(self, sql: str, params=()):
+        args = [self._enc(p) for p in params]
+        resp = requests.post(
+            self._url,
+            headers=self._headers,
+            json={"requests": [
+                {"type": "execute", "stmt": {"sql": sql, "args": args}},
+                {"type": "close"},
+            ]},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        res = data["results"][0]
+        if res["type"] == "error":
+            raise Exception(res["error"]["message"])
+        return _TursoCursor(res["response"]["result"])
+
+    def commit(self):
+        pass  # HTTP API는 자동 커밋
+
+    def sync(self):
+        pass
+
+    @staticmethod
+    def _enc(v):
+        if v is None:
+            return {"type": "null", "value": None}
+        if isinstance(v, bool):
+            return {"type": "integer", "value": "1" if v else "0"}
+        if isinstance(v, int):
+            return {"type": "integer", "value": str(v)}
+        if isinstance(v, float):
+            return {"type": "float", "value": str(v)}
+        return {"type": "text", "value": str(v)}
 
 
 # ── 연결 ──────────────────────────────────────────────────────────────────────
 
 @st.cache_resource
 def get_connection():
-    try:
-        url = st.secrets.get("TURSO_URL", "")
-        token = st.secrets.get("TURSO_AUTH_TOKEN", "")
-        if url and token:
-            conn = libsql.connect("lifequest.db", sync_url=url, auth_token=token)
-            conn.sync()
-        else:
-            conn = libsql.connect("lifequest.db")
-    except Exception:
-        conn = libsql.connect("lifequest.db")
+    url   = st.secrets.get("TURSO_URL", "")
+    token = st.secrets.get("TURSO_AUTH_TOKEN", "")
+    if url and token:
+        conn = _TursoConn(url, token)
+    else:
+        conn = sqlite3.connect("lifequest.db", check_same_thread=False)
     _init_db(conn)
     return conn
 
