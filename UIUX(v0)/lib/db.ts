@@ -203,6 +203,12 @@ export async function initDb() {
   }
   try { await db.execute("ALTER TABLE character ADD COLUMN clear_count INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN task_count INTEGER DEFAULT 0") } catch {}
+  // 레벨 1 초기 스탯 0 마이그레이션 (기존 시드값 1 → 0)
+  try {
+    await db.execute(
+      "UPDATE character SET str=0,vit=0,dex=0,int_stat=0,luk=0 WHERE id=1 AND level=1 AND str=1 AND total_exp=0"
+    )
+  } catch {}
   await seedIfEmpty(db)
   await seedCharacter(db)
   await ensureChecklistItems(db)
@@ -459,7 +465,7 @@ async function seedCharacter(db: Client) {
   await db.execute({
     sql: `INSERT INTO character (id,level,total_exp,stat_points,skill_points,draw_tickets,
           str,vit,dex,int_stat,luk,base_hp,base_mp,current_hp,max_hp,current_mp,max_mp,created_at,updated_at)
-          VALUES (1,1,0,0,0,3,1,1,1,1,1,100,50,110,110,55,55,?,?)`,
+          VALUES (1,1,0,0,0,3,0,0,0,0,0,100,50,100,100,50,50,?,?)`,
     args: [t, t],
   })
 }

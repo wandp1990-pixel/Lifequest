@@ -49,6 +49,11 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
   const [toast, setToast] = useState<{ exp: number; comment: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [confirmDelete, setConfirmDelete] = useState<{
+    type: "daily" | "todo"
+    id: number
+    name: string
+  } | null>(null)
 
   const fetchAll = useCallback(async () => {
     try {
@@ -159,25 +164,33 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
     setAdding(null)
   }
 
-  const deleteDaily = async (id: number) => {
-    const res = await fetch("/api/checklist", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setDailyItems(data.items ?? [])
-    }
+  const confirmAndDelete = (type: "daily" | "todo", id: number, name: string) => {
+    setConfirmDelete({ type, id, name })
   }
 
-  const deleteTodo = async (id: number) => {
-    const res = await fetch("/api/todos", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    })
-    if (res.ok) setTodoItems(await res.json())
+  const executeDelete = async () => {
+    if (!confirmDelete) return
+    const { type, id } = confirmDelete
+    setConfirmDelete(null)
+    if (type === "daily") {
+      const res = await fetch("/api/checklist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setDailyItems(data.items ?? [])
+        setCheckedDailyIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+      }
+    } else {
+      const res = await fetch("/api/todos", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      if (res.ok) setTodoItems(await res.json())
+    }
   }
 
   const savePrompt = async () => {
@@ -297,15 +310,13 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
               >
                 {done ? "✓ 완료" : isLoading ? "판정 중..." : `+${item.fixed_exp} EXP`}
               </button>
-              {!done && (
-                <button
-                  onClick={() => deleteDaily(item.id)}
-                  className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
-                  aria-label="삭제"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <button
+                onClick={() => confirmAndDelete("daily", item.id, item.name)}
+                className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
+                aria-label="삭제"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )
@@ -389,15 +400,13 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
               >
                 {done ? "✓ 완료" : isLoading ? "판정 중..." : `+${item.suggested_exp} EXP`}
               </button>
-              {!done && (
-                <button
-                  onClick={() => deleteTodo(item.id)}
-                  className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
-                  aria-label="삭제"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <button
+                onClick={() => confirmAndDelete("todo", item.id, item.name)}
+                className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
+                aria-label="삭제"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )
@@ -479,6 +488,38 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
             </button>
           </div>
         </div>
+      )}
+
+      {/* ── 삭제 확인 바텀시트 ──────────────────────────── */}
+      {confirmDelete && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-30"
+            onClick={() => setConfirmDelete(null)}
+          />
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm bg-white rounded-t-3xl z-40 px-6 py-6 shadow-2xl">
+            <p className="text-sm font-bold text-gray-800 text-center mb-1">
+              항목을 삭제하시겠습니까?
+            </p>
+            <p className="text-xs text-gray-500 text-center mb-5">
+              &ldquo;{confirmDelete.name}&rdquo;
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold text-sm active:scale-95"
+              >
+                취소
+              </button>
+              <button
+                onClick={executeDelete}
+                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm active:scale-95"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

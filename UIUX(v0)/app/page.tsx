@@ -132,12 +132,14 @@ export default function GamePage() {
             expPercent={expPercent}
             drawTickets={char?.draw_tickets ?? 0}
           />
-          <QuestBanner
-            title="데일리 완료"
-            reward={50}
-            progress={tasksCount}
-            total={questTotal}
-          />
+          {activeTab !== "home" && (
+            <QuestBanner
+              title="데일리 완료"
+              reward={50}
+              progress={tasksCount}
+              total={questTotal}
+            />
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
