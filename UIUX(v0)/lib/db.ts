@@ -1,6 +1,7 @@
 import { createClient, type Client } from "@libsql/client"
 
 let _client: Client | null = null
+let _initialized = false
 
 export function getClient(): Client {
   if (!_client) {
@@ -181,13 +182,14 @@ CREATE TABLE IF NOT EXISTS skill_log (
 `
 
 export async function initDb() {
+  if (_initialized) return
+  _initialized = true
   const db = getClient()
   for (const stmt of SCHEMA.trim().split(";")) {
     const s = stmt.trim()
     if (s) await db.execute(s)
   }
   await seedIfEmpty(db)
-  // game_config 유무와 무관하게 필수 데이터 보장
   await seedCharacter(db)
   await ensureChecklistItems(db)
 }
