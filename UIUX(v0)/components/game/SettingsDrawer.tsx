@@ -48,7 +48,7 @@ const CHAR_FIELDS = [
 ]
 
 const RESET_VALUES = {
-  level: "1", total_exp: "0", stat_points: "0", skill_points: "0", draw_tickets: "3",
+  level: "1", total_exp: "0", stat_points: "0", skill_points: "0", draw_tickets: "0",
   str: "0", vit: "0", dex: "0", int_stat: "0", luk: "0",
   current_hp: "100", max_hp: "100", current_mp: "50", max_mp: "50",
   clear_count: "0", task_count: "0",
@@ -160,6 +160,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
         body: JSON.stringify(RESET_VALUES),
       })
       if (res.ok) {
+        await fetch("/api/character", { method: "DELETE" })
         onCharUpdated()
         setConfirmReset(false)
         onClose()

@@ -7,11 +7,7 @@ interface CharacterPanelProps {
   maxHp: number
   mp: number
   maxMp: number
-  exp: number
-  maxExp: number
   level: number
-  gems: number
-  gold: number
 }
 
 export default function CharacterPanel({
@@ -19,15 +15,10 @@ export default function CharacterPanel({
   maxHp,
   mp,
   maxMp,
-  exp,
-  maxExp,
   level,
-  gems,
-  gold,
 }: CharacterPanelProps) {
   const hpPercent = (hp / maxHp) * 100
   const mpPercent = (mp / maxMp) * 100
-  const expPercent = (exp / maxExp) * 100
 
   return (
     <div className="flex gap-3 px-4 pt-3 pb-2">
@@ -74,20 +65,6 @@ export default function CharacterPanel({
           </div>
         </div>
 
-        {/* EXP */}
-        <div>
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-base">⭐</span>
-            <span className="text-xs font-bold text-[#f39c12] uppercase tracking-wide">EXP</span>
-            <span className="ml-auto text-xs font-semibold text-[#f39c12]">{exp} / {maxExp}</span>
-          </div>
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#f39c12] to-[#f1c40f] transition-all"
-              style={{ width: `${expPercent}%` }}
-            />
-          </div>
-        </div>
       </div>
     </div>
   )

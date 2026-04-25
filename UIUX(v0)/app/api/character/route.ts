@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { initDb, getCharacter, getGameConfig, updateCharacter, getBattleConfig } from "@/lib/db"
+import { initDb, getCharacter, getGameConfig, updateCharacter, getBattleConfig, getClient } from "@/lib/db"
 import { requiredExp, recalcHpMp } from "@/lib/game"
 
 export async function GET() {
@@ -14,6 +14,18 @@ export async function GET() {
     return NextResponse.json({ ...char, next_exp: nextExp })
   } catch (e) {
     console.error("[character]", e)
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
+
+export async function DELETE() {
+  try {
+    await initDb()
+    const db = getClient()
+    await db.execute("DELETE FROM activity_log")
+    await db.execute("DELETE FROM checklist_log")
+    return NextResponse.json({ ok: true })
+  } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
 }

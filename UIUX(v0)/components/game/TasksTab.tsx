@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, ChevronDown, ChevronUp, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 
 interface DailyItem {
   id: number
@@ -18,15 +18,6 @@ interface TodoItem {
   ai_comment?: string
 }
 
-interface ActivityLog {
-  id: number
-  input_text: string
-  input_type: string
-  exp_gained: number
-  ai_comment: string
-  created_at: string
-}
-
 interface TasksTabProps {
   onExpGained?: () => void
   onCountChange?: (count: number) => void
@@ -37,8 +28,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
-  const [logs, setLogs] = useState<ActivityLog[]>([])
-  const [showLogs, setShowLogs] = useState(false)
   const [adding, setAdding] = useState<"daily" | "todo" | null>(null)
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
@@ -54,10 +43,9 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
 
   const fetchAll = useCallback(async () => {
     try {
-      const [checkRes, todoRes, logRes, promptRes] = await Promise.all([
+      const [checkRes, todoRes] = await Promise.all([
         fetch("/api/checklist"),
         fetch("/api/todos"),
-        fetch("/api/activities"),
       ])
       if (checkRes.ok) {
         const data = await checkRes.json()
@@ -65,10 +53,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         setCheckedDailyIds(new Set(data.checkedIds ?? []))
       }
       if (todoRes.ok) setTodoItems(await todoRes.json())
-      if (logRes.ok) {
-        const all = await logRes.json()
-        setLogs(all.filter((l: ActivityLog) => l.input_type === "daily" || l.input_type === "todo"))
-      }
     } catch {}
     setLoading(false)
   }, [])
@@ -101,11 +85,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? "오류"); return }
       setCheckedDailyIds((prev) => new Set([...prev, item.id]))
-      const logRes = await fetch("/api/activities?limit=30")
-      if (logRes.ok) {
-        const all = await logRes.json()
-        setLogs(all.filter((l: ActivityLog) => l.input_type === "daily" || l.input_type === "todo"))
-      }
       showToast(data.exp, data.comment)
       onExpGained?.()
     } finally {
@@ -128,11 +107,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       setTodoItems((prev) =>
         prev.map((t) => t.id === item.id ? { ...t, is_completed: 1, exp_gained: data.exp } : t)
       )
-      const logRes = await fetch("/api/activities?limit=30")
-      if (logRes.ok) {
-        const all = await logRes.json()
-        setLogs(all.filter((l: ActivityLog) => l.input_type === "daily" || l.input_type === "todo"))
-      }
       showToast(data.exp, data.comment)
       onExpGained?.()
     } finally {
@@ -399,50 +373,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           </div>
         )
       })}
-
-      {/* ── 최근 기록 ───────────────────────────────────── */}
-      <button
-        onClick={() => setShowLogs(!showLogs)}
-        className="mx-4 mt-4 flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl text-sm text-gray-500 font-medium border border-gray-100"
-      >
-        <span className="flex items-center gap-1.5">
-          <span>📜</span>
-          <span>최근 기록</span>
-          {logs.length > 0 && (
-            <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">
-              {logs.length}
-            </span>
-          )}
-        </span>
-        {showLogs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
-
-      {showLogs && (
-        <div className="mx-4 mt-1 rounded-xl overflow-hidden border border-gray-100 bg-white">
-          {logs.length === 0 ? (
-            <p className="text-center text-gray-400 text-xs py-4">완료한 항목이 없습니다</p>
-          ) : (
-            logs.map((log) => (
-              <div key={log.id} className="flex items-start gap-2 px-3 py-2.5 border-b border-gray-50 last:border-0">
-                <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 flex-shrink-0 ${
-                    log.input_type === "daily"
-                      ? "bg-amber-100 text-amber-600"
-                      : "bg-violet-100 text-violet-600"
-                  }`}
-                >
-                  {log.input_type === "daily" ? "데일리" : "할일"}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-700 truncate">{log.input_text}</p>
-                  <p className="text-[10px] text-gray-400 leading-snug">{log.ai_comment}</p>
-                </div>
-                <span className="text-xs font-bold text-amber-500 flex-shrink-0">+{log.exp_gained}</span>
-              </div>
-            ))
-          )}
-        </div>
-      )}
 
       {/* ── 삭제 확인 바텀시트 ──────────────────────────── */}
       {confirmDelete && (

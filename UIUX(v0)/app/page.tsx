@@ -105,11 +105,7 @@ export default function GamePage() {
             maxHp={char?.max_hp ?? 100}
             mp={char?.current_mp ?? 0}
             maxMp={char?.max_mp ?? 50}
-            exp={char?.total_exp ?? 0}
-            maxExp={char?.next_exp ?? 100}
             level={char?.level ?? 1}
-            gems={0}
-            gold={0}
           />
           <LevelBar
             level={char?.level ?? 1}
