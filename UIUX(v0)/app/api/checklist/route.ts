@@ -27,10 +27,6 @@ export async function POST(req: NextRequest) {
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
 
     const result = await judgeActivity(item.name as string)
-    if (result.error === "rate_limit") {
-      return NextResponse.json({ error: "API 한도 초과. 잠시 후 다시 시도하세요." }, { status: 429 })
-    }
-
     await addChecklistLog(itemId, result.exp)
     await addActivityLog(item.name as string, "daily", result.exp, result.comment)
     await incrementTaskCount()

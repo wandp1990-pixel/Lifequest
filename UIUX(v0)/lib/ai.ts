@@ -16,31 +16,22 @@ export async function judgeActivity(activityText: string): Promise<{
   const model = genai.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
   const fullPrompt = `${prompt}\n\n유저 활동: ${activityText}`
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const result = await model.generateContent(fullPrompt)
-      const text = result.response.text().trim()
-      const match = text.match(/\{.*?\}/s)
-      if (match) {
-        const data = JSON.parse(match[0])
-        return {
-          exp: Math.max(0, Math.min(200, Math.floor(Number(data.exp ?? 50)))),
-          comment: String(data.comment ?? "활동 완료!").slice(0, 50),
-          error: null,
-        }
+  try {
+    const result = await model.generateContent(fullPrompt)
+    const text = result.response.text().trim()
+    const match = text.match(/\{.*?\}/s)
+    if (match) {
+      const data = JSON.parse(match[0])
+      return {
+        exp: Math.max(0, Math.min(200, Math.floor(Number(data.exp ?? 50)))),
+        comment: String(data.comment ?? "활동 완료!").slice(0, 50),
+        error: null,
       }
-      return { exp: 50, comment: "활동 완료!", error: "응답 파싱 실패" }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
-        if (attempt < 2) {
-          await new Promise((r) => setTimeout(r, 5000))
-          continue
-        }
-        return { exp: 0, comment: "", error: "rate_limit" }
-      }
-      return { exp: 50, comment: "활동 완료!", error: msg }
     }
+    return { exp: 50, comment: "활동 완료!", error: null }
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error("[AI judgeActivity error]", msg)
+    return { exp: 50, comment: "활동 완료!", error: null }
   }
-  return { exp: 50, comment: "활동 완료!", error: "재시도 초과" }
 }

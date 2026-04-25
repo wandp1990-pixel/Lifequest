@@ -22,10 +22,6 @@ export async function POST(req: NextRequest) {
     if (!text?.trim()) return NextResponse.json({ error: "활동 내용을 입력하세요" }, { status: 400 })
 
     const result = await judgeActivity(text)
-    if (result.error === "rate_limit") {
-      return NextResponse.json({ error: "API 한도 초과. 잠시 후 다시 시도하세요." }, { status: 429 })
-    }
-
     const levelResult = await gainExp(result.exp)
     await addActivityLog(text, "ai", result.exp, result.comment)
 
