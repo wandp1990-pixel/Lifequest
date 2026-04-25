@@ -5,20 +5,18 @@ import TopHeader from "@/components/game/TopHeader"
 import CharacterPanel from "@/components/game/CharacterPanel"
 import LevelBar from "@/components/game/LevelBar"
 import QuestBanner from "@/components/game/QuestBanner"
-import DailiesTab from "@/components/game/DailiesTab"
-import TodosTab from "@/components/game/TodosTab"
+import TasksTab from "@/components/game/TasksTab"
 import ItemsTab from "@/components/game/ItemsTab"
 import BattleTab from "@/components/game/BattleTab"
 import BottomNav from "@/components/game/BottomNav"
 
-type TabType = "dailies" | "todos" | "battle" | "items" | "menu"
+type TabType = "home" | "tasks" | "battle" | "items"
 
 const TAB_TITLES: Record<TabType, string> = {
-  dailies: "데일리",
-  todos: "할 일",
+  home:   "홈",
+  tasks:  "할일",
   battle: "전투",
-  items: "아이템",
-  menu: "메뉴",
+  items:  "아이템",
 }
 
 type CharacterData = {
@@ -31,6 +29,7 @@ type CharacterData = {
   max_mp: number
   draw_tickets: number
   clear_count: number
+  task_count: number
   stat_points: number
   skill_points: number
   str: number
@@ -41,9 +40,9 @@ type CharacterData = {
 }
 
 export default function GamePage() {
-  const [activeTab, setActiveTab] = useState<TabType>("dailies")
+  const [activeTab, setActiveTab] = useState<TabType>("tasks")
   const [char, setChar] = useState<CharacterData | null>(null)
-  const [dailiesCount, setDailiesCount] = useState(0)
+  const [tasksCount, setTasksCount] = useState(0)
 
   const fetchChar = useCallback(async () => {
     try {
@@ -60,25 +59,22 @@ export default function GamePage() {
     fetchChar()
   }, [fetchChar])
 
+  const questTotal = 5 * (1 + Math.floor((char?.task_count ?? 0) / 10))
+
   const renderTabContent = () => {
     switch (activeTab) {
-      case "dailies":
-        return <DailiesTab onExpGained={handleExpGained} onCountChange={setDailiesCount} />
-      case "todos":
-        return <TodosTab onExpGained={handleExpGained} />
-      case "battle":
-        return <BattleTab char={char} onExpGained={handleExpGained} />
-      case "items":
-        return <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />
-      case "menu":
+      case "home":
         return (
           <div className="px-4 pt-4 flex flex-col gap-3">
             {char && (
               <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-2">
                 <p className="text-sm font-bold text-gray-700 mb-1">캐릭터 스탯</p>
                 {[
-                  ["STR", char.str], ["VIT", char.vit], ["DEX", char.dex],
-                  ["INT", char.int_stat], ["LUK", char.luk],
+                  ["STR", char.str],
+                  ["VIT", char.vit],
+                  ["DEX", char.dex],
+                  ["INT", char.int_stat],
+                  ["LUK", char.luk],
                 ].map(([label, val]) => (
                   <div key={label as string} className="flex justify-between text-sm">
                     <span className="text-gray-500 font-medium">{label}</span>
@@ -93,10 +89,20 @@ export default function GamePage() {
                   <span className="text-gray-500">스킬 포인트</span>
                   <span className="font-bold text-violet-600">{char.skill_points}</span>
                 </div>
+                <div className="border-t border-gray-200 mt-1 pt-2 flex justify-between text-sm">
+                  <span className="text-gray-500">누적 태스크</span>
+                  <span className="font-bold text-emerald-600">{char.task_count ?? 0}</span>
+                </div>
               </div>
             )}
           </div>
         )
+      case "tasks":
+        return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} />
+      case "battle":
+        return <BattleTab char={char} onExpGained={handleExpGained} />
+      case "items":
+        return <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />
     }
   }
 
@@ -118,6 +124,8 @@ export default function GamePage() {
             exp={char?.total_exp ?? 0}
             maxExp={char?.next_exp ?? 100}
             level={char?.level ?? 1}
+            gems={0}
+            gold={0}
           />
           <LevelBar
             level={char?.level ?? 1}
@@ -127,8 +135,8 @@ export default function GamePage() {
           <QuestBanner
             title="데일리 완료"
             reward={50}
-            progress={dailiesCount}
-            total={4}
+            progress={tasksCount}
+            total={questTotal}
           />
         </div>
 
@@ -140,7 +148,7 @@ export default function GamePage() {
           <BottomNav
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            dailiesCount={dailiesCount}
+            tasksCount={tasksCount}
           />
         </div>
       </div>

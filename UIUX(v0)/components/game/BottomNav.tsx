@@ -1,14 +1,13 @@
 "use client"
 
-import { CalendarDays, CheckSquare, Menu, ShoppingBag, Swords } from "lucide-react"
+import { User, CheckSquare, Swords, ShoppingBag } from "lucide-react"
 
-type TabType = "dailies" | "todos" | "battle" | "items" | "menu"
+type TabType = "home" | "tasks" | "battle" | "items"
 
 interface BottomNavProps {
   activeTab: TabType
   onTabChange: (tab: TabType) => void
-  dailiesCount?: number
-  menuCount?: number
+  tasksCount?: number
 }
 
 const TAB_CONFIG: {
@@ -19,18 +18,18 @@ const TAB_CONFIG: {
   badgeColor: string
 }[] = [
   {
-    id: "dailies",
-    label: "데일리",
+    id: "home",
+    label: "홈",
+    activeColor: "text-emerald-500",
+    activeBg: "bg-emerald-50",
+    badgeColor: "bg-emerald-500",
+  },
+  {
+    id: "tasks",
+    label: "할일",
     activeColor: "text-amber-500",
     activeBg: "bg-amber-50",
     badgeColor: "bg-amber-500",
-  },
-  {
-    id: "todos",
-    label: "할 일",
-    activeColor: "text-violet-600",
-    activeBg: "bg-violet-50",
-    badgeColor: "bg-violet-600",
   },
   {
     id: "battle",
@@ -46,32 +45,22 @@ const TAB_CONFIG: {
     activeBg: "bg-sky-50",
     badgeColor: "bg-sky-500",
   },
-  {
-    id: "menu",
-    label: "메뉴",
-    activeColor: "text-rose-500",
-    activeBg: "bg-rose-50",
-    badgeColor: "bg-rose-500",
-  },
 ]
+
+const ICONS: Record<TabType, React.ReactNode> = {
+  home:   <User        className="w-5 h-5" />,
+  tasks:  <CheckSquare className="w-5 h-5" />,
+  battle: <Swords      className="w-5 h-5" />,
+  items:  <ShoppingBag className="w-5 h-5" />,
+}
 
 export default function BottomNav({
   activeTab,
   onTabChange,
-  dailiesCount = 4,
-  menuCount = 1,
+  tasksCount = 0,
 }: BottomNavProps) {
   const badges: Partial<Record<TabType, number>> = {
-    dailies: dailiesCount,
-    menu: menuCount,
-  }
-
-  const ICONS: Record<TabType, React.ReactNode> = {
-    dailies: <CalendarDays className="w-5 h-5" />,
-    todos:   <CheckSquare  className="w-5 h-5" />,
-    battle:  <Swords       className="w-5 h-5" />,
-    items:   <ShoppingBag  className="w-5 h-5" />,
-    menu:    <Menu         className="w-5 h-5" />,
+    tasks: tasksCount,
   }
 
   return (
@@ -94,7 +83,6 @@ export default function BottomNav({
             aria-label={tab.label}
             aria-current={isActive ? "page" : undefined}
           >
-            {/* Badge */}
             {badge !== undefined && badge > 0 && (
               <div
                 className={`absolute -top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center z-10 ${
@@ -105,12 +93,10 @@ export default function BottomNav({
               </div>
             )}
 
-            {/* Icon */}
             <div className={`transition-colors duration-200 ${isActive ? tab.activeColor : "text-gray-400"}`}>
               {ICONS[tab.id]}
             </div>
 
-            {/* Label */}
             <span
               className={`text-[10px] font-bold transition-colors duration-200 ${
                 isActive ? tab.activeColor : "text-gray-400"
@@ -119,7 +105,6 @@ export default function BottomNav({
               {tab.label}
             </span>
 
-            {/* Active dot indicator */}
             {isActive && (
               <div className={`w-1 h-1 rounded-full ${tab.badgeColor}`} />
             )}

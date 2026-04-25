@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS character (
     skill_points INTEGER  DEFAULT 0,
     draw_tickets INTEGER  DEFAULT 3,
     clear_count  INTEGER  DEFAULT 0,
+    task_count   INTEGER  DEFAULT 0,
     str          INTEGER  DEFAULT 1,
     vit          INTEGER  DEFAULT 1,
     dex          INTEGER  DEFAULT 1,
@@ -106,6 +107,16 @@ CREATE TABLE IF NOT EXISTS item_passive_pool (
     name        TEXT,
     description TEXT,
     is_active   INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS todo_item (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    suggested_exp INTEGER DEFAULT 10,
+    is_completed  INTEGER DEFAULT 0,
+    exp_gained    INTEGER,
+    ai_comment    TEXT,
+    created_at    TEXT,
+    completed_at  TEXT
 );
 CREATE TABLE IF NOT EXISTS battle_log (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -190,8 +201,8 @@ export async function initDb() {
     const s = stmt.trim()
     if (s) await db.execute(s)
   }
-  // 기존 DB에 clear_count 컬럼 추가 (이미 있으면 무시)
   try { await db.execute("ALTER TABLE character ADD COLUMN clear_count INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN task_count INTEGER DEFAULT 0") } catch {}
   await seedIfEmpty(db)
   await seedCharacter(db)
   await ensureChecklistItems(db)
@@ -463,6 +474,7 @@ export type Character = {
   skill_points: number
   draw_tickets: number
   clear_count: number
+  task_count: number
   str: number
   vit: number
   dex: number
@@ -499,13 +511,13 @@ export async function addActivityLog(text: string, type: string, exp: number, co
     args: [text, type, exp, comment, now()],
   })
   await db.execute(
-    "DELETE FROM activity_log WHERE id NOT IN (SELECT id FROM activity_log ORDER BY id DESC LIMIT 20)"
+    "DELETE FROM activity_log WHERE id NOT IN (SELECT id FROM activity_log ORDER BY id DESC LIMIT 5)"
   )
 }
 
 export async function getRecentActivities() {
   const db = getClient()
-  const res = await db.execute("SELECT * FROM activity_log ORDER BY id DESC LIMIT 20")
+  const res = await db.execute("SELECT * FROM activity_log ORDER BY id DESC LIMIT 5")
   return res.rows
 }
 
@@ -523,6 +535,19 @@ export async function addChecklistLog(itemId: number, exp: number) {
     sql: "INSERT INTO checklist_log (item_id,exp_gained,checked_at) VALUES (?,?,?)",
     args: [itemId, exp, now()],
   })
+}
+
+export async function addChecklistItem(name: string, fixedExp: number) {
+  const db = getClient()
+  await db.execute({
+    sql: "INSERT INTO checklist_item (name, fixed_exp, is_active) VALUES (?,?,1)",
+    args: [name, fixedExp],
+  })
+}
+
+export async function deleteChecklistItem(id: number) {
+  const db = getClient()
+  await db.execute({ sql: "UPDATE checklist_item SET is_active=0 WHERE id=?", args: [id] })
 }
 
 export async function getTodayCheckedItemIds(): Promise<Set<number>> {
@@ -653,4 +678,50 @@ export async function getPassivePool() {
   const db = getClient()
   const res = await db.execute("SELECT * FROM item_passive_pool WHERE is_active = 1")
   return res.rows
+}
+
+// ── 할 일 ──────────────────────────────────────────────────────────────────────
+
+export async function getTodoItems() {
+  const db = getClient()
+  const res = await db.execute("SELECT * FROM todo_item ORDER BY is_completed ASC, id DESC")
+  return res.rows
+}
+
+export async function addTodoItem(name: string, suggestedExp: number) {
+  const db = getClient()
+  await db.execute({
+    sql: "INSERT INTO todo_item (name, suggested_exp, is_completed, created_at) VALUES (?,?,0,?)",
+    args: [name, suggestedExp, now()],
+  })
+}
+
+export async function completeTodoItem(id: number, exp: number, comment: string) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE todo_item SET is_completed=1, exp_gained=?, ai_comment=?, completed_at=? WHERE id=?",
+    args: [exp, comment, now(), id],
+  })
+}
+
+export async function deleteTodoItem(id: number) {
+  const db = getClient()
+  await db.execute({ sql: "DELETE FROM todo_item WHERE id=?", args: [id] })
+}
+
+// ── 프롬프트 수정 ──────────────────────────────────────────────────────────────
+
+export async function updatePromptContent(category: string, content: string) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE prompt SET content=?, updated_at=? WHERE category=? AND is_active=1",
+    args: [content, now(), category],
+  })
+}
+
+// ── 태스크 카운트 ──────────────────────────────────────────────────────────────
+
+export async function incrementTaskCount() {
+  const db = getClient()
+  await db.execute("UPDATE character SET task_count = COALESCE(task_count,0) + 1 WHERE id = 1")
 }
