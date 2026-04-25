@@ -27,6 +27,112 @@ async function tryGenerate(
   throw lastErr
 }
 
+function extractJson(text: string): unknown | null {
+  const start = text.indexOf("{")
+  if (start === -1) return null
+  let depth = 0
+  let inStr = false
+  let escape = false
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i]
+    if (escape) {
+      escape = false
+      continue
+    }
+    if (inStr) {
+      if (ch === "\\") escape = true
+      else if (ch === '"') inStr = false
+      continue
+    }
+    if (ch === '"') inStr = true
+    else if (ch === "{") depth++
+    else if (ch === "}") {
+      depth--
+      if (depth === 0) {
+        try {
+          return JSON.parse(text.slice(start, i + 1))
+        } catch {
+          return null
+        }
+      }
+    }
+  }
+  return null
+}
+
+type AnyObj = Record<string, unknown>
+
+function pickNumber(obj: AnyObj | null | undefined, ...keys: string[]): number | null {
+  if (!obj) return null
+  for (const k of keys) {
+    const v = obj[k]
+    if (typeof v === "number" && Number.isFinite(v)) return v
+    if (typeof v === "string") {
+      const n = parseFloat(v)
+      if (Number.isFinite(n)) return n
+    }
+    if (v && typeof v === "object") {
+      const inner = v as AnyObj
+      for (const ik of ["value", "score", "exp", "xp", "amount"]) {
+        const iv = inner[ik]
+        if (typeof iv === "number" && Number.isFinite(iv)) return iv
+      }
+    }
+  }
+  return null
+}
+
+function pickString(obj: AnyObj | null | undefined, ...keys: string[]): string | null {
+  if (!obj) return null
+  for (const k of keys) {
+    const v = obj[k]
+    if (typeof v === "string" && v.trim()) return v.trim()
+    if (v && typeof v === "object") {
+      const inner = v as AnyObj
+      for (const ik of ["reason", "text", "message", "사유"]) {
+        const iv = inner[ik]
+        if (typeof iv === "string" && iv.trim()) return iv.trim()
+      }
+    }
+  }
+  return null
+}
+
+function parseResponse(text: string): { exp: number; comment: string } | null {
+  const data = extractJson(text)
+  if (!data || typeof data !== "object") return null
+  const obj = data as AnyObj
+
+  let exp = pickNumber(obj, "exp", "total_xp", "totalXp", "score", "xp", "최종", "total")
+  if (exp === null) {
+    const base = pickNumber(obj, "base_xp", "baseXp", "base", "기본")
+    const bonus = pickNumber(obj, "bonus_xp", "bonusXp", "bonus", "추가", "보너스")
+    if (base !== null || bonus !== null) exp = (base ?? 0) + (bonus ?? 0)
+  }
+  if (exp === null) return null
+
+  let comment = pickString(obj, "comment", "reason", "사유", "message", "설명", "explanation")
+  if (!comment) {
+    const baseReason = pickString(obj, "base_reason", "baseReason", "base_xp_reason")
+    const bonusReason = pickString(obj, "bonus_reason", "bonusReason", "bonus_xp_reason")
+    const parts = [baseReason, bonusReason].filter(Boolean) as string[]
+    if (parts.length) comment = parts.join(" / ")
+  }
+  if (!comment) {
+    const baseObj = (obj.base_xp ?? obj.baseXp) as AnyObj | undefined
+    const bonusObj = (obj.bonus_xp ?? obj.bonusXp) as AnyObj | undefined
+    const parts: string[] = []
+    if (typeof baseObj?.reason === "string") parts.push(baseObj.reason)
+    if (typeof bonusObj?.reason === "string") parts.push(bonusObj.reason)
+    if (parts.length) comment = parts.join(" / ")
+  }
+
+  return {
+    exp: Math.max(0, Math.min(200, Math.floor(exp))),
+    comment: (comment ?? "활동 완료!").slice(0, 80),
+  }
+}
+
 export async function judgeActivity(activityText: string): Promise<{
   exp: number
   comment: string
@@ -45,16 +151,10 @@ export async function judgeActivity(activityText: string): Promise<{
   for (const modelName of MODELS) {
     try {
       const text = await tryGenerate(genai, modelName, fullPrompt)
-      const match = text.match(/\{.*?\}/s)
-      if (match) {
-        const data = JSON.parse(match[0])
-        return {
-          exp: Math.max(0, Math.min(200, Math.floor(Number(data.exp ?? 50)))),
-          comment: String(data.comment ?? "활동 완료!").slice(0, 50),
-          error: null,
-        }
-      }
-      return { exp: 50, comment: "활동 완료!", error: null }
+      const parsed = parseResponse(text)
+      if (parsed) return { ...parsed, error: null }
+      lastMsg = `JSON 파싱 실패 (${modelName})`
+      console.error(`[AI judgeActivity] ${modelName} parse failed, raw:`, text.slice(0, 300))
     } catch (e) {
       lastMsg = e instanceof Error ? e.message : String(e)
       console.error(`[AI judgeActivity] ${modelName} failed:`, lastMsg)
