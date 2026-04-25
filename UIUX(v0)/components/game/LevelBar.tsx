@@ -15,7 +15,7 @@ export default function LevelBar({ level, expPercent, drawTickets }: LevelBarPro
 
       {/* EXP 바 */}
       <div className="flex-1 flex flex-col gap-0.5">
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#f39c12] to-[#f1c40f] transition-all"
             style={{ width: `${Math.min(expPercent, 100)}%` }}
