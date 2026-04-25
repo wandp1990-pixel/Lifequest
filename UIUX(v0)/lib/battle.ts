@@ -42,11 +42,13 @@ export type CombatStats = {
 export type TurnLog = {
   turn: number
   attacker: "플레이어" | "몬스터"
+  attack_type: "normal" | "skill"
   result: "hit" | "crit" | "double" | "crit_double" | "accuracy_fail" | "evaded"
   damage: number
   crit: boolean
   double: boolean
   life_steal: number
+  mp_cost: number
   player_hp: number
   player_mp: number
   monster_hp: number
@@ -277,7 +279,10 @@ function calcDmg(atk: number, def_: number, ignoreRatio: number): number {
 
 type Combatant = { patk: number; matk: number; pdef: number; mdef: number; dex: number; luk: number; int: number; max_hp: number; bonus_crit_rate: number; bonus_crit_dmg: number }
 
-function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant) {
+const SKILL_MP_COST = 10
+const SKILL_DAMAGE_BONUS = 1.4
+
+function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kind: "normal" | "skill") {
   const baseAcc    = parseFloat(cfg.base_accuracy    ?? "0.9")
   const accPerDex  = parseFloat(cfg.accuracy_per_dex ?? "0.005")
   const evPerDex   = parseFloat(cfg.evasion_per_dex  ?? "0.003")
@@ -292,8 +297,12 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant) {
   const dmgMax      = parseFloat(cfg.damage_random_max    ?? "1.1")
   const dmgRand     = dmgMin + Math.random() * (dmgMax - dmgMin)
 
-  let phys  = calcDmg(atk.patk, def.pdef, ignoreRatio) * dmgRand
-  let magic = calcDmg(atk.matk, def.mdef, ignoreRatio) * dmgRand
+  let base: number
+  if (kind === "skill") {
+    base = calcDmg(atk.matk, def.mdef, ignoreRatio) * dmgRand * SKILL_DAMAGE_BONUS
+  } else {
+    base = calcDmg(atk.patk, def.pdef, ignoreRatio) * dmgRand
+  }
 
   const critPerLuk    = parseFloat(cfg.crit_rate_per_luk              ?? "0.005")
   const critSuppress  = parseFloat(cfg.crit_suppression_per_enemy_luk ?? "0.003")
@@ -304,13 +313,12 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant) {
   const isCrit   = Math.random() < critRate
   if (isCrit) {
     const mult = baseCritMult + atk.int * critMultPerInt + (atk.bonus_crit_dmg ?? 0) / 100
-    phys  *= mult
-    magic *= mult
+    base *= mult
   }
 
   const doubleChance = parseFloat(cfg.double_attack_chance ?? "0.0")
   const isDouble     = Math.random() < doubleChance
-  let total = (phys + magic) * (isDouble ? 2 : 1)
+  const total        = base * (isDouble ? 2 : 1)
 
   const lifeSteal = parseFloat(cfg.life_steal_ratio ?? "0.0")
 
@@ -359,12 +367,24 @@ export function runBattle(
     const atk = attLabel === "플레이어" ? plyCombat : monCombat
     const def = attLabel === "플레이어" ? monCombat : plyCombat
 
-    const res = attack(battleCfg, atk, def)
+    let kind: "normal" | "skill" = "normal"
+    let mpCost = 0
+    if (attLabel === "플레이어") {
+      const canSkill = atk.matk > 0 && playerMp >= SKILL_MP_COST
+      if (canSkill && Math.random() < 0.5) {
+        kind = "skill"; mpCost = SKILL_MP_COST
+      }
+    } else {
+      if (atk.matk > 0 && Math.random() < 0.4) kind = "skill"
+    }
+
+    const res = attack(battleCfg, atk, def, kind)
     const dmg = res.total_damage
 
     if (attLabel === "플레이어") {
       monsterHp = Math.max(0, monsterHp - dmg)
       playerHp  = Math.min(playerHp + res.life_steal, playerCombat.max_hp)
+      playerMp  = Math.max(0, playerMp - mpCost)
     } else {
       playerHp  = Math.max(0, playerHp - dmg)
       monsterHp = Math.min(monsterHp + res.life_steal, monCombat.max_hp)
@@ -377,7 +397,7 @@ export function runBattle(
     else if (res.double_attack) { result = "double" }
     else { result = "hit" }
 
-    logs.push({ turn, attacker: attLabel, result, damage: dmg, crit: res.critical, double: res.double_attack, life_steal: res.life_steal, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp })
+    logs.push({ turn, attacker: attLabel, attack_type: kind, result, damage: dmg, crit: res.critical, double: res.double_attack, life_steal: res.life_steal, mp_cost: mpCost, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp })
 
     if (monsterHp <= 0) { winner = "플레이어"; break }
     if (playerHp  <= 0) { winner = "몬스터";   break }

@@ -1,5 +1,6 @@
 export type Character = {
   id: number
+  name: string
   level: number
   total_exp: number
   stat_points: number

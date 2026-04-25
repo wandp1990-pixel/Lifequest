@@ -22,6 +22,7 @@ const TAB_TITLES: Record<TabType, string> = {
 }
 
 type CharacterData = {
+  name: string
   level: number
   total_exp: number
   next_exp: number
@@ -84,7 +85,7 @@ export default function GamePage() {
       case "tasks":
         return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} />
       case "battle":
-        return <BattleTab char={char} onExpGained={handleExpGained} />
+        return <BattleTab char={char} onExpGained={handleExpGained} onMenuClick={() => setShowSettings(true)} />
       case "items":
         return <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />
     }
@@ -98,28 +99,30 @@ export default function GamePage() {
         className="relative flex flex-col bg-white w-full max-w-sm"
         style={{ minHeight: "100dvh", maxHeight: "100dvh" }}
       >
-        <div className="flex-shrink-0 bg-white">
-          <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
-          <CharacterPanel
-            hp={char?.current_hp ?? 0}
-            maxHp={char?.max_hp ?? 100}
-            mp={char?.current_mp ?? 0}
-            maxMp={char?.max_mp ?? 50}
-            level={char?.level ?? 1}
-          />
-          <LevelBar
-            level={char?.level ?? 1}
-            expPercent={expPercent}
-            drawTickets={char?.draw_tickets ?? 0}
-          />
-          {activeTab !== "home" && (
-            <QuestBanner
-              title="데일리 완료"
-              progress={dailyCompleted}
-              total={questTotal}
+        {activeTab !== "battle" && (
+          <div className="flex-shrink-0 bg-white">
+            <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
+            <CharacterPanel
+              hp={char?.current_hp ?? 0}
+              maxHp={char?.max_hp ?? 100}
+              mp={char?.current_mp ?? 0}
+              maxMp={char?.max_mp ?? 50}
+              level={char?.level ?? 1}
             />
-          )}
-        </div>
+            <LevelBar
+              level={char?.level ?? 1}
+              expPercent={expPercent}
+              drawTickets={char?.draw_tickets ?? 0}
+            />
+            {activeTab !== "home" && (
+              <QuestBanner
+                title="데일리 완료"
+                progress={dailyCompleted}
+                total={questTotal}
+              />
+            )}
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto">
           {renderTabContent()}

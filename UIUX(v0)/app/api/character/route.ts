@@ -37,16 +37,20 @@ export async function PUT(req: NextRequest) {
     const allowed = ["str", "vit", "dex", "int_stat", "luk", "stat_points", "skill_points",
                      "level", "total_exp", "current_hp", "current_mp", "draw_tickets",
                      "clear_count", "task_count"]
-    const fields: Record<string, number> = {}
+    const fields: Record<string, number | string> = {}
     for (const key of allowed) {
       if (key in body && body[key] !== "" && !isNaN(Number(body[key]))) {
         fields[key] = Number(body[key])
       }
     }
+    if (typeof body.name === "string") {
+      const trimmed = body.name.trim().slice(0, 20)
+      if (trimmed) fields.name = trimmed
+    }
     if (Object.keys(fields).length > 0) {
       const char = await getCharacter()
       const bcfg = await getBattleConfig()
-      const merged = { ...char, ...fields }
+      const merged = { ...char, ...fields } as typeof char
       const { maxHp, maxMp } = recalcHpMp(merged, bcfg)
       await updateCharacter({
         ...fields,

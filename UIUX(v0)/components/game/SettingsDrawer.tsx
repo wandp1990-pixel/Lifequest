@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { X, Save, ChevronDown, ChevronRight, RotateCcw, FileText } from "lucide-react"
 
 interface CharacterData {
+  name?: string
   level: number
   total_exp: number
   next_exp: number
@@ -56,8 +57,9 @@ const RESET_VALUES = {
 
 export default function SettingsDrawer({ char, onCharUpdated, onClose }: SettingsDrawerProps) {
   const [charEdits, setCharEdits] = useState<Record<string, string>>({})
+  const [nameEdit, setNameEdit] = useState<string>("")
   const [charSaving, setCharSaving] = useState(false)
-  const [showChar, setShowChar] = useState(false)
+  const [showChar, setShowChar] = useState(true)
 
   const [configs, setConfigs] = useState<ConfigRow[]>([])
   const [configEdits, setConfigEdits] = useState<Record<string, string>>({})
@@ -81,6 +83,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
       vals[f.key] = String(char[f.key as keyof CharacterData] ?? 0)
     })
     setCharEdits(vals)
+    setNameEdit(char.name ?? "전사")
   }, [char])
 
   const fetchConfig = useCallback(async () => {
@@ -107,7 +110,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
       const res = await fetch("/api/character", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(charEdits),
+        body: JSON.stringify({ ...charEdits, name: nameEdit }),
       })
       if (res.ok) onCharUpdated()
     } finally {
@@ -233,6 +236,17 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           </button>
           {showChar && (
             <div className="px-4 pt-3 pb-4">
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
+                <span className="text-sm text-gray-600">캐릭터명</span>
+                <input
+                  type="text"
+                  value={nameEdit}
+                  onChange={(e) => setNameEdit(e.target.value)}
+                  maxLength={20}
+                  placeholder="전사"
+                  className="w-32 text-right text-sm font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-300"
+                />
+              </div>
               <div className="flex flex-col gap-2.5">
                 {CHAR_FIELDS.map(({ key, label }) => (
                   <div key={key} className="flex items-center justify-between">

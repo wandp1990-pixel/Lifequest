@@ -1,14 +1,17 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getCharacter, getEquipment, getGameConfig, getBattleConfig,
   updateCharacter, addBattleLog,
 } from "@/lib/db"
-import { generateMonster, buildPlayerCombatStats, runBattle } from "@/lib/battle"
+import { generateMonster, buildPlayerCombatStats, runBattle, type Monster } from "@/lib/battle"
 import { gainExp } from "@/lib/game"
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     await initDb()
+
+    let body: { monster?: Monster } = {}
+    try { body = await req.json() } catch {}
 
     const char      = await getCharacter()
     const gameCfg   = await getGameConfig()
@@ -21,7 +24,7 @@ export async function POST() {
       .map((e) => e.options as string)
 
     const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg)
-    const monster      = generateMonster(char.clear_count ?? 0, char.level, gameCfg)
+    const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg)
     const result       = runBattle(playerCombat, monster, battleCfg)
 
     let expGained = 0

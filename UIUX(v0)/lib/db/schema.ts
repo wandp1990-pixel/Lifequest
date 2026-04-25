@@ -6,6 +6,7 @@ let _initialized = false
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS character (
     id           INTEGER PRIMARY KEY,
+    name         TEXT     DEFAULT '전사',
     level        INTEGER  DEFAULT 1,
     total_exp    INTEGER  DEFAULT 0,
     stat_points  INTEGER  DEFAULT 0,
@@ -214,6 +215,8 @@ export async function initDb() {
   }
   try { await db.execute("ALTER TABLE character ADD COLUMN clear_count INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN task_count INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN name TEXT DEFAULT '전사'") } catch {}
+  try { await db.execute("UPDATE character SET name='전사' WHERE id=1 AND (name IS NULL OR name='')") } catch {}
   try {
     await db.execute(
       "UPDATE character SET str=0,vit=0,dex=0,int_stat=0,luk=0 WHERE id=1 AND level=1 AND str=1 AND total_exp=0"

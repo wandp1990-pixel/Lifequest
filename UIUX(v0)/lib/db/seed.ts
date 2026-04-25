@@ -254,9 +254,9 @@ export async function seedCharacter(db: Client) {
   if ((res.rows[0].cnt as number) > 0) return
   const t = now()
   await db.execute({
-    sql: `INSERT INTO character (id,level,total_exp,stat_points,skill_points,draw_tickets,
+    sql: `INSERT INTO character (id,name,level,total_exp,stat_points,skill_points,draw_tickets,
           str,vit,dex,int_stat,luk,base_hp,base_mp,current_hp,max_hp,current_mp,max_mp,created_at,updated_at)
-          VALUES (1,1,0,0,0,3,0,0,0,0,0,100,50,100,100,50,50,?,?)`,
+          VALUES (1,'전사',1,0,0,0,3,0,0,0,0,0,100,50,100,100,50,50,?,?)`,
     args: [t, t],
   })
 }
