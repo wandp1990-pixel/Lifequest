@@ -1,17 +1,34 @@
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { GoogleGenerativeAI, SchemaType, type ObjectSchema } from "@google/generative-ai"
 import { getActivePrompt } from "./db"
 
-const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
 const RETRIABLE = /\b(429|500|502|503|504)\b|overload|unavailable|high demand/i
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+const RESPONSE_SCHEMA: ObjectSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    exp: { type: SchemaType.INTEGER, description: "0~200 사이 정수" },
+    comment: { type: SchemaType.STRING, description: "20자 이내 한국어 격려 멘트" },
+  },
+  required: ["exp", "comment"],
+}
+
+const JSON_ENFORCEMENT = `\n\n반드시 아래 JSON 한 개만 출력하라. 다른 텍스트(마크다운/설명/코드블록) 절대 금지:\n{"exp": <0~200 정수>, "comment": "<20자 이내 한국어 멘트>"}`
 
 async function tryGenerate(
   genai: GoogleGenerativeAI,
   modelName: string,
   fullPrompt: string,
 ): Promise<string> {
-  const model = genai.getGenerativeModel({ model: modelName })
+  const model = genai.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: RESPONSE_SCHEMA,
+    },
+  })
   let lastErr: unknown
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -145,7 +162,7 @@ export async function judgeActivity(activityText: string): Promise<{
   if (!apiKey) return { exp: 50, comment: "활동 완료!", error: "API 키 없음" }
 
   const genai = new GoogleGenerativeAI(apiKey)
-  const fullPrompt = `${prompt}\n\n유저 활동: ${activityText}`
+  const fullPrompt = `${prompt}\n\n유저 활동: ${activityText}${JSON_ENFORCEMENT}`
 
   let lastMsg = ""
   for (const modelName of MODELS) {
