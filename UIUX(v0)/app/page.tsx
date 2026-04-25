@@ -6,6 +6,7 @@ import CharacterPanel from "@/components/game/CharacterPanel"
 import LevelBar from "@/components/game/LevelBar"
 import QuestBanner from "@/components/game/QuestBanner"
 import TasksTab from "@/components/game/TasksTab"
+import HomeTab from "@/components/game/HomeTab"
 import ItemsTab from "@/components/game/ItemsTab"
 import BattleTab from "@/components/game/BattleTab"
 import BottomNav from "@/components/game/BottomNav"
@@ -65,37 +66,11 @@ export default function GamePage() {
     switch (activeTab) {
       case "home":
         return (
-          <div className="px-4 pt-4 flex flex-col gap-3">
-            {char && (
-              <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-2">
-                <p className="text-sm font-bold text-gray-700 mb-1">캐릭터 스탯</p>
-                {[
-                  ["STR", char.str],
-                  ["VIT", char.vit],
-                  ["DEX", char.dex],
-                  ["INT", char.int_stat],
-                  ["LUK", char.luk],
-                ].map(([label, val]) => (
-                  <div key={label as string} className="flex justify-between text-sm">
-                    <span className="text-gray-500 font-medium">{label}</span>
-                    <span className="font-bold text-gray-800">{val}</span>
-                  </div>
-                ))}
-                <div className="border-t border-gray-200 mt-1 pt-2 flex justify-between text-sm">
-                  <span className="text-gray-500">스탯 포인트</span>
-                  <span className="font-bold text-amber-600">{char.stat_points}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">스킬 포인트</span>
-                  <span className="font-bold text-violet-600">{char.skill_points}</span>
-                </div>
-                <div className="border-t border-gray-200 mt-1 pt-2 flex justify-between text-sm">
-                  <span className="text-gray-500">누적 태스크</span>
-                  <span className="font-bold text-emerald-600">{char.task_count ?? 0}</span>
-                </div>
-              </div>
-            )}
-          </div>
+          <HomeTab
+            char={char}
+            onCharUpdated={fetchChar}
+            onExpGained={handleExpGained}
+          />
         )
       case "tasks":
         return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} />

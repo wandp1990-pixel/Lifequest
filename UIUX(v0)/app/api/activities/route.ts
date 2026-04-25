@@ -3,10 +3,12 @@ import { initDb, addActivityLog, getRecentActivities } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 import { judgeActivity } from "@/lib/ai"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     await initDb()
-    const logs = await getRecentActivities()
+    const type = req.nextUrl.searchParams.get("type") ?? undefined
+    const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "5")
+    const logs = await getRecentActivities(type, limit)
     return NextResponse.json(logs)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

@@ -69,7 +69,10 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
         setCheckedDailyIds(new Set(data.checkedIds ?? []))
       }
       if (todoRes.ok) setTodoItems(await todoRes.json())
-      if (logRes.ok) setLogs(await logRes.json())
+      if (logRes.ok) {
+        const all = await logRes.json()
+        setLogs(all.filter((l: ActivityLog) => l.input_type === "daily" || l.input_type === "todo"))
+      }
       if (promptRes.ok) {
         const p = await promptRes.json()
         setPromptContent(p.content ?? "")
@@ -105,8 +108,11 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? "오류"); return }
       setCheckedDailyIds((prev) => new Set([...prev, item.id]))
-      const logRes = await fetch("/api/activities")
-      if (logRes.ok) setLogs(await logRes.json())
+      const logRes = await fetch("/api/activities?limit=30")
+      if (logRes.ok) {
+        const all = await logRes.json()
+        setLogs(all.filter((l: ActivityLog) => l.input_type === "daily" || l.input_type === "todo"))
+      }
       showToast(data.exp, data.comment)
       onExpGained?.()
     } finally {
@@ -129,8 +135,11 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
       setTodoItems((prev) =>
         prev.map((t) => t.id === item.id ? { ...t, is_completed: 1, exp_gained: data.exp } : t)
       )
-      const logRes = await fetch("/api/activities")
-      if (logRes.ok) setLogs(await logRes.json())
+      const logRes = await fetch("/api/activities?limit=30")
+      if (logRes.ok) {
+        const all = await logRes.json()
+        setLogs(all.filter((l: ActivityLog) => l.input_type === "daily" || l.input_type === "todo"))
+      }
       showToast(data.exp, data.comment)
       onExpGained?.()
     } finally {

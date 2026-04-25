@@ -517,13 +517,23 @@ export async function addActivityLog(text: string, type: string, exp: number, co
     args: [text, type, exp, comment, now()],
   })
   await db.execute(
-    "DELETE FROM activity_log WHERE id NOT IN (SELECT id FROM activity_log ORDER BY id DESC LIMIT 5)"
+    "DELETE FROM activity_log WHERE id NOT IN (SELECT id FROM activity_log ORDER BY id DESC LIMIT 30)"
   )
 }
 
-export async function getRecentActivities() {
+export async function getRecentActivities(type?: string, limit = 5) {
   const db = getClient()
-  const res = await db.execute("SELECT * FROM activity_log ORDER BY id DESC LIMIT 5")
+  if (type) {
+    const res = await db.execute({
+      sql: "SELECT * FROM activity_log WHERE input_type=? ORDER BY id DESC LIMIT ?",
+      args: [type, limit],
+    })
+    return res.rows
+  }
+  const res = await db.execute({
+    sql: "SELECT * FROM activity_log ORDER BY id DESC LIMIT ?",
+    args: [limit],
+  })
   return res.rows
 }
 
@@ -626,6 +636,20 @@ export async function getGameConfig(): Promise<Record<string, string>> {
   const db = getClient()
   const res = await db.execute("SELECT config_key, config_value FROM game_config")
   return Object.fromEntries(res.rows.map((r) => [r.config_key, r.config_value]))
+}
+
+export async function getGameConfigFull() {
+  const db = getClient()
+  const res = await db.execute("SELECT config_key, config_value, description FROM game_config ORDER BY id")
+  return res.rows
+}
+
+export async function updateGameConfigValue(key: string, value: string) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE game_config SET config_value=?, updated_at=? WHERE config_key=?",
+    args: [value, now(), key],
+  })
 }
 
 export async function getBattleConfig(): Promise<Record<string, string>> {
