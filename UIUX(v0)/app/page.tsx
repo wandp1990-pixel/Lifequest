@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import TopHeader from "@/components/game/TopHeader"
 import CharacterPanel from "@/components/game/CharacterPanel"
 import LevelBar from "@/components/game/LevelBar"
@@ -45,7 +45,9 @@ export default function GamePage() {
   const [activeTab, setActiveTab] = useState<TabType>("tasks")
   const [char, setChar] = useState<CharacterData | null>(null)
   const [tasksCount, setTasksCount] = useState(0)
+  const [dailyCompleted, setDailyCompleted] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
+  const questRewardedRef = useRef(false)
 
   const fetchChar = useCallback(async () => {
     try {
@@ -62,14 +64,25 @@ export default function GamePage() {
     fetchChar()
   }, [fetchChar])
 
-  const questTotal = 5 * (1 + Math.floor((char?.task_count ?? 0) / 10))
+  const questTotal = 10 * (1 + Math.floor((char?.task_count ?? 0) / 10))
+
+  useEffect(() => {
+    if (questRewardedRef.current) return
+    if (dailyCompleted >= questTotal && questTotal > 0) {
+      questRewardedRef.current = true
+      fetch("/api/quest/reward", { method: "POST" })
+        .then((r) => r.json())
+        .then((d) => { if (d.exp) fetchChar() })
+        .catch(() => {})
+    }
+  }, [dailyCompleted, questTotal, fetchChar])
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "home":
         return <HomeTab onExpGained={handleExpGained} />
       case "tasks":
-        return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} />
+        return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} />
       case "battle":
         return <BattleTab char={char} onExpGained={handleExpGained} />
       case "items":
@@ -106,8 +119,7 @@ export default function GamePage() {
           {activeTab !== "home" && (
             <QuestBanner
               title="데일리 완료"
-              reward={50}
-              progress={tasksCount}
+              progress={dailyCompleted}
               total={questTotal}
             />
           )}

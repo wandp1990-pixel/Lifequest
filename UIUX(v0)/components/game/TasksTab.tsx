@@ -30,9 +30,10 @@ interface ActivityLog {
 interface TasksTabProps {
   onExpGained?: () => void
   onCountChange?: (count: number) => void
+  onDailyCompletedChange?: (count: number) => void
 }
 
-export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) {
+export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedChange }: TasksTabProps) {
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
@@ -79,7 +80,8 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
   useEffect(() => {
     const incomplete = (dailyItems.length - checkedDailyIds.size) + todoItems.filter((t) => !t.is_completed).length
     onCountChange?.(incomplete)
-  }, [dailyItems, checkedDailyIds, todoItems, onCountChange])
+    onDailyCompletedChange?.(checkedDailyIds.size)
+  }, [dailyItems, checkedDailyIds, todoItems, onCountChange, onDailyCompletedChange])
 
   const showToast = (exp: number, comment: string) => {
     setToast({ exp, comment })

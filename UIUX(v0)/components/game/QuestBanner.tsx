@@ -2,12 +2,11 @@
 
 interface QuestBannerProps {
   title: string
-  reward: number
   progress: number
   total: number
 }
 
-export default function QuestBanner({ title, reward, progress, total }: QuestBannerProps) {
+export default function QuestBanner({ title, progress, total }: QuestBannerProps) {
   const progressPercent = (progress / total) * 100
 
   return (
@@ -35,13 +34,6 @@ export default function QuestBanner({ title, reward, progress, total }: QuestBan
               <span className="text-red-400 text-xs">✦</span>
             </div>
             <span className="font-bold text-gray-800 text-sm">{title}</span>
-          </div>
-          {/* Reward */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded-xl px-2 py-0.5">
-            <div className="w-4 h-4 rounded-full bg-[#f39c12] border border-[#e67e22] flex items-center justify-center">
-              <span className="text-[7px] font-black text-white">H</span>
-            </div>
-            <span className="font-bold text-gray-800 text-sm">{reward}</span>
           </div>
         </div>
 
