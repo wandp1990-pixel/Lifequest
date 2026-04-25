@@ -1,31 +1,26 @@
 "use client"
 
-import { AlignLeft, Search, Plus } from "lucide-react"
+import { AlignLeft } from "lucide-react"
 
 interface TopHeaderProps {
   title: string
+  onMenuClick?: () => void
 }
 
-export default function TopHeader({ title }: TopHeaderProps) {
+export default function TopHeader({ title, onMenuClick }: TopHeaderProps) {
   return (
-    <header className="flex items-center justify-between px-3 pt-4 pb-2">
-      <div className="flex items-center gap-2 bg-gray-100 rounded-2xl px-3 py-2">
-        <button aria-label="Menu">
-          <AlignLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <button aria-label="Search">
-          <Search className="w-5 h-5 text-gray-600" />
-        </button>
-      </div>
+    <header className="flex items-center justify-between px-4 pt-4 pb-2">
+      <button
+        aria-label="Menu"
+        onClick={onMenuClick}
+        className="bg-gray-100 rounded-2xl p-2.5 active:scale-95"
+      >
+        <AlignLeft className="w-5 h-5 text-gray-600" />
+      </button>
 
       <h1 className="text-lg font-bold text-gray-800">{title}</h1>
 
-      <button
-        aria-label="Add new item"
-        className="bg-gray-100 rounded-2xl p-2.5"
-      >
-        <Plus className="w-5 h-5 text-gray-600" />
-      </button>
+      <div className="w-10" />
     </header>
   )
 }

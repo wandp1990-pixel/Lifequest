@@ -203,11 +203,13 @@ export async function initDb() {
   }
   try { await db.execute("ALTER TABLE character ADD COLUMN clear_count INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN task_count INTEGER DEFAULT 0") } catch {}
-  // 레벨 1 초기 스탯 0 마이그레이션 (기존 시드값 1 → 0)
   try {
     await db.execute(
       "UPDATE character SET str=0,vit=0,dex=0,int_stat=0,luk=0 WHERE id=1 AND level=1 AND str=1 AND total_exp=0"
     )
+  } catch {}
+  try {
+    await db.execute("UPDATE character SET draw_tickets=3 WHERE id=1 AND draw_tickets=0 AND total_exp=0")
   } catch {}
   await seedIfEmpty(db)
   await seedCharacter(db)
@@ -601,6 +603,11 @@ export async function equipItem(itemId: number) {
   const slot = res.rows[0].slot
   await db.execute({ sql: "UPDATE equipment SET is_equipped = 0 WHERE slot = ?", args: [slot] })
   await db.execute({ sql: "UPDATE equipment SET is_equipped = 1 WHERE id = ?", args: [itemId] })
+}
+
+export async function unequipItem(itemId: number) {
+  const db = getClient()
+  await db.execute({ sql: "UPDATE equipment SET is_equipped = 0 WHERE id = ?", args: [itemId] })
 }
 
 export async function deleteEquipment(itemId: number) {

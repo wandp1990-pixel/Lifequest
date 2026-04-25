@@ -4,6 +4,7 @@ import {
   getEquipment,
   addEquipment,
   equipItem,
+  unequipItem,
   deleteEquipment,
   getCharacter,
   updateCharacter,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/db"
 
 // 가챠: 등급 랜덤 선택
-function pickGrade(grades: { grade: string; weight: number }[]): typeof grades[0] {
+function pickGrade<T extends { weight: number }>(grades: T[]): T {
   const total = grades.reduce((s, g) => s + g.weight, 0)
   let r = Math.random() * total
   for (const g of grades) {
@@ -51,6 +52,7 @@ export async function PATCH(req: NextRequest) {
     await initDb()
     const { action, itemId } = await req.json()
     if (action === "equip") await equipItem(itemId)
+    else if (action === "unequip") await unequipItem(itemId)
     else if (action === "delete") await deleteEquipment(itemId)
     return NextResponse.json({ ok: true })
   } catch (e) {
@@ -69,10 +71,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "뽑기권이 부족합니다" }, { status: 400 })
     }
 
-    const grades = (await getItemGrades()) as { grade: string; name: string; weight: number; stat_min: number; stat_max: number }[]
-    const slots = (await getItemSlots()) as { slot: string; name: string; main_ability: string }[]
-    const abilities = (await getAbilityPool()) as { name: string; base_value: number; effect: string; category: string }[]
-    const passives = (await getPassivePool()) as { name: string; description: string }[]
+    const grades = (await getItemGrades()) as unknown as { grade: string; name: string; weight: number; stat_min: number; stat_max: number }[]
+    const slots = (await getItemSlots()) as unknown as { slot: string; name: string; main_ability: string }[]
+    const abilities = (await getAbilityPool()) as unknown as { name: string; base_value: number; effect: string; category: string }[]
+    const passives = (await getPassivePool()) as unknown as { name: string; description: string }[]
 
     const results = []
     for (let i = 0; i < count; i++) {

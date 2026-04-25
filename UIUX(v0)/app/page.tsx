@@ -10,6 +10,7 @@ import HomeTab from "@/components/game/HomeTab"
 import ItemsTab from "@/components/game/ItemsTab"
 import BattleTab from "@/components/game/BattleTab"
 import BottomNav from "@/components/game/BottomNav"
+import SettingsDrawer from "@/components/game/SettingsDrawer"
 
 type TabType = "home" | "tasks" | "battle" | "items"
 
@@ -44,6 +45,7 @@ export default function GamePage() {
   const [activeTab, setActiveTab] = useState<TabType>("tasks")
   const [char, setChar] = useState<CharacterData | null>(null)
   const [tasksCount, setTasksCount] = useState(0)
+  const [showSettings, setShowSettings] = useState(false)
 
   const fetchChar = useCallback(async () => {
     try {
@@ -65,13 +67,7 @@ export default function GamePage() {
   const renderTabContent = () => {
     switch (activeTab) {
       case "home":
-        return (
-          <HomeTab
-            char={char}
-            onCharUpdated={fetchChar}
-            onExpGained={handleExpGained}
-          />
-        )
+        return <HomeTab onExpGained={handleExpGained} />
       case "tasks":
         return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} />
       case "battle":
@@ -90,7 +86,7 @@ export default function GamePage() {
         style={{ minHeight: "100dvh", maxHeight: "100dvh" }}
       >
         <div className="flex-shrink-0 bg-white">
-          <TopHeader title={TAB_TITLES[activeTab]} />
+          <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
           <CharacterPanel
             hp={char?.current_hp ?? 0}
             maxHp={char?.max_hp ?? 100}
@@ -128,6 +124,14 @@ export default function GamePage() {
             tasksCount={tasksCount}
           />
         </div>
+
+        {showSettings && (
+          <SettingsDrawer
+            char={char}
+            onCharUpdated={fetchChar}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
       </div>
     </main>
   )
