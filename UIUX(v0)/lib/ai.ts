@@ -12,6 +12,8 @@ export async function judgeActivity(activityText: string): Promise<{
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return { exp: 50, comment: "활동 완료!", error: "API 키 없음" }
 
+  const keyHint = `${apiKey.slice(0, 6)}...${apiKey.slice(-4)} (len:${apiKey.length})`
+
   const genai = new GoogleGenerativeAI(apiKey)
   const model = genai.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
   const fullPrompt = `${prompt}\n\n유저 활동: ${activityText}`
@@ -32,6 +34,6 @@ export async function judgeActivity(activityText: string): Promise<{
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error("[AI judgeActivity error]", msg)
-    throw e
+    throw new Error(`KEY=${keyHint} | ${msg}`)
   }
 }
