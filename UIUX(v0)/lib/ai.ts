@@ -13,7 +13,7 @@ export async function judgeActivity(activityText: string): Promise<{
   if (!apiKey) return { exp: 50, comment: "활동 완료!", error: "API 키 없음" }
 
   const genai = new GoogleGenerativeAI(apiKey)
-  const model = genai.getGenerativeModel({ model: "gemini-1.5-flash" })
+  const model = genai.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
   const fullPrompt = `${prompt}\n\n유저 활동: ${activityText}`
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -39,8 +39,8 @@ export async function judgeActivity(activityText: string): Promise<{
         }
         return { exp: 0, comment: "", error: "rate_limit" }
       }
-      return { exp: 0, comment: "", error: msg }
+      return { exp: 50, comment: "활동 완료!", error: msg }
     }
   }
-  return { exp: 0, comment: "", error: "재시도 초과" }
+  return { exp: 50, comment: "활동 완료!", error: "재시도 초과" }
 }

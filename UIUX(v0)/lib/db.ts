@@ -208,9 +208,6 @@ export async function initDb() {
       "UPDATE character SET str=0,vit=0,dex=0,int_stat=0,luk=0 WHERE id=1 AND level=1 AND str=1 AND total_exp=0"
     )
   } catch {}
-  try {
-    await db.execute("UPDATE character SET draw_tickets=3 WHERE id=1 AND draw_tickets=0 AND total_exp=0")
-  } catch {}
   await seedIfEmpty(db)
   await seedCharacter(db)
   await ensureChecklistItems(db)
