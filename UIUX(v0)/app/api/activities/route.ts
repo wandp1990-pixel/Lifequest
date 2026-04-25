@@ -22,9 +22,6 @@ export async function POST(req: NextRequest) {
     if (!text?.trim()) return NextResponse.json({ error: "활동 내용을 입력하세요" }, { status: 400 })
 
     const result = await judgeActivity(text)
-    if (result.error) {
-      return NextResponse.json({ error: `[AI 오류] ${result.error}` }, { status: 500 })
-    }
     const levelResult = await gainExp(result.exp)
     await addActivityLog(text, "ai", result.exp, result.comment)
 
