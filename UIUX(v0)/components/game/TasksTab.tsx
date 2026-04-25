@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, ChevronDown, ChevronUp, Save, X } from "lucide-react"
+import { Plus, ChevronDown, ChevronUp, X } from "lucide-react"
 
 interface DailyItem {
   id: number
@@ -38,11 +38,6 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
   const [logs, setLogs] = useState<ActivityLog[]>([])
   const [showLogs, setShowLogs] = useState(false)
-  const [promptContent, setPromptContent] = useState("")
-  const [promptInput, setPromptInput] = useState("")
-  const [showPrompt, setShowPrompt] = useState(false)
-  const [savingPrompt, setSavingPrompt] = useState(false)
-  const [promptSaved, setPromptSaved] = useState(false)
   const [adding, setAdding] = useState<"daily" | "todo" | null>(null)
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
@@ -62,7 +57,6 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
         fetch("/api/checklist"),
         fetch("/api/todos"),
         fetch("/api/activities"),
-        fetch("/api/prompt"),
       ])
       if (checkRes.ok) {
         const data = await checkRes.json()
@@ -74,11 +68,6 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
         const all = await logRes.json()
         setLogs(all.filter((l: ActivityLog) => l.input_type === "daily" || l.input_type === "todo"))
       }
-      if (promptRes.ok) {
-        const p = await promptRes.json()
-        setPromptContent(p.content ?? "")
-        setPromptInput(p.content ?? "")
-      }
     } catch {}
     setLoading(false)
   }, [])
@@ -88,8 +77,9 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
   }, [fetchAll])
 
   useEffect(() => {
-    onCountChange?.(checkedDailyIds.size)
-  }, [checkedDailyIds, onCountChange])
+    const incomplete = (dailyItems.length - checkedDailyIds.size) + todoItems.filter((t) => !t.is_completed).length
+    onCountChange?.(incomplete)
+  }, [dailyItems, checkedDailyIds, todoItems, onCountChange])
 
   const showToast = (exp: number, comment: string) => {
     setToast({ exp, comment })
@@ -200,28 +190,6 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
         body: JSON.stringify({ id }),
       })
       if (res.ok) setTodoItems(await res.json())
-    }
-  }
-
-  const savePrompt = async () => {
-    setSavingPrompt(true)
-    try {
-      const res = await fetch("/api/prompt", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: promptInput }),
-      })
-      if (res.ok) {
-        setPromptContent(promptInput)
-        setPromptSaved(true)
-        setTimeout(() => setPromptSaved(false), 2000)
-      } else {
-        setError("프롬프트 저장 실패")
-      }
-    } catch {
-      setError("프롬프트 저장 중 오류 발생")
-    } finally {
-      setSavingPrompt(false)
     }
   }
 
@@ -471,43 +439,6 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
               </div>
             ))
           )}
-        </div>
-      )}
-
-      {/* ── AI 프롬프트 설정 ──────────────────────────── */}
-      <button
-        onClick={() => setShowPrompt(!showPrompt)}
-        className="mx-4 mt-2 flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl text-sm text-gray-500 font-medium border border-gray-100"
-      >
-        <span className="flex items-center gap-1.5">
-          <span>⚙️</span>
-          <span>AI 판정 프롬프트</span>
-        </span>
-        {showPrompt ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
-
-      {showPrompt && (
-        <div className="mx-4 mt-1 p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <textarea
-            value={promptInput}
-            onChange={(e) => setPromptInput(e.target.value)}
-            className="w-full text-xs text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-violet-300 resize-none leading-relaxed"
-            rows={7}
-          />
-          <div className="flex justify-between items-center mt-2">
-            {promptSaved
-              ? <span className="text-[10px] text-violet-500 font-bold">저장 완료!</span>
-              : <span className="text-[10px] text-gray-400">재배포 후에도 변경 내용이 유지됩니다</span>
-            }
-            <button
-              onClick={savePrompt}
-              disabled={savingPrompt || promptInput === promptContent}
-              className="flex items-center gap-1 px-3 py-1.5 bg-violet-500 text-white rounded-lg text-xs font-bold disabled:opacity-40 active:scale-95 transition-all"
-            >
-              <Save className="w-3 h-3" />
-              {savingPrompt ? "저장 중..." : "저장"}
-            </button>
-          </div>
         </div>
       )}
 

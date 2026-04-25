@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Save, ChevronDown, ChevronRight, RotateCcw } from "lucide-react"
+import { X, Save, ChevronDown, ChevronRight, RotateCcw, FileText } from "lucide-react"
 
 interface CharacterData {
   level: number
@@ -64,6 +64,12 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const [configSaving, setConfigSaving] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
 
+  const [promptContent, setPromptContent] = useState("")
+  const [promptInput, setPromptInput] = useState("")
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [savingPrompt, setSavingPrompt] = useState(false)
+  const [promptSaved, setPromptSaved] = useState(false)
+
   const [showReset, setShowReset] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -90,6 +96,9 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
 
   useEffect(() => {
     fetchConfig()
+    fetch("/api/prompt").then((r) => r.ok && r.json()).then((d) => {
+      if (d) { setPromptContent(d.content ?? ""); setPromptInput(d.content ?? "") }
+    })
   }, [fetchConfig])
 
   const saveChar = async () => {
@@ -121,6 +130,24 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
       await fetchConfig()
     } finally {
       setConfigSaving(false)
+    }
+  }
+
+  const savePrompt = async () => {
+    setSavingPrompt(true)
+    try {
+      const res = await fetch("/api/prompt", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: promptInput }),
+      })
+      if (res.ok) {
+        setPromptContent(promptInput)
+        setPromptSaved(true)
+        setTimeout(() => setPromptSaved(false), 2000)
+      }
+    } finally {
+      setSavingPrompt(false)
     }
   }
 
@@ -158,6 +185,42 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6">
+
+          {/* AI 판정 프롬프트 */}
+          <button
+            onClick={() => setShowPrompt(!showPrompt)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+          >
+            <span className="flex items-center gap-2 text-sm font-bold text-gray-700">
+              <FileText className="w-4 h-4 text-violet-400" />
+              AI 판정 프롬프트
+            </span>
+            {showPrompt ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+          </button>
+          {showPrompt && (
+            <div className="px-4 pt-3 pb-4">
+              <textarea
+                value={promptInput}
+                onChange={(e) => setPromptInput(e.target.value)}
+                className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-violet-300 resize-none leading-relaxed"
+                rows={10}
+              />
+              <div className="flex justify-between items-center mt-2">
+                {promptSaved
+                  ? <span className="text-[10px] text-violet-500 font-bold">저장 완료!</span>
+                  : <span className="text-[10px] text-gray-400">재배포 후에도 유지됩니다</span>
+                }
+                <button
+                  onClick={savePrompt}
+                  disabled={savingPrompt || promptInput === promptContent}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-violet-500 text-white rounded-lg text-xs font-bold disabled:opacity-40 active:scale-95"
+                >
+                  <Save className="w-3 h-3" />
+                  {savingPrompt ? "저장 중..." : "저장"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 캐릭터 수치 편집 */}
           <button
