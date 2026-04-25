@@ -17,6 +17,15 @@ export async function seedIfEmpty(db: Client) {
   await seedCharacter(db)
 }
 
+export async function ensureItemSeeds(db: Client) {
+  const res = await db.execute("SELECT COUNT(*) AS cnt FROM item_grade_table")
+  if ((res.rows[0].cnt as number) > 0) return
+  await seedItemGradeTable(db)
+  await seedItemSlotTable(db)
+  await seedItemAbilityPool(db)
+  await seedItemPassivePool(db)
+}
+
 export async function ensureChecklistItems(db: Client) {
   const res = await db.execute("SELECT COUNT(*) AS cnt FROM checklist_item")
   if ((res.rows[0].cnt as number) > 0) return
@@ -132,7 +141,7 @@ async function seedItemSlotTable(db: Client) {
   const data = [
     ["weapon", "무기", "물리 공격력", JSON.stringify(["방어력", "물리방어력", "마법방어력", "마법 공격력"])],
     ["helmet", "투구", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
-    ["armor", "갑옷", "물리방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
+    ["armor", "갑옷", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["pants", "바지", "마법방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["belt", "벨트", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["glove", "장갑", "명중률", JSON.stringify(["마법 공격력", "방어력", "물리방어력", "마법방어력"])],
