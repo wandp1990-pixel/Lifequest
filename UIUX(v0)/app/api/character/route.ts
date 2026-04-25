@@ -23,7 +23,8 @@ export async function PUT(req: NextRequest) {
     await initDb()
     const body = await req.json()
     const allowed = ["str", "vit", "dex", "int_stat", "luk", "stat_points", "skill_points",
-                     "level", "total_exp", "current_hp", "current_mp", "draw_tickets"]
+                     "level", "total_exp", "current_hp", "current_mp", "draw_tickets",
+                     "clear_count", "task_count"]
     const fields: Record<string, number> = {}
     for (const key of allowed) {
       if (key in body && body[key] !== "" && !isNaN(Number(body[key]))) {

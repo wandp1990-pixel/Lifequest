@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Save } from "lucide-react"
+import { X, Save, ChevronDown, ChevronRight, RotateCcw } from "lucide-react"
 
 interface CharacterData {
   level: number
@@ -47,13 +47,26 @@ const CHAR_FIELDS = [
   { key: "draw_tickets", label: "뽑기권" },
 ]
 
+const RESET_VALUES = {
+  level: "1", total_exp: "0", stat_points: "0", skill_points: "0", draw_tickets: "3",
+  str: "0", vit: "0", dex: "0", int_stat: "0", luk: "0",
+  current_hp: "100", max_hp: "100", current_mp: "50", max_mp: "50",
+  clear_count: "0", task_count: "0",
+}
+
 export default function SettingsDrawer({ char, onCharUpdated, onClose }: SettingsDrawerProps) {
   const [charEdits, setCharEdits] = useState<Record<string, string>>({})
   const [charSaving, setCharSaving] = useState(false)
+  const [showChar, setShowChar] = useState(false)
 
   const [configs, setConfigs] = useState<ConfigRow[]>([])
   const [configEdits, setConfigEdits] = useState<Record<string, string>>({})
   const [configSaving, setConfigSaving] = useState(false)
+  const [showConfig, setShowConfig] = useState(false)
+
+  const [showReset, setShowReset] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   useEffect(() => {
     if (!char) return
@@ -111,6 +124,24 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
     }
   }
 
+  const resetCharacter = async () => {
+    setResetting(true)
+    try {
+      const res = await fetch("/api/character", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(RESET_VALUES),
+      })
+      if (res.ok) {
+        onCharUpdated()
+        setConfirmReset(false)
+        onClose()
+      }
+    } finally {
+      setResetting(false)
+    }
+  }
+
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
@@ -127,72 +158,127 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6">
+
           {/* 캐릭터 수치 편집 */}
-          <div className="px-4 pt-4 pb-3">
-            <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">캐릭터 수치 편집</p>
-            <div className="flex flex-col gap-2.5">
-              {CHAR_FIELDS.map(({ key, label }) => (
-                <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{label}</span>
-                  <input
-                    type="number"
-                    value={charEdits[key] ?? "0"}
-                    onChange={(e) => setCharEdits((p) => ({ ...p, [key]: e.target.value }))}
-                    className="w-24 text-right text-sm font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-300"
-                    min={0}
-                  />
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={saveChar}
-              disabled={charSaving}
-              className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
-            >
-              <Save className="w-4 h-4" />
-              {charSaving ? "저장 중..." : "일괄 저장"}
-            </button>
-          </div>
-
-          <div className="h-px bg-gray-100 mx-4 my-1" />
-
-          {/* 게임 설정 에디터 */}
-          <div className="px-4 pt-3 pb-2">
-            <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-3">게임 설정 에디터</p>
-            {configs.length === 0 ? (
-              <p className="text-xs text-gray-400 py-4 text-center">불러오는 중...</p>
-            ) : (
-              <div className="rounded-xl overflow-hidden border border-gray-100">
-                {configs.map((cfg, i) => (
-                  <div
-                    key={cfg.config_key}
-                    className={`flex items-center gap-2 px-3 py-2.5 bg-white ${i < configs.length - 1 ? "border-b border-gray-50" : ""}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-gray-700 truncate">{cfg.config_key}</p>
-                      <p className="text-[10px] text-gray-400 truncate">{cfg.description}</p>
-                    </div>
+          <button
+            onClick={() => setShowChar(!showChar)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+          >
+            <span className="text-sm font-bold text-gray-700">캐릭터 수치 편집</span>
+            {showChar ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+          </button>
+          {showChar && (
+            <div className="px-4 pt-3 pb-4">
+              <div className="flex flex-col gap-2.5">
+                {CHAR_FIELDS.map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{label}</span>
                     <input
-                      type="text"
-                      value={configEdits[cfg.config_key] ?? cfg.config_value}
-                      onChange={(e) =>
-                        setConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
-                      }
-                      className="w-20 text-right text-xs font-bold bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-violet-300"
+                      type="number"
+                      value={charEdits[key] ?? "0"}
+                      onChange={(e) => setCharEdits((p) => ({ ...p, [key]: e.target.value }))}
+                      className="w-24 text-right text-sm font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-300"
+                      min={0}
                     />
                   </div>
                 ))}
               </div>
-            )}
-            <button
-              onClick={saveAllConfigs}
-              disabled={configSaving || configs.length === 0}
-              className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
-            >
-              <Save className="w-4 h-4" />
-              {configSaving ? "저장 중..." : "일괄 저장"}
-            </button>
-          </div>
+              <button
+                onClick={saveChar}
+                disabled={charSaving}
+                className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+              >
+                <Save className="w-4 h-4" />
+                {charSaving ? "저장 중..." : "일괄 저장"}
+              </button>
+            </div>
+          )}
+
+          {/* 게임 설정 에디터 */}
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+          >
+            <span className="text-sm font-bold text-gray-700">게임 설정 에디터</span>
+            {showConfig ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+          </button>
+          {showConfig && (
+            <div className="px-4 pt-3 pb-4">
+              {configs.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">불러오는 중...</p>
+              ) : (
+                <div className="rounded-xl overflow-hidden border border-gray-100">
+                  {configs.map((cfg, i) => (
+                    <div
+                      key={cfg.config_key}
+                      className={`flex items-center gap-2 px-3 py-2.5 bg-white ${i < configs.length - 1 ? "border-b border-gray-50" : ""}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-700 truncate">{cfg.config_key}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{cfg.description}</p>
+                      </div>
+                      <input
+                        type="text"
+                        value={configEdits[cfg.config_key] ?? cfg.config_value}
+                        onChange={(e) =>
+                          setConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
+                        }
+                        className="w-20 text-right text-xs font-bold bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-violet-300"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={saveAllConfigs}
+                disabled={configSaving || configs.length === 0}
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+              >
+                <Save className="w-4 h-4" />
+                {configSaving ? "저장 중..." : "일괄 저장"}
+              </button>
+            </div>
+          )}
+
+          {/* 캐릭터 초기화 */}
+          <button
+            onClick={() => setShowReset(!showReset)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+          >
+            <span className="text-sm font-bold text-red-500">캐릭터 초기화</span>
+            {showReset ? <ChevronDown className="w-4 h-4 text-red-300" /> : <ChevronRight className="w-4 h-4 text-red-300" />}
+          </button>
+          {showReset && (
+            <div className="px-4 pt-3 pb-4">
+              <p className="text-xs text-gray-500 mb-3">레벨·스탯·EXP가 모두 초기화됩니다. 복구할 수 없습니다.</p>
+              {!confirmReset ? (
+                <button
+                  onClick={() => setConfirmReset(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-500 border border-red-200 rounded-xl text-sm font-bold active:scale-95"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  초기화
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirmReset(false)}
+                    className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold active:scale-95"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={resetCharacter}
+                    disabled={resetting}
+                    className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+                  >
+                    {resetting ? "초기화 중..." : "확인"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </>
