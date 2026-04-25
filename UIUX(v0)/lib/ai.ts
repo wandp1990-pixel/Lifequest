@@ -129,7 +129,7 @@ function parseResponse(text: string): { exp: number; comment: string } | null {
 
   return {
     exp: Math.max(0, Math.min(200, Math.floor(exp))),
-    comment: (comment ?? "활동 완료!").slice(0, 80),
+    comment: (comment ?? "활동 완료!").slice(0, 30),
   }
 }
 

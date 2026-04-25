@@ -161,9 +161,9 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
       })
       if (res.ok) {
         await fetch("/api/character", { method: "DELETE" })
-        onCharUpdated()
         setConfirmReset(false)
         onClose()
+        window.location.reload()
       }
     } finally {
       setResetting(false)
