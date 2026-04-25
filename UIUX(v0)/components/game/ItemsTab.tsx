@@ -12,6 +12,15 @@ interface EquipmentItem {
   is_equipped: number
 }
 
+interface GachaResult {
+  id: number
+  name: string
+  grade: string
+  slot: string
+  baseStat: number
+  options: Record<string, unknown>
+}
+
 interface ItemsTabProps {
   drawTickets: number
   onTicketsChanged?: () => void
@@ -32,11 +41,15 @@ const GRADE_TEXT: Record<string, string> = {
 const GRADE_LABEL: Record<string, string> = {
   C: "일반", B: "고급", A: "희귀", S: "영웅", SR: "전설", SSR: "고대", UR: "신화",
 }
+const SLOT_NAME: Record<string, string> = {
+  weapon: "무기", helmet: "투구", armor: "갑옷", pants: "바지",
+  belt: "벨트", glove: "장갑", shoe: "신발", necklace: "목걸이", ring: "반지",
+}
 
 export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProps) {
   const [equipment, setEquipment] = useState<EquipmentItem[]>([])
   const [rolling, setRolling] = useState(false)
-  const [lastGacha, setLastGacha] = useState<EquipmentItem | null>(null)
+  const [lastGacha, setLastGacha] = useState<GachaResult | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchInventory = async () => {
@@ -131,11 +144,10 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
 
           {lastGacha && (
             <div className={`mt-3 flex items-center gap-3 rounded-xl px-3 py-2 border ${GRADE_BORDER[lastGacha.grade]} ${GRADE_BG[lastGacha.grade]}`}>
-              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-lg">⚔️</div>
               <div>
                 <p className="text-xs font-bold text-gray-800">{lastGacha.name} 획득!</p>
                 <p className={`text-[10px] font-bold ${GRADE_TEXT[lastGacha.grade]}`}>
-                  [{GRADE_LABEL[lastGacha.grade]}] 기본 스탯 {lastGacha.base_stat}
+                  [{GRADE_LABEL[lastGacha.grade]}] {SLOT_NAME[lastGacha.slot] ?? lastGacha.slot}
                 </p>
               </div>
               <span className="ml-auto text-lg">✨</span>
@@ -161,37 +173,46 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
               return (
                 <div
                   key={item.id}
-                  className={`relative flex flex-col items-center rounded-2xl pt-3 pb-2 px-2 border-2 ${GRADE_BORDER[item.grade]} ${GRADE_BG[item.grade]} ${isEquipped ? "ring-2 ring-offset-1 ring-amber-400" : ""}`}
+                  className={`relative flex flex-col items-center rounded-2xl pt-2 pb-2 px-1.5 border-2 ${GRADE_BORDER[item.grade]} ${GRADE_BG[item.grade]} ${isEquipped ? "ring-2 ring-offset-1 ring-amber-400" : ""}`}
                 >
                   {isEquipped && (
-                    <div className="absolute top-1.5 left-1.5 bg-amber-400 rounded-full px-1.5 py-0.5">
-                      <span className="text-[8px] font-black text-gray-900">ON</span>
+                    <div className="absolute top-1 left-1 bg-amber-400 rounded-full px-1 py-0.5">
+                      <span className="text-[7px] font-black text-gray-900">장착</span>
                     </div>
                   )}
-                  <div className="w-10 h-10 rounded-lg bg-white/50 flex items-center justify-center text-xl mb-1">⚔️</div>
-                  <p className="text-[10px] font-bold text-gray-700 text-center leading-tight">{item.name}</p>
-                  <p className={`text-[9px] font-semibold mt-0.5 ${GRADE_TEXT[item.grade]}`}>{GRADE_LABEL[item.grade]}</p>
-                  <p className="text-[9px] text-gray-500 mt-0.5">스탯 {item.base_stat}</p>
 
-                  {/* 옵션 표시 */}
+                  {/* 부위 */}
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/70 ${GRADE_TEXT[item.grade]} mb-1`}>
+                    {SLOT_NAME[item.slot] ?? item.slot}
+                  </span>
+
+                  {/* 아이템명 */}
+                  <p className="text-[9px] font-bold text-gray-700 text-center leading-tight">{item.name}</p>
+
+                  {/* 등급 */}
+                  <p className={`text-[8px] font-semibold mt-0.5 ${GRADE_TEXT[item.grade]}`}>{GRADE_LABEL[item.grade]}</p>
+
+                  {/* 옵션 */}
                   <div className="mt-1 w-full">
-                    {Object.entries(options).slice(0, 2).map(([k, v]) => (
-                      k !== "passive" && (
-                        <p key={k} className="text-[8px] text-gray-400 text-center truncate">{k}: {v as string}</p>
+                    {Object.entries(options).map(([k, v]) =>
+                      k === "passive" ? (
+                        <p key={k} className="text-[7px] text-purple-500 text-center truncate">✦ {v as string}</p>
+                      ) : (
+                        <p key={k} className="text-[7px] text-gray-500 text-center truncate">{k} +{v as string}</p>
                       )
-                    ))}
+                    )}
                   </div>
 
                   <div className="flex gap-1 mt-2 w-full">
                     <button
                       onClick={() => handleEquip(item.id, isEquipped)}
-                      className={`flex-1 text-[9px] font-bold py-1 rounded-lg transition ${isEquipped ? "bg-gray-200 text-gray-600" : "bg-amber-400 text-white"}`}
+                      className={`flex-1 text-[8px] font-bold py-1 rounded-lg transition ${isEquipped ? "bg-gray-200 text-gray-600" : "bg-amber-400 text-white"}`}
                     >
                       {isEquipped ? "해제" : "장착"}
                     </button>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="flex-1 text-[9px] font-bold py-1 rounded-lg bg-red-100 text-red-500 transition"
+                      className="flex-1 text-[8px] font-bold py-1 rounded-lg bg-red-100 text-red-500 transition"
                     >
                       삭제
                     </button>
