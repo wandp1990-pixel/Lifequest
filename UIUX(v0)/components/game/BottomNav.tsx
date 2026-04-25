@@ -1,8 +1,8 @@
 "use client"
 
-import { CalendarDays, CheckSquare, Menu, ShoppingBag } from "lucide-react"
+import { CalendarDays, CheckSquare, Menu, ShoppingBag, Swords } from "lucide-react"
 
-type TabType = "dailies" | "todos" | "items" | "menu"
+type TabType = "dailies" | "todos" | "battle" | "items" | "menu"
 
 interface BottomNavProps {
   activeTab: TabType
@@ -33,6 +33,13 @@ const TAB_CONFIG: {
     badgeColor: "bg-violet-600",
   },
   {
+    id: "battle",
+    label: "전투",
+    activeColor: "text-red-500",
+    activeBg: "bg-red-50",
+    badgeColor: "bg-red-500",
+  },
+  {
     id: "items",
     label: "아이템",
     activeColor: "text-sky-500",
@@ -60,10 +67,11 @@ export default function BottomNav({
   }
 
   const ICONS: Record<TabType, React.ReactNode> = {
-    dailies: <CalendarDays className="w-6 h-6" />,
-    todos:   <CheckSquare className="w-6 h-6" />,
-    items:   <ShoppingBag className="w-6 h-6" />,
-    menu:    <Menu className="w-6 h-6" />,
+    dailies: <CalendarDays className="w-5 h-5" />,
+    todos:   <CheckSquare  className="w-5 h-5" />,
+    battle:  <Swords       className="w-5 h-5" />,
+    items:   <ShoppingBag  className="w-5 h-5" />,
+    menu:    <Menu         className="w-5 h-5" />,
   }
 
   return (
@@ -80,7 +88,7 @@ export default function BottomNav({
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-2xl transition-all duration-200 ${
+            className={`relative flex flex-col items-center gap-0.5 px-2 py-2 rounded-2xl transition-all duration-200 ${
               isActive ? `${tab.activeBg} shadow-sm` : "bg-transparent"
             }`}
             aria-label={tab.label}

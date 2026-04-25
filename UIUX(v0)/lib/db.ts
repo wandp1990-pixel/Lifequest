@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS character (
     stat_points  INTEGER  DEFAULT 0,
     skill_points INTEGER  DEFAULT 0,
     draw_tickets INTEGER  DEFAULT 3,
+    clear_count  INTEGER  DEFAULT 0,
     str          INTEGER  DEFAULT 1,
     vit          INTEGER  DEFAULT 1,
     dex          INTEGER  DEFAULT 1,
@@ -189,6 +190,8 @@ export async function initDb() {
     const s = stmt.trim()
     if (s) await db.execute(s)
   }
+  // 기존 DB에 clear_count 컬럼 추가 (이미 있으면 무시)
+  try { await db.execute("ALTER TABLE character ADD COLUMN clear_count INTEGER DEFAULT 0") } catch {}
   await seedIfEmpty(db)
   await seedCharacter(db)
   await ensureChecklistItems(db)
@@ -459,6 +462,7 @@ export type Character = {
   stat_points: number
   skill_points: number
   draw_tickets: number
+  clear_count: number
   str: number
   vit: number
   dex: number

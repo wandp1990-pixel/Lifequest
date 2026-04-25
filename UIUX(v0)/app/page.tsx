@@ -8,13 +8,15 @@ import QuestBanner from "@/components/game/QuestBanner"
 import DailiesTab from "@/components/game/DailiesTab"
 import TodosTab from "@/components/game/TodosTab"
 import ItemsTab from "@/components/game/ItemsTab"
+import BattleTab from "@/components/game/BattleTab"
 import BottomNav from "@/components/game/BottomNav"
 
-type TabType = "dailies" | "todos" | "items" | "menu"
+type TabType = "dailies" | "todos" | "battle" | "items" | "menu"
 
 const TAB_TITLES: Record<TabType, string> = {
   dailies: "데일리",
   todos: "할 일",
+  battle: "전투",
   items: "아이템",
   menu: "메뉴",
 }
@@ -28,6 +30,7 @@ type CharacterData = {
   current_mp: number
   max_mp: number
   draw_tickets: number
+  clear_count: number
   stat_points: number
   skill_points: number
   str: number
@@ -63,6 +66,8 @@ export default function GamePage() {
         return <DailiesTab onExpGained={handleExpGained} onCountChange={setDailiesCount} />
       case "todos":
         return <TodosTab onExpGained={handleExpGained} />
+      case "battle":
+        return <BattleTab char={char} onExpGained={handleExpGained} />
       case "items":
         return <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />
       case "menu":
