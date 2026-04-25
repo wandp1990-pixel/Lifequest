@@ -28,10 +28,10 @@ export async function judgeActivity(activityText: string): Promise<{
         error: null,
       }
     }
-    return { exp: 50, comment: "활동 완료!", error: null }
+    return { exp: 50, comment: "활동 완료!", error: "파싱 실패" }
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error("[AI judgeActivity error]", msg)
-    return { exp: 50, comment: "활동 완료!", error: null }
+    return { exp: 0, comment: "", error: msg }
   }
 }
