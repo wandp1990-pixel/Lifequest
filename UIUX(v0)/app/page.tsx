@@ -99,30 +99,32 @@ export default function GamePage() {
         className="relative flex flex-col bg-white w-full max-w-sm"
         style={{ minHeight: "100dvh", maxHeight: "100dvh" }}
       >
-        {activeTab !== "battle" && (
-          <div className="flex-shrink-0 bg-white">
-            <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
-            <CharacterPanel
-              hp={char?.current_hp ?? 0}
-              maxHp={char?.max_hp ?? 100}
-              mp={char?.current_mp ?? 0}
-              maxMp={char?.max_mp ?? 50}
-              level={char?.level ?? 1}
-            />
-            <LevelBar
-              level={char?.level ?? 1}
-              expPercent={expPercent}
-              drawTickets={char?.draw_tickets ?? 0}
-            />
-            {activeTab !== "home" && (
-              <QuestBanner
-                title="데일리 완료"
-                progress={dailyCompleted}
-                total={questTotal}
+        <div className="flex-shrink-0 bg-white">
+          <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
+          {activeTab !== "battle" && (
+            <>
+              <CharacterPanel
+                hp={char?.current_hp ?? 0}
+                maxHp={char?.max_hp ?? 100}
+                mp={char?.current_mp ?? 0}
+                maxMp={char?.max_mp ?? 50}
+                level={char?.level ?? 1}
               />
-            )}
-          </div>
-        )}
+              <LevelBar
+                level={char?.level ?? 1}
+                expPercent={expPercent}
+                drawTickets={char?.draw_tickets ?? 0}
+              />
+              {activeTab !== "home" && (
+                <QuestBanner
+                  title="데일리 완료"
+                  progress={dailyCompleted}
+                  total={questTotal}
+                />
+              )}
+            </>
+          )}
+        </div>
 
         <div className="flex-1 overflow-y-auto">
           {renderTabContent()}
