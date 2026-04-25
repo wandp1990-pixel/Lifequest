@@ -2,7 +2,8 @@ import { GoogleGenerativeAI, SchemaType, type ObjectSchema } from "@google/gener
 import { getActivePrompt } from "./db"
 
 const MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
-const RETRIABLE = /\b(429|500|502|503|504)\b|overload|unavailable|high demand/i
+const RETRIABLE = /\b(500|502|503|504)\b|overload|unavailable|high demand/i
+const QUOTA_ERROR = /\b429\b|quota|rate.?limit/i
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
@@ -175,6 +176,9 @@ export async function judgeActivity(activityText: string): Promise<{
     } catch (e) {
       lastMsg = e instanceof Error ? e.message : String(e)
       console.error(`[AI judgeActivity] ${modelName} failed:`, lastMsg)
+      if (QUOTA_ERROR.test(lastMsg)) {
+        return { exp: 50, comment: "활동 완료! (AI 쿼터 초과)", error: lastMsg }
+      }
     }
   }
 
