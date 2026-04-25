@@ -42,6 +42,7 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
   const [promptInput, setPromptInput] = useState("")
   const [showPrompt, setShowPrompt] = useState(false)
   const [savingPrompt, setSavingPrompt] = useState(false)
+  const [promptSaved, setPromptSaved] = useState(false)
   const [adding, setAdding] = useState<"daily" | "todo" | null>(null)
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
@@ -210,7 +211,15 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: promptInput }),
       })
-      if (res.ok) setPromptContent(promptInput)
+      if (res.ok) {
+        setPromptContent(promptInput)
+        setPromptSaved(true)
+        setTimeout(() => setPromptSaved(false), 2000)
+      } else {
+        setError("프롬프트 저장 실패")
+      }
+    } catch {
+      setError("프롬프트 저장 중 오류 발생")
     } finally {
       setSavingPrompt(false)
     }
@@ -486,7 +495,10 @@ export default function TasksTab({ onExpGained, onCountChange }: TasksTabProps) 
             rows={7}
           />
           <div className="flex justify-between items-center mt-2">
-            <span className="text-[10px] text-gray-400">재배포 후에도 변경 내용이 유지됩니다</span>
+            {promptSaved
+              ? <span className="text-[10px] text-violet-500 font-bold">저장 완료!</span>
+              : <span className="text-[10px] text-gray-400">재배포 후에도 변경 내용이 유지됩니다</span>
+            }
             <button
               onClick={savePrompt}
               disabled={savingPrompt || promptInput === promptContent}

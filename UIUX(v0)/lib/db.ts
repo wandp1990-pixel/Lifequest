@@ -214,12 +214,19 @@ export async function initDb() {
   await seedIfEmpty(db)
   await seedCharacter(db)
   await ensureChecklistItems(db)
+  await ensurePrompt(db)
 }
 
 async function ensureChecklistItems(db: Client) {
   const res = await db.execute("SELECT COUNT(*) AS cnt FROM checklist_item")
   if ((res.rows[0].cnt as number) > 0) return
   await seedChecklistItems(db)
+}
+
+async function ensurePrompt(db: Client) {
+  const res = await db.execute("SELECT COUNT(*) AS cnt FROM prompt WHERE category='general' AND is_active=1")
+  if ((res.rows[0].cnt as number) > 0) return
+  await seedPrompt(db)
 }
 
 // ── 시드 데이터 ───────────────────────────────────────────────────────────────
