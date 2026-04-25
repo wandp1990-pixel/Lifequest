@@ -9,6 +9,10 @@ export {
   deleteChecklistItem, getTodayCheckedItemIds,
 } from "./queries/checklist"
 export { getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem } from "./queries/todo"
+export {
+  getRoutines, addRoutine, addRoutineItem,
+  deleteRoutine, deleteRoutineItem, checkRoutineItem,
+} from "./queries/routine"
 export { getEquipment, addEquipment, equipItem, unequipItem, deleteEquipment } from "./queries/equipment"
 export { addBattleLog } from "./queries/battle"
 export { getGameConfig, getGameConfigFull, updateGameConfigValue, getBattleConfig } from "./queries/config"

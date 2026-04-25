@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X } from "lucide-react"
+import { Plus, X, ChevronDown } from "lucide-react"
 
 interface DailyItem {
   id: number
@@ -18,6 +18,19 @@ interface TodoItem {
   ai_comment?: string
 }
 
+interface RoutineItem {
+  id: number
+  routine_id: number
+  name: string
+  fixed_exp: number
+}
+
+interface Routine {
+  id: number
+  name: string
+  items: RoutineItem[]
+}
+
 interface TasksTabProps {
   onExpGained?: () => void
   onCountChange?: (count: number) => void
@@ -28,24 +41,32 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
-  const [adding, setAdding] = useState<"daily" | "todo" | null>(null)
+  const [routines, setRoutines] = useState<Routine[]>([])
+  const [checkedRoutineItemIds, setCheckedRoutineItemIds] = useState<Set<number>>(new Set())
+  const [bonusRoutineIds, setBonusRoutineIds] = useState<Set<number>>(new Set())
+  const [expandedRoutineIds, setExpandedRoutineIds] = useState<Set<number>>(new Set())
+  const [addingItemFor, setAddingItemFor] = useState<number | null>(null)
+  const [newItemName, setNewItemName] = useState("")
+  const [newItemExp, setNewItemExp] = useState(10)
+  const [adding, setAdding] = useState<"daily" | "todo" | "routine" | null>(null)
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
-  const [completing, setCompleting] = useState<{ type: "daily" | "todo"; id: number } | null>(null)
-  const [toast, setToast] = useState<{ exp: number; comment: string } | null>(null)
+  const [completing, setCompleting] = useState<{ type: "daily" | "todo" | "routine"; id: number } | null>(null)
+  const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState<{
-    type: "daily" | "todo"
+    type: "daily" | "todo" | "routine" | "routineItem"
     id: number
     name: string
   } | null>(null)
 
   const fetchAll = useCallback(async () => {
     try {
-      const [checkRes, todoRes] = await Promise.all([
+      const [checkRes, todoRes, routineRes] = await Promise.all([
         fetch("/api/checklist"),
         fetch("/api/todos"),
+        fetch("/api/routines"),
       ])
       if (checkRes.ok) {
         const data = await checkRes.json()
@@ -53,6 +74,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         setCheckedDailyIds(new Set(data.checkedIds ?? []))
       }
       if (todoRes.ok) setTodoItems(await todoRes.json())
+      if (routineRes.ok) {
+        const data = await routineRes.json()
+        setRoutines(data.routines ?? [])
+        setCheckedRoutineItemIds(new Set(data.checkedItemIds ?? []))
+        setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
+      }
     } catch {}
     setLoading(false)
   }, [])
@@ -62,14 +89,22 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   }, [fetchAll])
 
   useEffect(() => {
-    const incomplete = (dailyItems.length - checkedDailyIds.size) + todoItems.filter((t) => !t.is_completed).length
+    const routineTotal = routines.reduce((sum, r) => sum + r.items.length, 0)
+    const routineDone = routines.reduce(
+      (sum, r) => sum + r.items.filter((it) => checkedRoutineItemIds.has(it.id)).length,
+      0,
+    )
+    const incomplete =
+      (dailyItems.length - checkedDailyIds.size) +
+      todoItems.filter((t) => !t.is_completed).length +
+      (routineTotal - routineDone)
     onCountChange?.(incomplete)
     onDailyCompletedChange?.(checkedDailyIds.size)
-  }, [dailyItems, checkedDailyIds, todoItems, onCountChange, onDailyCompletedChange])
+  }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, onCountChange, onDailyCompletedChange])
 
-  const showToast = (exp: number, comment: string) => {
-    setToast({ exp, comment })
-    setTimeout(() => setToast(null), 2500)
+  const showToast = (exp: number, comment: string, bonus?: number) => {
+    setToast({ exp, comment, bonus })
+    setTimeout(() => setToast(null), 3000)
   }
 
   const completeDaily = async (item: DailyItem) => {
@@ -114,7 +149,85 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     }
   }
 
+  const completeRoutineItem = async (item: RoutineItem) => {
+    if (checkedRoutineItemIds.has(item.id) || completing) return
+    setCompleting({ type: "routine", id: item.id })
+    setError(null)
+    try {
+      const res = await fetch("/api/routines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? "오류"); return }
+      setCheckedRoutineItemIds((prev) => new Set([...prev, item.id]))
+      if (data.allDone && data.bonusExp > 0) {
+        setBonusRoutineIds((prev) => new Set([...prev, item.routine_id]))
+        showToast(data.exp, `🎉 ${data.routineName} 완수!`, data.bonusExp)
+      } else {
+        showToast(data.exp, "루틴 항목 완료")
+      }
+      onExpGained?.()
+    } finally {
+      setCompleting(null)
+    }
+  }
+
+  const toggleRoutine = (id: number) => {
+    setExpandedRoutineIds((prev) => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  }
+
+  const addRoutine = async () => {
+    if (!newName.trim()) return
+    const res = await fetch("/api/routines", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "addRoutine", name: newName.trim() }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setRoutines(data.routines ?? [])
+      setCheckedRoutineItemIds(new Set(data.checkedItemIds ?? []))
+      setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
+      if (typeof data.createdRoutineId === "number") {
+        setExpandedRoutineIds((prev) => new Set([...prev, data.createdRoutineId]))
+      }
+    }
+    setNewName("")
+    setAdding(null)
+  }
+
+  const addRoutineItemSubmit = async (routineId: number) => {
+    if (!newItemName.trim()) return
+    const res = await fetch("/api/routines", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "addItem",
+        routineId,
+        name: newItemName.trim(),
+        fixedExp: newItemExp,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setRoutines(data.routines ?? [])
+      setCheckedRoutineItemIds(new Set(data.checkedItemIds ?? []))
+      setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
+    }
+    setNewItemName("")
+    setNewItemExp(10)
+    setAddingItemFor(null)
+  }
+
   const addItem = async () => {
+    if (adding === "routine") return addRoutine()
     if (!newName.trim() || !adding) return
     if (adding === "daily") {
       const res = await fetch("/api/checklist", {
@@ -140,7 +253,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     setAdding(null)
   }
 
-  const confirmAndDelete = (type: "daily" | "todo", id: number, name: string) => {
+  const confirmAndDelete = (
+    type: "daily" | "todo" | "routine" | "routineItem",
+    id: number,
+    name: string,
+  ) => {
     setConfirmDelete({ type, id, name })
   }
 
@@ -159,13 +276,26 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         setDailyItems(data.items ?? [])
         setCheckedDailyIds((prev) => { const n = new Set(prev); n.delete(id); return n })
       }
-    } else {
+    } else if (type === "todo") {
       const res = await fetch("/api/todos", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       })
       if (res.ok) setTodoItems(await res.json())
+    } else {
+      const action = type === "routine" ? "deleteRoutine" : "deleteItem"
+      const res = await fetch("/api/routines", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, id }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setRoutines(data.routines ?? [])
+        setCheckedRoutineItemIds(new Set(data.checkedItemIds ?? []))
+        setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
+      }
     }
   }
 
@@ -185,7 +315,9 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       {/* 토스트 */}
       {toast && (
         <div className="sticky top-0 z-20 mx-4 mt-2 bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg flex justify-between items-center">
-          <span className="text-sm">+{toast.exp} EXP!</span>
+          <span className="text-sm">
+            +{toast.exp} EXP{toast.bonus ? ` · 보너스 +${toast.bonus}` : "!"}
+          </span>
           <span className="opacity-90 text-right leading-snug">{toast.comment}</span>
         </div>
       )}
@@ -195,6 +327,175 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           <p className="text-xs text-red-600">{error}</p>
         </div>
       )}
+
+      {/* ── 루틴 섹션 ───────────────────────────────────── */}
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">🔁</span>
+          <span className="text-sm font-bold text-gray-800">루틴</span>
+          {routines.length > 0 && (
+            <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+              {routines.length}개
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => { setAdding(adding === "routine" ? null : "routine"); setNewName(""); setNewExp(10) }}
+          className="w-7 h-7 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center active:scale-90 transition-transform"
+          aria-label="루틴 추가"
+        >
+          {adding === "routine" ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {adding === "routine" && (
+        <div className="mx-4 mb-2 flex gap-1.5">
+          <input
+            autoFocus
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addRoutine()}
+            placeholder="루틴 이름 (예: 아침 루틴)"
+            className="flex-1 text-sm bg-teal-50 border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
+          />
+          <button
+            onClick={addRoutine}
+            className="px-3 py-2 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
+          >
+            추가
+          </button>
+        </div>
+      )}
+
+      {routines.length === 0 && (
+        <p className="text-center text-gray-400 text-sm py-4">+ 버튼으로 루틴을 추가하세요</p>
+      )}
+
+      {routines.map((r) => {
+        const total = r.items.length
+        const checked = r.items.filter((it) => checkedRoutineItemIds.has(it.id)).length
+        const totalExp = r.items.reduce((s, it) => s + it.fixed_exp, 0)
+        const bonusGranted = bonusRoutineIds.has(r.id)
+        const expanded = expandedRoutineIds.has(r.id)
+        const isAddingItem = addingItemFor === r.id
+        return (
+          <div key={r.id} className="mx-4 mb-2 bg-white border border-teal-100 rounded-2xl overflow-hidden">
+            <button
+              onClick={() => toggleRoutine(r.id)}
+              className="w-full flex items-center justify-between px-4 py-3 active:bg-teal-50 transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-bold text-gray-800 truncate">{r.name}</span>
+                <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100 flex-shrink-0">
+                  {checked}/{total}
+                </span>
+                {bonusGranted && (
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex-shrink-0">
+                    🎉 +{totalExp}
+                  </span>
+                )}
+              </div>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
+            </button>
+
+            {expanded && (
+              <div className="border-t border-teal-100">
+                {r.items.length === 0 && !isAddingItem && (
+                  <p className="text-center text-gray-400 text-xs py-3">하위 항목을 추가하세요</p>
+                )}
+                {r.items.map((item) => {
+                  const done = checkedRoutineItemIds.has(item.id)
+                  const isLoading = completing?.type === "routine" && completing?.id === item.id
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-3 px-4 py-2.5 border-b border-teal-50 last:border-b-0 transition-opacity ${done ? "opacity-50" : ""}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm leading-snug ${done ? "line-through text-gray-400" : "text-gray-700"}`}>
+                          {item.name}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => completeRoutineItem(item)}
+                          disabled={done || !!completing}
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
+                            done
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : isLoading
+                              ? "bg-teal-200 text-teal-700 animate-pulse cursor-wait"
+                              : "bg-teal-100 text-teal-600 hover:bg-teal-200"
+                          }`}
+                        >
+                          {done ? "✓ 완료" : isLoading ? "처리..." : `+${item.fixed_exp}`}
+                        </button>
+                        <button
+                          onClick={() => confirmAndDelete("routineItem", item.id, item.name)}
+                          className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
+                          aria-label="항목 삭제"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {isAddingItem ? (
+                  <div className="px-4 py-2.5 flex gap-1.5 bg-teal-50/50">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addRoutineItemSubmit(r.id)}
+                      placeholder="항목 이름..."
+                      className="flex-1 text-sm bg-white border border-teal-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-teal-300"
+                    />
+                    <input
+                      type="number"
+                      value={newItemExp}
+                      onChange={(e) => setNewItemExp(Number(e.target.value))}
+                      className="w-12 text-sm text-center bg-white border border-teal-200 rounded-xl px-1 py-1.5 outline-none"
+                      min={1}
+                    />
+                    <button
+                      onClick={() => addRoutineItemSubmit(r.id)}
+                      className="px-2.5 py-1.5 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
+                    >
+                      추가
+                    </button>
+                    <button
+                      onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }}
+                      className="text-gray-400 px-1"
+                      aria-label="취소"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between px-4 py-2 bg-teal-50/30">
+                    <button
+                      onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }}
+                      className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95"
+                    >
+                      <Plus className="w-3 h-3" /> 항목 추가
+                    </button>
+                    <button
+                      onClick={() => confirmAndDelete("routine", r.id, r.name)}
+                      className="text-xs text-red-400 hover:text-red-500 active:scale-95"
+                    >
+                      루틴 삭제
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
 
       {/* ── 데일리 섹션 ─────────────────────────────────── */}
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">

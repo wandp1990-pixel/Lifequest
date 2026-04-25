@@ -175,6 +175,33 @@ CREATE TABLE IF NOT EXISTS skill_log (
     is_unlocked     INTEGER DEFAULT 0,
     updated_at      TEXT
 );
+CREATE TABLE IF NOT EXISTS routine (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    is_active  INTEGER DEFAULT 1,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT
+);
+CREATE TABLE IF NOT EXISTS routine_item (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    routine_id INTEGER REFERENCES routine(id),
+    name       TEXT NOT NULL,
+    fixed_exp  INTEGER DEFAULT 10,
+    sort_order INTEGER DEFAULT 0,
+    is_active  INTEGER DEFAULT 1
+);
+CREATE TABLE IF NOT EXISTS routine_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id    INTEGER REFERENCES routine_item(id),
+    exp_gained INTEGER,
+    checked_at TEXT
+);
+CREATE TABLE IF NOT EXISTS routine_bonus_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    routine_id INTEGER REFERENCES routine(id),
+    bonus_exp  INTEGER,
+    granted_at TEXT
+);
 `
 
 export async function initDb() {
