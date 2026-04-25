@@ -15,7 +15,7 @@ export async function judgeActivity(activityText: string): Promise<{
   const keyHint = `${apiKey.slice(0, 6)}...${apiKey.slice(-4)} (len:${apiKey.length})`
 
   const genai = new GoogleGenerativeAI(apiKey)
-  const model = genai.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
+  const model = genai.getGenerativeModel({ model: "gemini-2.5-flash" })
   const fullPrompt = `${prompt}\n\n유저 활동: ${activityText}`
 
   try {
