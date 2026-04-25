@@ -635,12 +635,6 @@ export async function addBattleLog(
   )
 }
 
-export async function getRecentBattles() {
-  const db = getClient()
-  const res = await db.execute("SELECT * FROM battle_log ORDER BY id DESC LIMIT 10")
-  return res.rows
-}
-
 // ── 설정 ───────────────────────────────────────────────────────────────────────
 
 export async function getGameConfig(): Promise<Record<string, string>> {
@@ -678,14 +672,6 @@ export async function getActivePrompt(category = "general"): Promise<string> {
     args: [category],
   })
   return (res.rows[0]?.content as string) ?? ""
-}
-
-// ── 몬스터 ──────────────────────────────────────────────────────────────────────
-
-export async function getMonsters() {
-  const db = getClient()
-  const res = await db.execute("SELECT * FROM monster_table WHERE is_active = 1")
-  return res.rows
 }
 
 // ── 아이템 메타 ────────────────────────────────────────────────────────────────

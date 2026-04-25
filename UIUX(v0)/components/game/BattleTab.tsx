@@ -99,9 +99,6 @@ function TurnItem({ log, pMax, mMax }: { log: TurnLog; pMax: number; mMax: numbe
     text = `${log.attacker} → ${log.damage} 피해${tags.length ? ` [${tags.join(" ")}]` : ""}${log.life_steal > 0 ? ` (흡혈 +${log.life_steal})` : ""}`
   }
 
-  const pPct = pMax > 0 ? Math.min(100, Math.round((log.player_hp / pMax) * 100)) : 0
-  const mPct = mMax > 0 ? Math.min(100, Math.round((log.monster_hp / mMax) * 100)) : 0
-
   return (
     <div className="flex items-stretch bg-white border-b border-gray-100 last:border-0">
       <div className={`w-1 flex-shrink-0 rounded-l ${isPlayer ? "bg-blue-400" : "bg-red-400"}`} />
