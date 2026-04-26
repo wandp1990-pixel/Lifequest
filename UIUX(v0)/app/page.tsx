@@ -86,7 +86,7 @@ export default function GamePage() {
       case "tasks":
         return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} />
       case "battle":
-        return <BattleTab char={char} onExpGained={handleExpGained} onMenuClick={() => setShowSettings(true)} />
+        return <BattleTab char={char} onExpGained={handleExpGained} />
       case "skills":
         return <CharacterTab char={char} onCharUpdated={fetchChar} />
       case "items":
@@ -103,28 +103,24 @@ export default function GamePage() {
       >
         <div className="flex-shrink-0 bg-white">
           <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
-          {activeTab !== "battle" && (
-            <>
-              <CharacterPanel
-                name={char?.name ?? "모험가"}
-                hp={char?.current_hp ?? 0}
-                maxHp={char?.max_hp ?? 100}
-                mp={char?.current_mp ?? 0}
-                maxMp={char?.max_mp ?? 50}
-                level={char?.level ?? 1}
-                drawTickets={char?.draw_tickets ?? 0}
-                statPoints={char?.stat_points ?? 0}
-                totalExp={char?.total_exp ?? 0}
-                nextExp={char?.next_exp ?? 100}
-              />
-              {activeTab !== "home" && activeTab !== "skills" && (
-                <QuestBanner
-                  title="데일리 완료"
-                  progress={dailyCompleted}
-                  total={questTotal}
-                />
-              )}
-            </>
+          <CharacterPanel
+            name={char?.name ?? "모험가"}
+            hp={char?.current_hp ?? 0}
+            maxHp={char?.max_hp ?? 100}
+            mp={char?.current_mp ?? 0}
+            maxMp={char?.max_mp ?? 50}
+            level={char?.level ?? 1}
+            drawTickets={char?.draw_tickets ?? 0}
+            statPoints={char?.stat_points ?? 0}
+            totalExp={char?.total_exp ?? 0}
+            nextExp={char?.next_exp ?? 100}
+          />
+          {activeTab !== "home" && activeTab !== "skills" && activeTab !== "battle" && (
+            <QuestBanner
+              title="데일리 완료"
+              progress={dailyCompleted}
+              total={questTotal}
+            />
           )}
         </div>
 

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Swords } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,12 +72,10 @@ type CharData = {
 interface BattleTabProps {
   char: CharData | null
   onExpGained: () => void
-  onMenuClick: () => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// battle_config 기본값 기반 (str_to_patk=2.0, vit_to_max_hp=10, int_to_matk=2.0)
 function monsterBaseStats(m: Monster) {
   return {
     str: Math.round(m.stats.patk / 2.0),
@@ -149,12 +146,11 @@ function TurnItem({ log, pMax, mMax }: { log: TurnLog; pMax: number; mMax: numbe
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function BattleTab({ char, onExpGained, onMenuClick }: BattleTabProps) {
+export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [phase, setPhase]   = useState<"lobby" | "loading" | "result">("lobby")
   const [result, setResult] = useState<BattleResultData | null>(null)
   const [error, setError]   = useState<string | null>(null)
   const [visibleTurns, setVisibleTurns] = useState(0)
-  const [keepMonster, setKeepMonster] = useState<Monster | null>(null)
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
   // 0.5초/턴 애니메이션
@@ -171,7 +167,7 @@ export default function BattleTab({ char, onExpGained, onMenuClick }: BattleTabP
     logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }, [visibleTurns, phase])
 
-  async function doFight(reuseMonster?: Monster) {
+  async function doFight() {
     setPhase("loading")
     setError(null)
     setVisibleTurns(0)
@@ -179,12 +175,11 @@ export default function BattleTab({ char, onExpGained, onMenuClick }: BattleTabP
       const res = await fetch("/api/battle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(reuseMonster ? { monster: reuseMonster } : {}),
+        body: JSON.stringify({}),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "전투 오류")
       setResult(data)
-      setKeepMonster(data.monster)
       setPhase("result")
     } catch (e) {
       setError(String(e))
@@ -195,38 +190,18 @@ export default function BattleTab({ char, onExpGained, onMenuClick }: BattleTabP
   function newBattle() {
     setPhase("lobby")
     setResult(null)
-    setKeepMonster(null)
     setVisibleTurns(0)
     onExpGained()
   }
 
   const clearCount = char?.clear_count ?? 0
   const level      = char?.level ?? 1
-  const charName   = char?.name ?? "전사"
   const coeff      = ((1 + clearCount * 0.03) * (1 + Math.max(0, level - 1) * 0.04)).toFixed(2)
 
   // ── Lobby / Loading ──────────────────────────────────────────────────────────
   if (phase !== "result") {
     return (
       <div className="flex flex-col gap-0">
-        {/* 플레이어 정보 */}
-        <div className="flex items-stretch bg-white border-b border-gray-100">
-          <button
-            onClick={onMenuClick}
-            aria-label="캐릭터 화면"
-            className="w-14 flex items-center justify-center flex-shrink-0 bg-red-500 rounded-l-xl my-1 ml-1 active:scale-95 transition-transform"
-          >
-            <Swords className="w-6 h-6 text-white" />
-          </button>
-          <div className="flex-1 py-3 px-3">
-            <p className="text-sm font-bold text-gray-800 mb-1">🧑 {charName}</p>
-            <div className="flex gap-3 text-xs text-gray-500">
-              <span>⚔️ {clearCount}회 클리어</span>
-              <span>🎫 {char?.draw_tickets ?? 0}장</span>
-            </div>
-          </div>
-        </div>
-
         {/* 스탯 */}
         <div className="px-4 py-3 bg-white border-b border-gray-100">
           <p className="text-[10px] text-gray-400 font-bold mb-2">캐릭터 스탯</p>
@@ -286,26 +261,14 @@ export default function BattleTab({ char, onExpGained, onMenuClick }: BattleTabP
   return (
     <div className="flex flex-col gap-0">
 
-      {/* VS 헤더 */}
-      <div className="flex items-stretch bg-white border-b border-gray-100">
-        <button
-          onClick={onMenuClick}
-          aria-label="캐릭터 화면"
-          className="w-14 flex items-center justify-center flex-shrink-0 bg-red-500 rounded-l-xl my-1 ml-1 active:scale-95 transition-transform"
-        >
-          <Swords className="w-6 h-6 text-white" />
-        </button>
-        <div className="flex-1 py-3 px-3 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-gray-800">🧑 {charName}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">클리어 {char_after.clear_count}회 · 🎫 {char_after.draw_tickets}장</p>
-          </div>
-          <div className="text-gray-300 font-black text-xs px-2">VS</div>
-          <div className="text-right">
-            <p className="text-sm font-bold" style={{ color: monster.color }}>{monster.full_name}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{monster.grade_name} · {monster.race_emoji} {monster.race_name}</p>
-          </div>
+      {/* 몬스터 정보 */}
+      <div className="px-4 py-2.5 bg-white border-b border-gray-100 flex items-center justify-between">
+        <span className="text-[10px] text-gray-400 font-bold">VS</span>
+        <div className="text-center flex-1 mx-2">
+          <p className="text-sm font-bold" style={{ color: monster.color }}>{monster.full_name}</p>
+          <p className="text-[10px] text-gray-400">{monster.grade_name} · {monster.race_emoji} {monster.race_name}</p>
         </div>
+        <span className="text-[10px] text-gray-400">클리어 {char_after.clear_count}회</span>
       </div>
 
       {/* HP/MP 바 (실시간 업데이트) */}
@@ -388,7 +351,7 @@ export default function BattleTab({ char, onExpGained, onMenuClick }: BattleTabP
         </div>
       )}
 
-      {/* 전투 로그 (이중 스크롤 제거 — 페이지 스크롤로 통합) */}
+      {/* 전투 로그 */}
       <div className="mx-4 mt-3 border border-gray-100 rounded-2xl overflow-hidden">
         <p className="text-[10px] font-bold text-gray-400 px-3 py-2 bg-gray-50 border-b border-gray-100">
           📜 전투 로그 · 선공: {first_strike} · 총 {result.turns}턴
@@ -401,24 +364,14 @@ export default function BattleTab({ char, onExpGained, onMenuClick }: BattleTabP
         </div>
       </div>
 
-      {/* 액션 버튼 */}
+      {/* 전투 시작 버튼 */}
       {animDone && (
-        <div className="flex gap-2 px-4 pt-3 pb-4">
-          {winner !== "플레이어" && keepMonster && (
-            <button
-              onClick={() => doFight(keepMonster)}
-              className="flex-1 py-3 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
-            >
-              🔄 재도전
-            </button>
-          )}
+        <div className="px-4 pt-3 pb-4">
           <button
             onClick={newBattle}
-            className={`flex-1 py-3 rounded-2xl font-bold active:scale-95 transition-all shadow-sm ${
-              winner === "플레이어" ? "bg-red-500 text-white" : "bg-gray-100 text-gray-600"
-            }`}
+            className="w-full py-4 rounded-2xl font-bold text-white text-base bg-red-500 active:scale-95 transition-all shadow-sm"
           >
-            {winner === "플레이어" ? "⚔️ 다음 전투" : "🏠 로비로"}
+            ⚔️ 전투 시작
           </button>
         </div>
       )}
