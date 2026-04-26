@@ -4,7 +4,6 @@ import {
   addChecklistItem, deleteChecklistItem, addActivityLog, incrementTaskCount,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
-import { judgeActivity } from "@/lib/ai"
 
 export async function GET() {
   try {
@@ -26,13 +25,14 @@ export async function POST(req: NextRequest) {
     const item = items.find((i) => i.id === itemId)
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
 
-    const result = await judgeActivity(item.name as string)
-    await addChecklistLog(itemId, result.exp)
-    await addActivityLog(item.name as string, "daily", result.exp, result.comment)
+    const exp = (item.fixed_exp as number) ?? 10
+    const comment = "체크리스트 완료!"
+    await addChecklistLog(itemId, exp)
+    await addActivityLog(item.name as string, "daily", exp, comment)
     await incrementTaskCount()
-    const levelResult = await gainExp(result.exp)
+    const levelResult = await gainExp(exp)
 
-    return NextResponse.json({ exp: result.exp, comment: result.comment, ...levelResult })
+    return NextResponse.json({ exp, comment, ...levelResult })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
