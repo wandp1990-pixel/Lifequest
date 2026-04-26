@@ -151,6 +151,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [result, setResult] = useState<BattleResultData | null>(null)
   const [error, setError]   = useState<string | null>(null)
   const [visibleTurns, setVisibleTurns] = useState(0)
+  const [keepMonster, setKeepMonster] = useState<Monster | null>(null)
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
   // 0.5초/턴 애니메이션
@@ -167,7 +168,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
     logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }, [visibleTurns, phase])
 
-  async function doFight() {
+  async function doFight(reuseMonster?: Monster) {
     setPhase("loading")
     setError(null)
     setVisibleTurns(0)
@@ -175,11 +176,12 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
       const res = await fetch("/api/battle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(reuseMonster ? { monster: reuseMonster } : {}),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "전투 오류")
       setResult(data)
+      setKeepMonster(data.monster)
       setPhase("result")
     } catch (e) {
       setError(String(e))
@@ -190,6 +192,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   function newBattle() {
     setPhase("lobby")
     setResult(null)
+    setKeepMonster(null)
     setVisibleTurns(0)
     onExpGained()
   }
@@ -364,12 +367,22 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         </div>
       </div>
 
-      {/* 전투 시작 버튼 */}
+      {/* 액션 버튼 */}
       {animDone && (
-        <div className="px-4 pt-3 pb-4">
+        <div className="flex gap-2 px-4 pt-3 pb-4">
+          {winner !== "플레이어" && keepMonster && (
+            <button
+              onClick={() => doFight(keepMonster)}
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
+            >
+              🔄 재도전
+            </button>
+          )}
           <button
             onClick={newBattle}
-            className="w-full py-4 rounded-2xl font-bold text-white text-base bg-red-500 active:scale-95 transition-all shadow-sm"
+            className={`flex-1 py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-sm ${
+              winner === "플레이어" ? "bg-red-500 text-white" : "bg-gray-100 text-gray-600"
+            }`}
           >
             ⚔️ 전투 시작
           </button>
