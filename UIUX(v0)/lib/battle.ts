@@ -37,6 +37,10 @@ export type CombatStats = {
   max_mp: number
   bonus_crit_rate: number
   bonus_crit_dmg: number
+  double_attack_chance: number
+  life_steal_ratio: number
+  defense_ignore_ratio: number
+  reflect_ratio: number
 }
 
 export type TurnLog = {
@@ -228,25 +232,50 @@ export function buildPlayerCombatStats(
   let eDex = 0, eLuk = 0, eHp = 0, eMp = 0
   let eStr = 0, eInt = 0, eVit = 0
   let bonusCritRate = 0, bonusCritDmg = 0
+  let doubleAtkChance = 0, lifeStealRatio = 0, defIgnoreRatio = 0, reflectRatio = 0
 
   for (const raw of equippedOptions) {
-    let opts: Record<string, unknown> = {}
-    try { opts = JSON.parse(raw ?? "{}") } catch {}
-    for (const [k, v] of Object.entries(opts)) {
-      if (typeof v !== "number") continue
-      if (k === "물리 공격력")          ePatk += v
-      else if (k === "마법 공격력")      eMatk += v
+    let lines: string[] = []
+    try {
+      const parsed = JSON.parse(raw ?? "[]")
+      if (Array.isArray(parsed)) lines = parsed as string[]
+    } catch {}
+
+    for (const line of lines) {
+      if (typeof line !== "string") continue
+
+      // 패시브: "[더블어택]" 형식
+      if (line.startsWith("[") && line.endsWith("]")) {
+        const name = line.slice(1, -1)
+        if (name === "더블어택")  doubleAtkChance = Math.max(doubleAtkChance, 0.5)
+        else if (name === "생명흡수") lifeStealRatio  = Math.max(lifeStealRatio,  0.05)
+        else if (name === "방어무시") defIgnoreRatio  = Math.max(defIgnoreRatio,  0.1)
+        else if (name === "반사")     reflectRatio    = Math.max(reflectRatio,    0.1)
+        continue
+      }
+
+      // 능력치: "물리 공격력 +10" 또는 "치명타확률 +1.2%" 형식
+      const isPct = line.endsWith("%")
+      const noUnit = isPct ? line.slice(0, -1) : line
+      const plusIdx = noUnit.lastIndexOf(" +")
+      if (plusIdx < 0) continue
+      const k = noUnit.slice(0, plusIdx).trim()
+      const v = parseFloat(noUnit.slice(plusIdx + 2))
+      if (isNaN(v)) continue
+
+      if (k === "물리 공격력")                      ePatk += v
+      else if (k === "마법 공격력")                 eMatk += v
       else if (k === "방어력" || k === "물리방어력") ePdef += v
-      else if (k === "마법방어력")       eMdef += v
-      else if (k === "DEX(민첩)")        eDex  += v
-      else if (k === "LUK(운)")          eLuk  += v
-      else if (k === "STR(힘)")          eStr  += v
-      else if (k === "INT(지능)")        eInt  += v
-      else if (k === "VIT(체력)")        eVit  += v
-      else if (k === "HP증가")           eHp   += v
-      else if (k === "MP증가")           eMp   += v
-      else if (k === "치명타확률")       bonusCritRate += v / 100
-      else if (k === "치명타피해")       bonusCritDmg  += v
+      else if (k === "마법방어력")                  eMdef += v
+      else if (k === "DEX(민첩)")                   eDex  += v
+      else if (k === "LUK(운)")                     eLuk  += v
+      else if (k === "STR(힘)")                     eStr  += v
+      else if (k === "INT(지능)")                   eInt  += v
+      else if (k === "VIT(체력)")                   eVit  += v
+      else if (k === "HP증가")                      eHp   += v
+      else if (k === "MP증가")                      eMp   += v
+      else if (k === "치명타확률")                  bonusCritRate += v / 100
+      else if (k === "치명타피해")                  bonusCritDmg  += v
     }
   }
 
@@ -264,8 +293,12 @@ export function buildPlayerCombatStats(
     int:  intTotal,
     max_hp: char.base_hp + vitTotal * vitToHp + eHp,
     max_mp: char.base_mp + intTotal * intToMp + eMp,
-    bonus_crit_rate: bonusCritRate,
-    bonus_crit_dmg:  bonusCritDmg,
+    bonus_crit_rate:      bonusCritRate,
+    bonus_crit_dmg:       bonusCritDmg,
+    double_attack_chance: doubleAtkChance,
+    life_steal_ratio:     lifeStealRatio,
+    defense_ignore_ratio: defIgnoreRatio,
+    reflect_ratio:        reflectRatio,
   }
 }
 
@@ -277,7 +310,13 @@ function calcDmg(atk: number, def_: number, ignoreRatio: number): number {
   return denom > 0 ? (atk * atk) / denom : 0
 }
 
-type Combatant = { patk: number; matk: number; pdef: number; mdef: number; dex: number; luk: number; int: number; max_hp: number; bonus_crit_rate: number; bonus_crit_dmg: number }
+type Combatant = {
+  patk: number; matk: number; pdef: number; mdef: number
+  dex: number; luk: number; int: number; max_hp: number
+  bonus_crit_rate: number; bonus_crit_dmg: number
+  double_attack_chance: number; life_steal_ratio: number
+  defense_ignore_ratio: number; reflect_ratio: number
+}
 
 const SKILL_MP_COST = 10
 const SKILL_DAMAGE_BONUS = 1.4
@@ -292,9 +331,10 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   if (Math.random() > hitRate) return { hit: false as const, reason: "accuracy_fail" as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
   if (Math.random() < evRate)  return { hit: false as const, reason: "evaded"        as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
 
-  const ignoreRatio = parseFloat(cfg.defense_ignore_ratio ?? "0.0")
-  const dmgMin      = parseFloat(cfg.damage_random_min    ?? "0.9")
-  const dmgMax      = parseFloat(cfg.damage_random_max    ?? "1.1")
+  // 방어무시: 장비 패시브 + 전역 설정 합산
+  const ignoreRatio = atk.defense_ignore_ratio + parseFloat(cfg.defense_ignore_ratio ?? "0.0")
+  const dmgMin      = parseFloat(cfg.damage_random_min ?? "0.9")
+  const dmgMax      = parseFloat(cfg.damage_random_max ?? "1.1")
   const dmgRand     = dmgMin + Math.random() * (dmgMax - dmgMin)
 
   let base: number
@@ -309,18 +349,20 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   const baseCritMult  = parseFloat(cfg.base_crit_multiplier           ?? "1.5")
   const critMultPerInt= parseFloat(cfg.crit_multiplier_per_int        ?? "0.01")
 
-  const critRate = clamp(atk.luk * critPerLuk - def.luk * critSuppress + (atk.bonus_crit_rate ?? 0), 0, 0.75)
+  const critRate = clamp(atk.luk * critPerLuk - def.luk * critSuppress + atk.bonus_crit_rate, 0, 0.75)
   const isCrit   = Math.random() < critRate
   if (isCrit) {
-    const mult = baseCritMult + atk.int * critMultPerInt + (atk.bonus_crit_dmg ?? 0) / 100
+    const mult = baseCritMult + atk.int * critMultPerInt + atk.bonus_crit_dmg / 100
     base *= mult
   }
 
-  const doubleChance = parseFloat(cfg.double_attack_chance ?? "0.0")
+  // 더블어택: 장비 패시브 + 전역 설정 합산
+  const doubleChance = atk.double_attack_chance + parseFloat(cfg.double_attack_chance ?? "0.0")
   const isDouble     = Math.random() < doubleChance
   const total        = base * (isDouble ? 2 : 1)
 
-  const lifeSteal = parseFloat(cfg.life_steal_ratio ?? "0.0")
+  // 생명흡수: 장비 패시브 + 전역 설정 합산
+  const lifeStealRate = atk.life_steal_ratio + parseFloat(cfg.life_steal_ratio ?? "0.0")
 
   return {
     hit: true as const,
@@ -328,7 +370,7 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
     total_damage:   Math.round(total),
     critical:       isCrit,
     double_attack:  isDouble,
-    life_steal:     Math.round(total * lifeSteal),
+    life_steal:     Math.round(total * lifeStealRate),
   }
 }
 
@@ -346,6 +388,8 @@ export function runBattle(
     dex:  monster.stats.dex,  luk:  monster.stats.luk,
     int:  0, max_hp: monster.stats.HP,
     bonus_crit_rate: 0, bonus_crit_dmg: 0,
+    double_attack_chance: 0, life_steal_ratio: 0,
+    defense_ignore_ratio: 0, reflect_ratio: 0,
   }
   const plyCombat: Combatant = playerCombat
 
@@ -388,6 +432,10 @@ export function runBattle(
     } else {
       playerHp  = Math.max(0, playerHp - dmg)
       monsterHp = Math.min(monsterHp + res.life_steal, monCombat.max_hp)
+      // 반사 패시브: 플레이어가 받은 피해의 일부를 몬스터에게 반사
+      if (plyCombat.reflect_ratio > 0 && dmg > 0) {
+        monsterHp = Math.max(0, monsterHp - Math.round(dmg * plyCombat.reflect_ratio))
+      }
     }
 
     let result: TurnLog["result"]
