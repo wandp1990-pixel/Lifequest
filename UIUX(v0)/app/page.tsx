@@ -95,7 +95,6 @@ export default function GamePage() {
     }
   }
 
-  const expPercent = char ? Math.round((char.total_exp / char.next_exp) * 100) : 0
 
   return (
     <main className="h-dvh overflow-hidden bg-background flex items-center justify-center">
@@ -116,8 +115,10 @@ export default function GamePage() {
               />
               <LevelBar
                 level={char?.level ?? 1}
-                expPercent={expPercent}
+                totalExp={char?.total_exp ?? 0}
+                nextExp={char?.next_exp ?? 100}
                 drawTickets={char?.draw_tickets ?? 0}
+                statPoints={char?.stat_points ?? 0}
               />
               {activeTab !== "home" && activeTab !== "skills" && (
                 <QuestBanner

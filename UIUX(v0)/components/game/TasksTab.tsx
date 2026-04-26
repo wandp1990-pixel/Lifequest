@@ -99,7 +99,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       todoItems.filter((t) => !t.is_completed).length +
       (routineTotal - routineDone)
     onCountChange?.(incomplete)
-    onDailyCompletedChange?.(checkedDailyIds.size)
+    const totalDone = checkedDailyIds.size + routineDone + todoItems.filter((t) => t.is_completed).length
+    onDailyCompletedChange?.(totalDone)
   }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, onCountChange, onDailyCompletedChange])
 
   const showToast = (exp: number, comment: string, bonus?: number) => {

@@ -22,10 +22,6 @@ export default function QuestBanner({ title, progress, total }: QuestBannerProps
           backgroundOrigin: "border-box",
         }}
       >
-        {/* Decorative ghost shapes */}
-        <div className="absolute right-8 top-1 opacity-20 text-2xl">👻</div>
-        <div className="absolute right-16 bottom-1 opacity-15 text-xl">👻</div>
-
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             {/* Star icons */}
