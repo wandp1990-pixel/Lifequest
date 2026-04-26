@@ -1,5 +1,5 @@
 import { getClient } from "./client"
-import { seedIfEmpty, seedCharacter, ensureChecklistItems, ensurePrompt, ensureItemSeeds } from "./seed"
+import { seedIfEmpty, seedCharacter, ensureChecklistItems, ensurePrompt, ensureItemSeeds, ensureSkills } from "./seed"
 
 let _initialized = false
 
@@ -227,4 +227,5 @@ export async function initDb() {
   await ensureChecklistItems(db)
   await ensurePrompt(db)
   await ensureItemSeeds(db)
+  await ensureSkills(db)
 }

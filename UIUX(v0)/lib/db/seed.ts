@@ -38,6 +38,46 @@ export async function ensurePrompt(db: Client) {
   await seedPrompt(db)
 }
 
+export async function ensureSkills(db: Client) {
+  const res = await db.execute("SELECT COUNT(*) AS cnt FROM skill_table")
+  if ((res.rows[0].cnt as number) > 0) return
+  await seedSkillTable(db)
+}
+
+async function seedSkillTable(db: Client) {
+  // [id, name, type, max_skp, unlock_level, base_effect_value, effect_coeff,
+  //  mp_cost, mp_cost_coeff, effect_code, trigger_condition, description]
+  const skills: [string, string, string, number, number, number, number, number, number, string, string, string][] = [
+    ["ACTIVE_RAGE_01",         "분노",        "active",  20, 3,   30, 6,    20, 1,    "PATK_PCT",  "전투 시작",    "물리 ATK 증가"],
+    ["ACTIVE_CHAIN_01",        "연속공격",    "active",  20, 5,   20, 2,    10, 0.5,  "EXTRA_HIT", "명중 시",      "추가 타격 발동"],
+    ["ACTIVE_FIRST_STRIKE_01", "선제 강타",   "active",  20, 9,   20, 4,    15, 0.75, "PATK_PCT",  "선공 획득",    "물리 ATK 증가"],
+    ["ACTIVE_AFTERIMAGE_01",   "잔상",        "active",  20, 14,  10, 2.5,  8,  0.4,  "EXTRA_HIT", "회피 시",      "반격 추가 타격"],
+    ["ACTIVE_REVERSAL_01",     "역전의 의지", "active",  20, 20,  5,  1.25, 20, 1,    "HP_HEAL",   "HP 25% 이하",  "HP 회복"],
+    ["ACTIVE_MANA_BURST_01",   "마나 폭발",   "active",  20, 25,  50, 7.5,  25, 1.25, "MATK_PCT",  "매 3턴",       "마법 ATK 증가"],
+    ["ACTIVE_SPARK_01",        "지식의 불꽃", "active",  20, 28,  10, 3.5,  10, 0.5,  "MATK_PCT",  "치명타 시",    "마법 ATK 증가"],
+    ["ACTIVE_SURVIVE_01",      "기사회생",    "active",  20, 30,  5,  2.25, 0,  0,    "SURVIVE",   "사망 시",      "사망 시 생존"],
+    ["PASSIVE_PATK_01",        "전사의 기백", "passive", 20, 10,  2,  0.5,  0,  0,    "PATK_PCT",  "",             "물리 공격력 증가"],
+    ["PASSIVE_HP_01",          "강철 피부",   "passive", 20, 20,  2,  0.5,  0,  0,    "HP_PCT",    "",             "최대 HP 증가"],
+    ["PASSIVE_DEX_01",         "신속함",      "passive", 20, 30,  1,  0.5,  0,  0,    "DEX_FLAT",  "",             "DEX 고정값 증가"],
+    ["PASSIVE_MATK_01",        "마법 친화",   "passive", 20, 40,  2,  0.5,  0,  0,    "MATK_PCT",  "",             "마법 공격력 증가"],
+    ["PASSIVE_LUK_01",         "행운아",      "passive", 20, 50,  1,  0.5,  0,  0,    "LUK_FLAT",  "",             "LUK 고정값 증가"],
+    ["PASSIVE_PDEF_01",        "철벽",        "passive", 20, 60,  5,  1,    0,  0,    "PDEF_PCT",  "",             "물리 방어력 증가"],
+    ["PASSIVE_CRIT_RATE_01",   "예리한 눈",   "passive", 20, 70,  0.5, 0.25, 0, 0,   "CRIT_RATE", "",             "치명타율 증가"],
+    ["PASSIVE_CRIT_DMG_01",    "파열의 법칙", "passive", 20, 80,  5,  1.5,  0,  0,    "CRIT_DMG",  "",             "치명타 피해 증가"],
+    ["PASSIVE_MDEF_01",        "마법 저항",   "passive", 20, 90,  5,  1,    0,  0,    "MDEF_PCT",  "",             "마법 방어력 증가"],
+    ["PASSIVE_CRIT_RATE_02",   "신의 총애",   "passive", 20, 100, 1,  0.5,  0,  0,    "CRIT_RATE", "",             "치명타율 증가"],
+  ]
+  for (const [id, name, type, max_skp, unlock_level, bev, ec, mp, mpc, effect_code, trigger, desc] of skills) {
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO skill_table
+            (id, name, type, max_skp, unlock_level, base_effect_value, effect_coeff,
+             mp_cost, mp_cost_coeff, effect_code, trigger_condition, description, is_active)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)`,
+      args: [id, name, type, max_skp, unlock_level, bev, ec, mp, mpc, effect_code, trigger, desc],
+    })
+  }
+}
+
 async function seedGameConfig(db: Client) {
   const t = now()
   const data: [string, string, string][] = [

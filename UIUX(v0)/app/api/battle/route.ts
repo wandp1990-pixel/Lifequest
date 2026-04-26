@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getCharacter, getEquipment, getGameConfig, getBattleConfig,
-  updateCharacter, addBattleLog,
+  updateCharacter, addBattleLog, getSkillsWithInvestment,
 } from "@/lib/db"
-import { generateMonster, buildPlayerCombatStats, runBattle, type Monster } from "@/lib/battle"
+import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, type Monster } from "@/lib/battle"
 import { gainExp } from "@/lib/game"
 
 export async function POST(req: NextRequest) {
@@ -13,19 +13,19 @@ export async function POST(req: NextRequest) {
     let body: { monster?: Monster } = {}
     try { body = await req.json() } catch {}
 
-    const char      = await getCharacter()
-    const gameCfg   = await getGameConfig()
-    const battleCfg = await getBattleConfig()
-    const equipment = await getEquipment()
+    const [char, gameCfg, battleCfg, equipment, allSkills] = await Promise.all([
+      getCharacter(), getGameConfig(), getBattleConfig(),
+      getEquipment(), getSkillsWithInvestment(),
+    ])
 
-    // 장착된 아이템의 options만 전달
     const equippedOptions = equipment
       .filter((e) => (e.is_equipped as number) === 1)
       .map((e) => e.options as string)
 
-    const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg)
+    const activeSkills = getActiveSkills(allSkills)
+    const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, allSkills)
     const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg)
-    const result       = runBattle(playerCombat, monster, battleCfg)
+    const result       = runBattle(playerCombat, monster, battleCfg, activeSkills)
 
     let expGained = 0
     let gainResult = null

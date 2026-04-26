@@ -1,5 +1,48 @@
 import type { Character } from "./db"
 
+// ─── Skill types ──────────────────────────────────────────────────────────────
+
+export type SkillData = {
+  id: string
+  name: string
+  type: string
+  effect_code: string
+  base_effect_value: number
+  effect_coeff: number
+  trigger_condition: string
+  mp_cost: number
+  mp_cost_coeff: number
+  invested: number
+}
+
+// 패시브 스킬 보너스를 CombatStats에 적용
+export function computePassiveBonuses(skills: SkillData[]): {
+  patk_pct: number; matk_pct: number; hp_pct: number
+  dex_flat: number; luk_flat: number; pdef_pct: number
+  mdef_pct: number; crit_rate: number; crit_dmg: number
+} {
+  const b = { patk_pct: 0, matk_pct: 0, hp_pct: 0, dex_flat: 0, luk_flat: 0, pdef_pct: 0, mdef_pct: 0, crit_rate: 0, crit_dmg: 0 }
+  for (const s of skills) {
+    if (s.type !== "passive" || s.invested <= 0) continue
+    const val = s.base_effect_value + s.effect_coeff * s.invested
+    if      (s.effect_code === "PATK_PCT")  b.patk_pct  += val
+    else if (s.effect_code === "MATK_PCT")  b.matk_pct  += val
+    else if (s.effect_code === "HP_PCT")    b.hp_pct    += val
+    else if (s.effect_code === "DEX_FLAT")  b.dex_flat  += val
+    else if (s.effect_code === "LUK_FLAT")  b.luk_flat  += val
+    else if (s.effect_code === "PDEF_PCT")  b.pdef_pct  += val
+    else if (s.effect_code === "MDEF_PCT")  b.mdef_pct  += val
+    else if (s.effect_code === "CRIT_RATE") b.crit_rate += val
+    else if (s.effect_code === "CRIT_DMG")  b.crit_dmg  += val
+  }
+  return b
+}
+
+// 투자된 액티브 스킬만 추출
+export function getActiveSkills(skills: SkillData[]): SkillData[] {
+  return skills.filter((s) => s.type === "active" && s.invested > 0)
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type MonsterStats = {
@@ -56,6 +99,7 @@ export type TurnLog = {
   player_hp: number
   player_mp: number
   monster_hp: number
+  active_skill: string | null
 }
 
 export type BattleResult = {
@@ -221,7 +265,8 @@ export function generateMonster(
 export function buildPlayerCombatStats(
   char: Character,
   equippedOptions: string[],
-  battleCfg: Record<string, string>
+  battleCfg: Record<string, string>,
+  skills: SkillData[] = []
 ): CombatStats {
   const strToPatk = parseFloat(battleCfg.str_to_patk   ?? "2.0")
   const intToMatk = parseFloat(battleCfg.int_to_matk   ?? "2.0")
@@ -283,18 +328,27 @@ export function buildPlayerCombatStats(
   const intTotal = char.int_stat + eInt
   const vitTotal = char.vit + eVit
 
+  // 패시브 스킬 보너스 적용
+  const pb = computePassiveBonuses(skills)
+
+  const basePatk = strTotal * strToPatk + ePatk
+  const baseMatk = intTotal * intToMatk + eMatk
+  const basePdef = ePdef
+  const baseMdef = eMdef
+  const baseHp   = char.base_hp + vitTotal * vitToHp + eHp
+
   return {
-    patk: strTotal * strToPatk + ePatk,
-    matk: intTotal * intToMatk + eMatk,
-    pdef: ePdef,
-    mdef: eMdef,
-    dex:  char.dex + eDex,
-    luk:  char.luk + eLuk,
-    int:  intTotal,
-    max_hp: char.base_hp + vitTotal * vitToHp + eHp,
+    patk:   basePatk * (1 + pb.patk_pct / 100),
+    matk:   baseMatk * (1 + pb.matk_pct / 100),
+    pdef:   basePdef * (1 + pb.pdef_pct / 100),
+    mdef:   baseMdef * (1 + pb.mdef_pct / 100),
+    dex:    char.dex + eDex + pb.dex_flat,
+    luk:    char.luk + eLuk + pb.luk_flat,
+    int:    intTotal,
+    max_hp: baseHp * (1 + pb.hp_pct / 100),
     max_mp: char.base_mp + intTotal * intToMp + eMp,
-    bonus_crit_rate:      bonusCritRate,
-    bonus_crit_dmg:       bonusCritDmg,
+    bonus_crit_rate:      bonusCritRate + pb.crit_rate / 100,
+    bonus_crit_dmg:       bonusCritDmg  + pb.crit_dmg,
     double_attack_chance: doubleAtkChance,
     life_steal_ratio:     lifeStealRatio,
     defense_ignore_ratio: defIgnoreRatio,
@@ -380,6 +434,7 @@ export function runBattle(
   playerCombat: CombatStats,
   monster: Monster,
   battleCfg: Record<string, string>,
+  activeSkills: SkillData[] = [],
   maxTurns = 30
 ): BattleResult {
   const monCombat: Combatant = {
@@ -402,6 +457,26 @@ export function runBattle(
     : monCombat.dex > playerCombat.dex ? "몬스터"
     : Math.random() < 0.5 ? "플레이어" : "몬스터"
 
+  // ── 액티브 스킬 상태 추적 ──
+  const skillUsed = new Set<string>()  // 1회성 스킬 사용 여부
+  let playerTurnCount = 0
+
+  // "전투 시작" / "선공 획득" 스킬 → patk 보정값 미리 계산
+  let battleStartPatkBonus = 1.0
+  let battleStartMatkBonus = 1.0
+  for (const s of activeSkills) {
+    if (s.invested <= 0) continue
+    const val = s.base_effect_value + s.effect_coeff * s.invested
+    if (s.trigger_condition === "전투 시작") {
+      if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
+      if (s.effect_code === "MATK_PCT") battleStartMatkBonus *= 1 + val / 100
+    }
+    if (s.trigger_condition === "선공 획득" && first === "플레이어") {
+      if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
+      if (s.effect_code === "MATK_PCT") battleStartMatkBonus *= 1 + val / 100
+    }
+  }
+
   const logs: TurnLog[] = []
   let winner: "플레이어" | "몬스터" | "시간초과" | null = null
 
@@ -413,7 +488,31 @@ export function runBattle(
 
     let kind: "normal" | "skill" = "normal"
     let mpCost = 0
+    let activeSkillName: string | null = null
+
     if (attLabel === "플레이어") {
+      playerTurnCount++
+
+      // "HP 25% 이하" 스킬 처리 (선공격 전 회복)
+      const hpRatio = playerHp / playerCombat.max_hp
+      if (hpRatio <= 0.25) {
+        for (const s of activeSkills) {
+          if (s.trigger_condition !== "HP 25% 이하" || s.effect_code !== "HP_HEAL") continue
+          if (skillUsed.has(s.id)) continue
+          if (s.invested <= 0) continue
+          const healPct = s.base_effect_value + s.effect_coeff * s.invested
+          const healAmt = Math.round(playerCombat.max_hp * healPct / 100)
+          playerHp = Math.min(playerHp + healAmt, playerCombat.max_hp)
+          skillUsed.add(s.id)
+          logs.push({ turn, attacker: "플레이어", attack_type: "skill", result: "hit",
+            damage: 0, crit: false, double: false, life_steal: healAmt, mp_cost: 0,
+            player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
+            active_skill: s.name })
+          break
+        }
+      }
+
+      // 공격 종류 결정
       const canSkill = atk.matk > 0 && playerMp >= SKILL_MP_COST
       if (canSkill && Math.random() < 0.5) {
         kind = "skill"; mpCost = SKILL_MP_COST
@@ -423,7 +522,51 @@ export function runBattle(
     }
 
     const res = attack(battleCfg, atk, def, kind)
-    const dmg = res.total_damage
+    let dmg = res.total_damage
+
+    // 플레이어 공격 시 액티브 스킬 보정
+    if (attLabel === "플레이어" && res.hit) {
+      // 전투 시작 / 선공 획득 배율
+      if (kind === "skill") dmg = Math.round(dmg * battleStartMatkBonus)
+      else                  dmg = Math.round(dmg * battleStartPatkBonus)
+
+      // "매 3턴" 스킬
+      for (const s of activeSkills) {
+        if (s.trigger_condition !== "매 3턴") continue
+        if (s.invested <= 0 || playerTurnCount % 3 !== 0) continue
+        const val = s.base_effect_value + s.effect_coeff * s.invested
+        if (s.effect_code === "MATK_PCT") {
+          dmg = Math.round(dmg * (1 + val / 100))
+          activeSkillName = s.name
+        }
+      }
+
+      // "치명타 시" 스킬
+      if (res.critical) {
+        for (const s of activeSkills) {
+          if (s.trigger_condition !== "치명타 시") continue
+          if (s.invested <= 0) continue
+          const val = s.base_effect_value + s.effect_coeff * s.invested
+          if (s.effect_code === "MATK_PCT") {
+            dmg = Math.round(dmg * (1 + val / 100))
+            activeSkillName = s.name
+          }
+        }
+      }
+
+      // "명중 시" 추가 타격
+      for (const s of activeSkills) {
+        if (s.trigger_condition !== "명중 시" || s.effect_code !== "EXTRA_HIT") continue
+        if (s.invested <= 0) continue
+        const extraChance = (s.base_effect_value + s.effect_coeff * s.invested) / 100
+        if (Math.random() < extraChance) {
+          const extraRes = attack(battleCfg, atk, def, kind)
+          dmg += extraRes.total_damage
+          activeSkillName = s.name
+        }
+        break
+      }
+    }
 
     if (attLabel === "플레이어") {
       monsterHp = Math.max(0, monsterHp - dmg)
@@ -432,20 +575,34 @@ export function runBattle(
     } else {
       playerHp  = Math.max(0, playerHp - dmg)
       monsterHp = Math.min(monsterHp + res.life_steal, monCombat.max_hp)
-      // 반사 패시브: 플레이어가 받은 피해의 일부를 몬스터에게 반사
       if (plyCombat.reflect_ratio > 0 && dmg > 0) {
         monsterHp = Math.max(0, monsterHp - Math.round(dmg * plyCombat.reflect_ratio))
+      }
+
+      // "사망 시" 기사회생
+      if (playerHp <= 0) {
+        for (const s of activeSkills) {
+          if (s.trigger_condition !== "사망 시" || s.effect_code !== "SURVIVE") continue
+          if (skillUsed.has(s.id) || s.invested <= 0) continue
+          playerHp = 1
+          skillUsed.add(s.id)
+          activeSkillName = s.name
+          break
+        }
       }
     }
 
     let result: TurnLog["result"]
     if (!res.hit) { result = res.reason }
     else if (res.critical && res.double_attack) { result = "crit_double" }
-    else if (res.critical)  { result = "crit" }
+    else if (res.critical)   { result = "crit" }
     else if (res.double_attack) { result = "double" }
     else { result = "hit" }
 
-    logs.push({ turn, attacker: attLabel, attack_type: kind, result, damage: dmg, crit: res.critical, double: res.double_attack, life_steal: res.life_steal, mp_cost: mpCost, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp })
+    logs.push({ turn, attacker: attLabel, attack_type: kind, result, damage: dmg,
+      crit: res.critical, double: res.double_attack, life_steal: res.life_steal,
+      mp_cost: mpCost, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
+      active_skill: activeSkillName })
 
     if (monsterHp <= 0) { winner = "플레이어"; break }
     if (playerHp  <= 0) { winner = "몬스터";   break }

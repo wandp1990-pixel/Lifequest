@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Sword, Heart, Wind, Brain, Star, Lock, ChevronUp, ChevronDown, Zap, Shield, Save, Loader2 } from "lucide-react"
 
 // ─── 스탯 ────────────────────────────────────────────────────────────────────
@@ -35,26 +35,6 @@ interface Skill {
   max_skp: number
 }
 
-const MOCK_SKILLS: Skill[] = [
-  { id: "ACTIVE_RAGE_01",         name: "분노",        type: "active",  unlock_level: 3,   base_effect_value: 30, effect_coeff: 6,    mp_cost: 20, mp_cost_coeff: 1,    trigger_condition: "전투 시작",    effect_code: "PATK_PCT",  description: "물리 ATK 증가",  invested: 5, max_skp: 20 },
-  { id: "ACTIVE_CHAIN_01",        name: "연속공격",    type: "active",  unlock_level: 5,   base_effect_value: 20, effect_coeff: 2,    mp_cost: 10, mp_cost_coeff: 0.5,  trigger_condition: "명중 시",     effect_code: "EXTRA_HIT", description: "추가 타격 발동", invested: 0, max_skp: 20 },
-  { id: "ACTIVE_FIRST_STRIKE_01", name: "선제 강타",   type: "active",  unlock_level: 9,   base_effect_value: 20, effect_coeff: 4,    mp_cost: 15, mp_cost_coeff: 0.75, trigger_condition: "선공 획득",   effect_code: "PATK_PCT",  description: "물리 ATK 증가",  invested: 0, max_skp: 20 },
-  { id: "ACTIVE_AFTERIMAGE_01",   name: "잔상",        type: "active",  unlock_level: 14,  base_effect_value: 10, effect_coeff: 2.5,  mp_cost: 8,  mp_cost_coeff: 0.4,  trigger_condition: "회피 시",     effect_code: "EXTRA_HIT", description: "반격 추가 타격", invested: 0, max_skp: 20 },
-  { id: "ACTIVE_REVERSAL_01",     name: "역전의 의지", type: "active",  unlock_level: 20,  base_effect_value: 5,  effect_coeff: 1.25, mp_cost: 20, mp_cost_coeff: 1,    trigger_condition: "HP 25% 이하", effect_code: "HP_HEAL",   description: "HP 회복",       invested: 0, max_skp: 20 },
-  { id: "ACTIVE_MANA_BURST_01",   name: "마나 폭발",   type: "active",  unlock_level: 25,  base_effect_value: 50, effect_coeff: 7.5,  mp_cost: 25, mp_cost_coeff: 1.25, trigger_condition: "매 3턴",      effect_code: "MATK_PCT",  description: "마법 ATK 증가", invested: 0, max_skp: 20 },
-  { id: "ACTIVE_SPARK_01",        name: "지식의 불꽃", type: "active",  unlock_level: 28,  base_effect_value: 10, effect_coeff: 3.5,  mp_cost: 10, mp_cost_coeff: 0.5,  trigger_condition: "치명타 시",   effect_code: "MATK_PCT",  description: "마법 ATK 증가", invested: 0, max_skp: 20 },
-  { id: "ACTIVE_SURVIVE_01",      name: "기사회생",    type: "active",  unlock_level: 30,  base_effect_value: 5,  effect_coeff: 2.25, mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "사망 시",     effect_code: "SURVIVE",   description: "사망 시 생존",  invested: 0, max_skp: 20 },
-  { id: "PASSIVE_PATK_01",        name: "전사의 기백", type: "passive", unlock_level: 10,  base_effect_value: 2,  effect_coeff: 0.5,  mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "PATK_PCT",  description: "물리 공격력 증가", invested: 3, max_skp: 20 },
-  { id: "PASSIVE_HP_01",          name: "강철 피부",   type: "passive", unlock_level: 20,  base_effect_value: 2,  effect_coeff: 0.5,  mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "HP_PCT",    description: "최대 HP 증가",   invested: 0, max_skp: 20 },
-  { id: "PASSIVE_DEX_01",         name: "신속함",      type: "passive", unlock_level: 30,  base_effect_value: 1,  effect_coeff: 0.5,  mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "DEX_FLAT",  description: "DEX 고정값 증가", invested: 0, max_skp: 20 },
-  { id: "PASSIVE_MATK_01",        name: "마법 친화",   type: "passive", unlock_level: 40,  base_effect_value: 2,  effect_coeff: 0.5,  mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "MATK_PCT",  description: "마법 공격력 증가", invested: 0, max_skp: 20 },
-  { id: "PASSIVE_LUK_01",         name: "행운아",      type: "passive", unlock_level: 50,  base_effect_value: 1,  effect_coeff: 0.5,  mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "LUK_FLAT",  description: "LUK 고정값 증가", invested: 0, max_skp: 20 },
-  { id: "PASSIVE_PDEF_01",        name: "철벽",        type: "passive", unlock_level: 60,  base_effect_value: 5,  effect_coeff: 1,    mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "PDEF_PCT",  description: "물리 방어력 증가", invested: 0, max_skp: 20 },
-  { id: "PASSIVE_CRIT_RATE_01",   name: "예리한 눈",   type: "passive", unlock_level: 70,  base_effect_value: 0.5, effect_coeff: 0.25, mp_cost: 0, mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "CRIT_RATE", description: "치명타율 증가",   invested: 0, max_skp: 20 },
-  { id: "PASSIVE_CRIT_DMG_01",    name: "파열의 법칙", type: "passive", unlock_level: 80,  base_effect_value: 5,  effect_coeff: 1.5,  mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "CRIT_DMG",  description: "치명타 피해 증가", invested: 0, max_skp: 20 },
-  { id: "PASSIVE_MDEF_01",        name: "마법 저항",   type: "passive", unlock_level: 90,  base_effect_value: 5,  effect_coeff: 1,    mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "MDEF_PCT",  description: "마법 방어력 증가", invested: 0, max_skp: 20 },
-  { id: "PASSIVE_CRIT_RATE_02",   name: "신의 총애",   type: "passive", unlock_level: 100, base_effect_value: 1,  effect_coeff: 0.5,  mp_cost: 0,  mp_cost_coeff: 0,    trigger_condition: "",            effect_code: "CRIT_RATE", description: "치명타율 증가",   invested: 0, max_skp: 20 },
-]
 
 function effectLabel(skill: Skill) {
   const val = skill.base_effect_value + skill.effect_coeff * skill.invested
@@ -223,40 +203,71 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
   }
 
   // 스킬
-  const [skills, setSkills] = useState<Skill[]>(MOCK_SKILLS)
+  const [skills, setSkills] = useState<Skill[]>([])
+  const [skillsLoaded, setSkillsLoaded] = useState(false)
   const [skillFilter, setSkillFilter] = useState<"all" | "active" | "passive">("all")
-  const [skillDelta, setSkillDelta] = useState(0)
+  const [pendingInvest, setPendingInvest] = useState<Record<string, number>>({})
   const [skillSaving, setSkillSaving] = useState(false)
 
-  const availableSkp = (char?.skill_points ?? 0) - skillDelta
+  const fetchSkills = useCallback(async () => {
+    try {
+      const res = await fetch("/api/skills")
+      if (!res.ok) return
+      const data = await res.json()
+      setSkills(data.skills)
+      setSkillsLoaded(true)
+    } catch {}
+  }, [])
+
+  useEffect(() => { fetchSkills() }, [fetchSkills])
+
+  // pendingInvest에 쌓인 변화량을 skills에 반영한 뷰
+  const skillsView: Skill[] = skills.map((s) => ({
+    ...s,
+    invested: s.invested + (pendingInvest[s.id] ?? 0),
+  }))
+
+  const skpSpent = Object.values(pendingInvest).reduce((a, b) => a + b, 0)
+  const availableSkp = (char?.skill_points ?? 0) - skpSpent
+  const skillDelta = skpSpent  // 저장 버튼 활성화 조건용
 
   const handleSkillInvest = (id: string, delta: number) => {
-    setSkills((prev) =>
-      prev.map((s) => {
-        if (s.id !== id) return s
-        const next = Math.max(0, Math.min(s.max_skp, s.invested + delta))
-        const diff = next - s.invested
-        if (diff > 0 && availableSkp < diff) return s
-        setSkillDelta((d) => d + diff)
-        return { ...s, invested: next }
-      })
-    )
+    const skill = skillsView.find((s) => s.id === id)
+    if (!skill) return
+    const curInvested = skill.invested
+    const next = Math.max(0, Math.min(skill.max_skp, curInvested + delta))
+    const diff = next - curInvested
+    if (diff > 0 && availableSkp < diff) return
+    setPendingInvest((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + diff }))
   }
 
   const saveSkills = async () => {
-    if (skillDelta === 0) return
+    if (skpSpent === 0) return
     setSkillSaving(true)
     try {
-      // TODO: 실제 API 연동 시 skill_log upsert 호출
-      await new Promise((r) => setTimeout(r, 600))
-      setSkillDelta(0)
-      onCharUpdated()
+      const investments: Record<string, number> = {}
+      for (const s of skillsView) {
+        if ((pendingInvest[s.id] ?? 0) !== 0) {
+          investments[s.id] = s.invested
+        }
+      }
+      const res = await fetch("/api/skills", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ investments }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSkills(data.skills)
+        setPendingInvest({})
+        onCharUpdated()
+      }
     } finally {
       setSkillSaving(false)
     }
   }
 
-  const filteredSkills = skills.filter((s) => {
+  const filteredSkills = skillsView.filter((s) => {
     if (skillFilter === "active") return s.type === "active"
     if (skillFilter === "passive") return s.type === "passive"
     return true
@@ -408,7 +419,11 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
 
           {/* 스킬 목록 */}
           <div className="flex-1 px-4 flex flex-col gap-2">
-            {filteredSkills.map((skill) => (
+            {!skillsLoaded ? (
+              <div className="flex items-center justify-center py-8 text-gray-400 text-sm gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> 스킬 로딩 중...
+              </div>
+            ) : filteredSkills.map((skill) => (
               <SkillCard
                 key={skill.id}
                 skill={skill}
