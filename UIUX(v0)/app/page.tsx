@@ -9,7 +9,7 @@ import TasksTab from "@/components/game/TasksTab"
 import HomeTab from "@/components/game/HomeTab"
 import ItemsTab from "@/components/game/ItemsTab"
 import BattleTab from "@/components/game/BattleTab"
-import SkillsTab from "@/components/game/SkillsTab"
+import CharacterTab from "@/components/game/CharacterTab"
 import BottomNav from "@/components/game/BottomNav"
 import SettingsDrawer from "@/components/game/SettingsDrawer"
 
@@ -19,7 +19,7 @@ const TAB_TITLES: Record<TabType, string> = {
   home:   "홈",
   tasks:  "할일",
   battle: "전투",
-  skills: "스킬",
+  skills: "캐릭터",
   items:  "아이템",
 }
 
@@ -89,7 +89,7 @@ export default function GamePage() {
       case "battle":
         return <BattleTab char={char} onExpGained={handleExpGained} onMenuClick={() => setShowSettings(true)} />
       case "skills":
-        return <SkillsTab skillPoints={char?.skill_points ?? 0} characterLevel={char?.level ?? 1} />
+        return <CharacterTab char={char} onCharUpdated={fetchChar} />
       case "items":
         return <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />
     }

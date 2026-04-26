@@ -40,7 +40,7 @@ const TAB_CONFIG: {
   },
   {
     id: "skills",
-    label: "스킬",
+    label: "캐릭터",
     activeColor: "text-purple-500",
     activeBg: "bg-purple-50",
     badgeColor: "bg-purple-500",
