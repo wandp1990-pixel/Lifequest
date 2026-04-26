@@ -14,8 +14,16 @@ import {
   getPassivePool,
 } from "@/lib/db"
 
-// 가챠: 등급 랜덤 선택
-function pickGrade<T extends { weight: number }>(grades: T[]): T {
+type GradeRow = {
+  grade: string; name: string; weight: number
+  stat_min: number; stat_max: number
+  sub_count: string; combat_count: string; passive_count: string
+}
+type SlotRow = { slot: string; name: string; main_ability: string; excluded: string }
+type AbilityRow = { name: string; base_value: number; unit: string; category: string }
+type PassiveRow = { name: string; description: string }
+
+function pickGrade(grades: GradeRow[]): GradeRow {
   const total = grades.reduce((s, g) => s + g.weight, 0)
   let r = Math.random() * total
   for (const g of grades) {
@@ -25,14 +33,40 @@ function pickGrade<T extends { weight: number }>(grades: T[]): T {
   return grades[grades.length - 1]
 }
 
-// 슬롯 랜덤 선택
-function pickSlot(slots: { slot: string; name: string; main_ability: string }[]) {
+function pickSlot(slots: SlotRow[]): SlotRow {
   return slots[Math.floor(Math.random() * slots.length)]
 }
 
-// 능력치 범위에서 무작위 값
 function randBetween(min: number, max: number): number {
+  if (max <= min) return min
   return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+// "0~1" → 0 또는 1 확률 처리
+function parseCount(raw: unknown): number {
+  const s = String(raw ?? "0").trim()
+  if (s === "" || s === "0") return 0
+  if (s === "1") return 1
+  if (s === "2") return 2
+  if (s === "0~1") return Math.random() < 0.5 ? 0 : 1
+  if (s === "1~2") return Math.random() < 0.5 ? 1 : 2
+  return 0
+}
+
+function formatOpt(name: string, value: number, unit: string): string {
+  if (unit === "%") return `${name} +${value.toFixed(1)}%`
+  return `${name} +${Math.round(value)}`
+}
+
+// 프로토타입 item_engine.py _roll_ability_value 동일 로직
+function rollAbilityValue(ability: AbilityRow, grade: GradeRow, ratio: number): string {
+  if (ability.unit === "%") {
+    const value = ability.base_value * ratio * (1 + Math.random())
+    return formatOpt(ability.name, value, "%")
+  }
+  const low = Math.max(0, Math.floor(grade.stat_min * 0.3 * ratio))
+  const high = Math.max(low, Math.floor(grade.stat_max * 0.5 * ratio))
+  return formatOpt(ability.name, randBetween(low, high), "Pt")
 }
 
 export async function GET() {
@@ -46,7 +80,6 @@ export async function GET() {
   }
 }
 
-// 장착/해제
 export async function PATCH(req: NextRequest) {
   try {
     await initDb()
@@ -60,7 +93,6 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
-// 가챠
 export async function POST(req: NextRequest) {
   try {
     await initDb()
@@ -71,44 +103,71 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "뽑기권이 부족합니다" }, { status: 400 })
     }
 
-    const grades = (await getItemGrades()) as unknown as { grade: string; name: string; weight: number; stat_min: number; stat_max: number }[]
-    const slots = (await getItemSlots()) as unknown as { slot: string; name: string; main_ability: string }[]
-    const abilities = (await getAbilityPool()) as unknown as { name: string; base_value: number; effect: string; category: string }[]
-    const passives = (await getPassivePool()) as unknown as { name: string; description: string }[]
+    const grades = (await getItemGrades()) as unknown as GradeRow[]
+    const slots = (await getItemSlots()) as unknown as SlotRow[]
+    const abilities = (await getAbilityPool()) as unknown as AbilityRow[]
+    const passives = (await getPassivePool()) as unknown as PassiveRow[]
 
     const results = []
     for (let i = 0; i < count; i++) {
       const grade = pickGrade(grades)
       const slot = pickSlot(slots)
-      const baseStat = randBetween(grade.stat_min, grade.stat_max)
 
-      // 메인 능력치 (슬롯 고정)
-      const mainAbility = abilities.find((a) => a.name === slot.main_ability)
-      const options: Record<string, unknown> = {}
+      const excluded = new Set<string>((() => {
+        try { return JSON.parse(slot.excluded) as string[] } catch { return [] }
+      })())
+      const used = new Set<string>()
+      const optionLines: string[] = []
+
+      // 메인 능력치: stat_min~stat_max 직접 롤
+      const mainAbility = abilities.find(a => a.name === slot.main_ability)
+      const mainValue = randBetween(grade.stat_min, grade.stat_max)
       if (mainAbility) {
-        options[mainAbility.name] = Math.round(mainAbility.base_value * (baseStat / 10))
+        optionLines.push(formatOpt(mainAbility.name, mainValue, mainAbility.unit || "Pt"))
+        used.add(mainAbility.name)
       }
 
-      // 서브 능력치 1개 랜덤
-      const subs = abilities.filter((a) => a.name !== slot.main_ability)
-      if (subs.length > 0) {
-        const sub = subs[Math.floor(Math.random() * subs.length)]
-        options[sub.name] = Math.round(sub.base_value * (baseStat / 15))
+      // 서브 능력치 (BaseStat)
+      const subCount = parseCount(grade.sub_count)
+      const subRatios = [0.5, 0.4]
+      for (let j = 0; j < subCount; j++) {
+        const pool = abilities.filter(
+          a => a.category === "BaseStat" && !excluded.has(a.name) && !used.has(a.name)
+        )
+        if (!pool.length) break
+        const ability = pool[Math.floor(Math.random() * pool.length)]
+        used.add(ability.name)
+        optionLines.push(rollAbilityValue(ability, grade, subRatios[j] ?? 0.4))
       }
 
-      // SR 이상: 패시브 추가
-      if (["SR", "SSR", "UR"].includes(grade.grade) && passives.length > 0) {
+      // 전투 능력치 (Combat)
+      const combatCount = parseCount(grade.combat_count)
+      const combatRatios = [1.0, 0.8]
+      for (let j = 0; j < combatCount; j++) {
+        const pool = abilities.filter(
+          a => a.category === "Combat" && !excluded.has(a.name) && !used.has(a.name) && a.name !== slot.main_ability
+        )
+        if (!pool.length) break
+        const ability = pool[Math.floor(Math.random() * pool.length)]
+        used.add(ability.name)
+        optionLines.push(rollAbilityValue(ability, grade, combatRatios[j] ?? 0.8))
+      }
+
+      // 패시브
+      const passiveCount = parseCount(grade.passive_count)
+      for (let j = 0; j < passiveCount; j++) {
+        if (!passives.length) break
         const passive = passives[Math.floor(Math.random() * passives.length)]
-        options["passive"] = passive.name
+        optionLines.push(`[${passive.name}]`)
+        break
       }
 
       const name = `${grade.name} ${slot.name}`
-      const id = await addEquipment(slot.slot, name, grade.grade, baseStat, options)
-      results.push({ id, name, grade: grade.grade, slot: slot.slot, baseStat, options })
+      const id = await addEquipment(slot.slot, name, grade.grade, mainValue, optionLines)
+      results.push({ id, name, grade: grade.grade, slot: slot.slot, mainValue, options: optionLines })
     }
 
     await updateCharacter({ draw_tickets: char.draw_tickets - count })
-
     return NextResponse.json({ results })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

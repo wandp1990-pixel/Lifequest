@@ -17,8 +17,8 @@ interface GachaResult {
   name: string
   grade: string
   slot: string
-  baseStat: number
-  options: Record<string, unknown>
+  mainValue: number
+  options: string[]
 }
 
 interface ItemsTabProps {
@@ -169,7 +169,16 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
           <div className="grid grid-cols-3 gap-2">
             {equipment.map((item) => {
               const isEquipped = item.is_equipped === 1
-              const options = (() => { try { return JSON.parse(item.options) } catch { return {} } })()
+              const options: string[] = (() => {
+                try {
+                  const p = JSON.parse(item.options)
+                  if (Array.isArray(p)) return p
+                  // 구형식 {name: value} 호환
+                  return Object.entries(p).map(([k, v]) =>
+                    k === "passive" ? `[${v}]` : `${k} +${v}`
+                  )
+                } catch { return [] }
+              })()
               return (
                 <div
                   key={item.id}
@@ -194,11 +203,11 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
 
                   {/* 옵션 */}
                   <div className="mt-1 w-full">
-                    {Object.entries(options).map(([k, v]) =>
-                      k === "passive" ? (
-                        <p key={k} className="text-[7px] text-purple-500 text-center truncate">✦ {v as string}</p>
+                    {options.map((opt, idx) =>
+                      opt.startsWith("[") ? (
+                        <p key={idx} className="text-[7px] text-purple-500 text-center truncate">✦ {opt.slice(1, -1)}</p>
                       ) : (
-                        <p key={k} className="text-[7px] text-gray-500 text-center truncate">{k} +{v as string}</p>
+                        <p key={idx} className="text-[7px] text-gray-500 text-center truncate">{opt}</p>
                       )
                     )}
                   </div>

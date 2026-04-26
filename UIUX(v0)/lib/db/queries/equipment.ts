@@ -6,7 +6,7 @@ export async function getEquipment() {
   return res.rows
 }
 
-export async function addEquipment(slot: string, name: string, grade: string, baseStat: number, options: object) {
+export async function addEquipment(slot: string, name: string, grade: string, baseStat: number, options: string[]) {
   const db = getClient()
   await db.execute({
     sql: "INSERT INTO equipment (slot,name,grade,base_stat,options,is_equipped,created_at) VALUES (?,?,?,?,?,0,?)",
