@@ -25,6 +25,9 @@ export async function DELETE() {
     await db.execute("DELETE FROM activity_log")
     await db.execute("DELETE FROM checklist_log")
     await db.execute("DELETE FROM equipment")
+    await db.execute("DELETE FROM routine_log")
+    await db.execute("DELETE FROM routine_bonus_log")
+    await db.execute("DELETE FROM todo_item")
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
