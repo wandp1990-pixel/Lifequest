@@ -96,11 +96,14 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       (sum, r) => sum + r.items.filter((it) => checkedRoutineItemIds.has(it.id)).length,
       0,
     )
+    // 현재 존재하는 항목 중 완료된 것만 셈 (삭제된 항목의 stale ID 제외)
+    const checkedExisting = dailyItems.filter((item) => checkedDailyIds.has(item.id)).length
     const incomplete =
-      (dailyItems.length - checkedDailyIds.size) +
+      (dailyItems.length - checkedExisting) +
       todoItems.filter((t) => !t.is_completed).length +
       (routineTotal - routineDone)
     onCountChange?.(incomplete)
+    // totalDone은 checkedDailyIds.size 전체 사용 — 완료 후 삭제해도 달성 수 유지
     const totalDone = checkedDailyIds.size + routineDone + todoItems.filter((t) => t.is_completed).length
     onDailyCompletedChange?.(totalDone)
   }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, onCountChange, onDailyCompletedChange])
@@ -321,7 +324,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       if (res.ok) {
         const data = await res.json()
         setDailyItems(data.items ?? [])
-        setCheckedDailyIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+        // checkedDailyIds는 건드리지 않음 — 완료 후 삭제해도 달성 수 유지
       }
     } else if (type === "todo") {
       const res = await fetch("/api/todos", {
