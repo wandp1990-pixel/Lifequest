@@ -98,7 +98,7 @@ export default function GamePage() {
   const expPercent = char ? Math.round((char.total_exp / char.next_exp) * 100) : 0
 
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center">
+    <main className="h-dvh overflow-hidden bg-background flex items-center justify-center">
       <div
         className="relative flex flex-col bg-white w-full max-w-sm"
         style={{ minHeight: "100dvh", maxHeight: "100dvh" }}

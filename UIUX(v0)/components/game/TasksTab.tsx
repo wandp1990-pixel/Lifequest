@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, ChevronDown } from "lucide-react"
+import { Plus, X, ChevronDown, Check } from "lucide-react"
 
 interface DailyItem {
   id: number
@@ -410,27 +410,31 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-3 px-4 py-2.5 border-b border-teal-50 last:border-b-0 transition-opacity ${done ? "opacity-50" : ""}`}
+                      className={`flex items-center gap-2 px-4 py-2.5 border-b border-teal-50 last:border-b-0 ${done ? "opacity-50" : ""}`}
                     >
+                      <button
+                        onClick={() => completeRoutineItem(item)}
+                        disabled={done || !!completing}
+                        aria-label="완료"
+                        className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all active:scale-90 ${
+                          done
+                            ? "bg-teal-500 border-teal-500 cursor-not-allowed"
+                            : isLoading
+                            ? "border-teal-300 animate-pulse cursor-wait"
+                            : "border-teal-300 hover:border-teal-500"
+                        }`}
+                      >
+                        {done && <Check className="w-3 h-3 text-white" />}
+                      </button>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm leading-snug ${done ? "line-through text-gray-400" : "text-gray-700"}`}>
                           {item.name}
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <button
-                          onClick={() => completeRoutineItem(item)}
-                          disabled={done || !!completing}
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
-                            done
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : isLoading
-                              ? "bg-teal-200 text-teal-700 animate-pulse cursor-wait"
-                              : "bg-teal-100 text-teal-600 hover:bg-teal-200"
-                          }`}
-                        >
-                          {done ? "✓ 완료" : isLoading ? "처리..." : `+${item.fixed_exp}`}
-                        </button>
+                        <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+                          +{item.fixed_exp}
+                        </span>
                         <button
                           onClick={() => confirmAndDelete("routineItem", item.id, item.name)}
                           className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
