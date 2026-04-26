@@ -376,7 +376,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       )}
 
       {/* ── 루틴 섹션 ───────────────────────────────────── */}
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between bg-teal-50 border-y border-teal-100">
         <div className="flex items-center gap-2">
           <span className="text-sm">🔁</span>
           <span className="text-sm font-bold text-gray-800">루틴</span>
@@ -560,7 +560,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       })}
 
       {/* ── 데일리 섹션 ─────────────────────────────────── */}
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between bg-amber-50 border-y border-amber-100 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
           <span className="text-sm font-bold text-gray-800">오늘의 데일리</span>
@@ -648,7 +648,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       })}
 
       {/* ── 할 일 섹션 ──────────────────────────────────── */}
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between bg-violet-50 border-y border-violet-100 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">📋</span>
           <span className="text-sm font-bold text-gray-800">할 일</span>
