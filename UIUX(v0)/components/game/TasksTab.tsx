@@ -586,7 +586,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="데일리 항목 이름..."
-            className="flex-1 text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
+            className="flex-1 min-w-0 text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
           />
           <input
             type="number"
@@ -676,7 +676,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="할 일 이름..."
-            className="flex-1 text-sm bg-violet-50 border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+            className="flex-1 min-w-0 text-sm bg-violet-50 border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
           />
           <input
             type="number"
