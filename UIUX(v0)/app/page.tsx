@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import TopHeader from "@/components/game/TopHeader"
 import CharacterPanel from "@/components/game/CharacterPanel"
-import LevelBar from "@/components/game/LevelBar"
 import QuestBanner from "@/components/game/QuestBanner"
 import TasksTab from "@/components/game/TasksTab"
 import HomeTab from "@/components/game/HomeTab"
@@ -107,18 +106,16 @@ export default function GamePage() {
           {activeTab !== "battle" && (
             <>
               <CharacterPanel
+                name={char?.name ?? "모험가"}
                 hp={char?.current_hp ?? 0}
                 maxHp={char?.max_hp ?? 100}
                 mp={char?.current_mp ?? 0}
                 maxMp={char?.max_mp ?? 50}
                 level={char?.level ?? 1}
-              />
-              <LevelBar
-                level={char?.level ?? 1}
-                totalExp={char?.total_exp ?? 0}
-                nextExp={char?.next_exp ?? 100}
                 drawTickets={char?.draw_tickets ?? 0}
                 statPoints={char?.stat_points ?? 0}
+                totalExp={char?.total_exp ?? 0}
+                nextExp={char?.next_exp ?? 100}
               />
               {activeTab !== "home" && activeTab !== "skills" && (
                 <QuestBanner
