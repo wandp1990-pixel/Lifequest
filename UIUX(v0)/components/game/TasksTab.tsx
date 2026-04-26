@@ -683,7 +683,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             value={newExp}
             onChange={(e) => setNewExp(Number(e.target.value))}
             className="w-14 text-sm text-center bg-violet-50 border border-violet-200 rounded-xl px-1 py-2 outline-none"
-            min={1}
+            min={0}
           />
           <button
             onClick={addItem}
@@ -723,7 +723,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     : "bg-violet-100 text-violet-600 hover:bg-violet-200"
                 }`}
               >
-                {done ? "✓ 완료" : isLoading ? "판정 중..." : `+${item.suggested_exp} EXP`}
+                {done ? "✓ 완료" : isLoading ? "판정 중..." : item.suggested_exp === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
               </button>
               <button
                 onClick={() => confirmAndDelete("todo", item.id, item.name)}

@@ -4,6 +4,7 @@ import {
   addActivityLog, incrementTaskCount,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
+import { judgeActivity } from "@/lib/ai"
 
 export async function GET() {
   try {
@@ -34,8 +35,13 @@ export async function PATCH(req: NextRequest) {
     const item = items.find((i) => i.id === id)
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
 
-    const exp = (item.suggested_exp as number) ?? 10
-    const comment = "할 일 완료!"
+    let exp = (item.suggested_exp as number) ?? 10
+    let comment = "할 일 완료!"
+    if (exp === 0) {
+      const aiResult = await judgeActivity(item.name as string)
+      exp = aiResult.exp
+      comment = aiResult.comment
+    }
     await completeTodoItem(id, exp, comment)
     await addActivityLog(item.name as string, "todo", exp, comment)
     await incrementTaskCount()
