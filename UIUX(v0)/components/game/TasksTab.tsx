@@ -449,7 +449,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 })}
 
                 {isAddingItem ? (
-                  <div className="px-4 py-2.5 flex gap-1.5 bg-teal-50/50">
+                  <div className="px-4 py-2.5 flex flex-col gap-2 bg-teal-50/50">
                     <input
                       autoFocus
                       type="text"
@@ -457,28 +457,31 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                       onChange={(e) => setNewItemName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && addRoutineItemSubmit(r.id)}
                       placeholder="항목 이름..."
-                      className="flex-1 text-sm bg-white border border-teal-200 rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-teal-300"
+                      className="w-full text-sm bg-white border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
                     />
-                    <input
-                      type="number"
-                      value={newItemExp}
-                      onChange={(e) => setNewItemExp(Number(e.target.value))}
-                      className="w-12 text-sm text-center bg-white border border-teal-200 rounded-xl px-1 py-1.5 outline-none"
-                      min={1}
-                    />
-                    <button
-                      onClick={() => addRoutineItemSubmit(r.id)}
-                      className="px-2.5 py-1.5 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
-                    >
-                      추가
-                    </button>
-                    <button
-                      onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }}
-                      className="text-gray-400 px-1"
-                      aria-label="취소"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-gray-400 flex-1">EXP</span>
+                      <input
+                        type="number"
+                        value={newItemExp}
+                        onChange={(e) => setNewItemExp(Number(e.target.value))}
+                        className="w-16 text-sm text-center bg-white border border-teal-200 rounded-xl px-1 py-1.5 outline-none"
+                        min={1}
+                      />
+                      <button
+                        onClick={() => addRoutineItemSubmit(r.id)}
+                        className="px-3 py-1.5 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
+                      >
+                        추가
+                      </button>
+                      <button
+                        onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }}
+                        className="text-gray-400 px-1"
+                        aria-label="취소"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between px-4 py-2 bg-teal-50/30">
