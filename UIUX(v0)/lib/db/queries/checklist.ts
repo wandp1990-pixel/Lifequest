@@ -1,4 +1,4 @@
-import { getClient, now } from "../client"
+import { getClient, now, todayKST } from "../client"
 
 export async function getChecklistItems() {
   const db = getClient()
@@ -29,7 +29,7 @@ export async function deleteChecklistItem(id: number) {
 
 export async function getTodayCheckedItemIds(): Promise<Set<number>> {
   const db = getClient()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayKST()
   const res = await db.execute({
     sql: "SELECT item_id FROM checklist_log WHERE checked_at LIKE ?",
     args: [`${today}%`],

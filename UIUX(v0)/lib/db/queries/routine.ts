@@ -1,4 +1,4 @@
-import { getClient, now } from "../client"
+import { getClient, now, todayKST } from "../client"
 
 export interface RoutineItemRow {
   id: number
@@ -22,9 +22,6 @@ export interface RoutineCheckResult {
   routineName: string
 }
 
-function todayPrefix(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 export async function getRoutines(): Promise<{
   routines: RoutineRow[]
@@ -32,7 +29,7 @@ export async function getRoutines(): Promise<{
   bonusRoutineIds: number[]
 }> {
   const db = getClient()
-  const today = todayPrefix()
+  const today = todayKST()
 
   const rRes = await db.execute(
     "SELECT id, name, sort_order FROM routine WHERE is_active = 1 ORDER BY sort_order, id"
@@ -117,7 +114,7 @@ export async function reorderRoutineItems(orderedItemIds: number[]) {
 
 export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResult | null> {
   const db = getClient()
-  const today = todayPrefix()
+  const today = todayKST()
 
   const itemRes = await db.execute({
     sql: "SELECT id, routine_id, name, fixed_exp FROM routine_item WHERE id=? AND is_active=1",

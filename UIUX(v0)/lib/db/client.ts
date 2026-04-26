@@ -12,6 +12,14 @@ export function getClient(): Client {
   return _client
 }
 
+function kstDate(): Date {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000)
+}
+
 export function now(): string {
-  return new Date().toISOString().replace("T", " ").slice(0, 19)
+  return kstDate().toISOString().replace("T", " ").slice(0, 19)
+}
+
+export function todayKST(): string {
+  return kstDate().toISOString().slice(0, 10)
 }
