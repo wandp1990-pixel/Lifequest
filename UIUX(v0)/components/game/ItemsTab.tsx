@@ -26,32 +26,33 @@ interface ItemsTabProps {
   onTicketsChanged?: () => void
 }
 
-const GRADE_BORDER: Record<string, string> = {
-  C: "border-gray-300", B: "border-blue-400", A: "border-purple-500",
-  S: "border-amber-400", SR: "border-orange-500", SSR: "border-red-500", UR: "border-pink-500",
-}
-const GRADE_BG: Record<string, string> = {
-  C: "bg-gray-50", B: "bg-blue-50", A: "bg-purple-50",
-  S: "bg-amber-50", SR: "bg-orange-50", SSR: "bg-red-50", UR: "bg-pink-50",
-}
-const GRADE_TEXT: Record<string, string> = {
-  C: "text-gray-500", B: "text-blue-500", A: "text-purple-500",
-  S: "text-amber-500", SR: "text-orange-500", SSR: "text-red-500", UR: "text-pink-500",
+const GRADE_COLOR: Record<string, string> = {
+  C: "#9E9E9E", B: "#4CAF50", A: "#4A90E2",
+  S: "#FF9500", SR: "#9B59B6", SSR: "#FFD700", UR: "#FF1493",
 }
 const GRADE_LABEL: Record<string, string> = {
   C: "일반", B: "고급", A: "희귀", S: "영웅", SR: "전설", SSR: "고대", UR: "신화",
 }
+const GRADE_BG: Record<string, string> = {
+  C:   "rgba(158,158,158,0.08)",
+  B:   "rgba(76,175,80,0.08)",
+  A:   "rgba(74,144,226,0.08)",
+  S:   "rgba(255,149,0,0.08)",
+  SR:  "rgba(155,89,182,0.08)",
+  SSR: "rgba(255,215,0,0.08)",
+  UR:  "rgba(255,20,147,0.08)",
+}
 
-const SLOT_ORDER: { id: string; label: string }[] = [
-  { id: "weapon",   label: "무기" },
-  { id: "helmet",   label: "투구" },
-  { id: "armor",    label: "갑옷" },
-  { id: "pants",    label: "바지" },
-  { id: "belt",     label: "벨트" },
-  { id: "glove",    label: "장갑" },
-  { id: "shoe",     label: "신발" },
-  { id: "ring",     label: "반지" },
-  { id: "necklace", label: "목걸이" },
+const SLOT_ORDER: { id: string; label: string; icon: string }[] = [
+  { id: "weapon",   label: "무기",   icon: "🗡️" },
+  { id: "helmet",   label: "투구",   icon: "⛑️" },
+  { id: "armor",    label: "갑옷",   icon: "🥋" },
+  { id: "pants",    label: "바지",   icon: "👖" },
+  { id: "belt",     label: "벨트",   icon: "🪢" },
+  { id: "glove",    label: "장갑",   icon: "🧤" },
+  { id: "shoe",     label: "신발",   icon: "👟" },
+  { id: "ring",     label: "반지",   icon: "💍" },
+  { id: "necklace", label: "목걸이", icon: "📿" },
 ]
 
 function parseOptions(raw: string): string[] {
@@ -62,18 +63,23 @@ function parseOptions(raw: string): string[] {
   } catch { return [] }
 }
 
-function OptionList({ opts }: { opts: string[] }) {
+function GradeBadge({ grade }: { grade: string }) {
+  const color = GRADE_COLOR[grade] ?? "#9E9E9E"
   return (
-    <>
-      {opts.map((opt, i) =>
-        opt.startsWith("[") ? (
-          <p key={i} className="text-[10px] text-purple-600 font-medium truncate">✦ {opt.slice(1, -1)}</p>
-        ) : (
-          <p key={i} className="text-[10px] text-gray-600 truncate">{opt}</p>
-        )
-      )}
-    </>
+    <span
+      style={{ color, borderColor: color, fontSize: "9px" }}
+      className="border rounded px-1 py-0.5 font-bold leading-none whitespace-nowrap"
+    >
+      {grade}
+    </span>
   )
+}
+
+function OptionLine({ opt }: { opt: string }) {
+  if (opt.startsWith("[")) {
+    return <p className="text-[10px] font-medium leading-tight" style={{ color: "#9B59B6" }}>✦ {opt.slice(1, -1)}</p>
+  }
+  return <p className="text-[10px] text-gray-500 leading-tight">{opt}</p>
 }
 
 export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProps) {
@@ -120,16 +126,13 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
 
       onTicketsChanged?.()
 
-      // 현재 슬롯에 장착된 아이템 확인
       const currentEquipped = equipment.find(e => e.slot === item.slot && e.is_equipped === 1)
 
       if (!currentEquipped) {
-        // 빈 슬롯 → 자동 장착
         await patchInventory({ action: "equip", itemId: item.id })
         await fetchInventory()
         setLastResult({ item, autoEquipped: true })
       } else {
-        // 이미 장착 중 → 교체 여부 선택
         await fetchInventory()
         setPendingReplace({ newItem: item, oldItem: currentEquipped })
       }
@@ -141,7 +144,6 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
   const handleReplace = async () => {
     if (!pendingReplace) return
     const { newItem, oldItem } = pendingReplace
-    // 새 아이템 장착 (기존 아이템 자동 해제) → 기존 아이템 폐기
     await patchInventory({ action: "equip", itemId: newItem.id })
     await patchInventory({ action: "delete", itemId: oldItem.id })
     await fetchInventory()
@@ -204,12 +206,18 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
 
           {/* 뽑기 결과 알림 */}
           {lastResult && (
-            <div className={`mt-3 flex items-center gap-3 rounded-xl px-3 py-2 border ${GRADE_BORDER[lastResult.item.grade]} ${GRADE_BG[lastResult.item.grade]}`}>
+            <div
+              className="mt-3 flex items-center gap-3 rounded-xl px-3 py-2"
+              style={{
+                background: "rgba(255,255,255,0.07)",
+                border: `1px solid ${GRADE_COLOR[lastResult.item.grade] ?? "#9E9E9E"}`,
+              }}
+            >
               <div>
-                <p className="text-xs font-bold text-gray-800">{lastResult.item.name} 획득!</p>
-                <p className={`text-[10px] font-bold ${GRADE_TEXT[lastResult.item.grade]}`}>
+                <p className="text-xs font-bold text-white">{lastResult.item.name} 획득!</p>
+                <p className="text-[10px] font-bold mt-0.5" style={{ color: GRADE_COLOR[lastResult.item.grade] }}>
                   [{GRADE_LABEL[lastResult.item.grade]}]
-                  {lastResult.autoEquipped && <span className="ml-1 text-green-600">자동 장착</span>}
+                  {lastResult.autoEquipped && <span className="ml-1 text-green-400">자동 장착</span>}
                 </p>
               </div>
               <span className="ml-auto text-lg">✨</span>
@@ -228,34 +236,38 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
             <p className="text-sm font-bold text-gray-800 mb-3 text-center">장착 중인 아이템이 있습니다</p>
 
             {/* 새 아이템 */}
-            <div className={`rounded-xl px-3 py-3 border-2 ${GRADE_BORDER[pendingReplace.newItem.grade]} ${GRADE_BG[pendingReplace.newItem.grade]} mb-2`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold text-gray-400 bg-white/60 px-1.5 py-0.5 rounded">NEW</span>
-                <span className={`text-xs font-bold ${GRADE_TEXT[pendingReplace.newItem.grade]}`}>{GRADE_LABEL[pendingReplace.newItem.grade]}</span>
-                <span className="text-xs font-bold text-gray-700">{pendingReplace.newItem.name}</span>
+            <div
+              className="rounded-xl px-3 py-3 mb-2"
+              style={{
+                background: GRADE_BG[pendingReplace.newItem.grade],
+                border: `2px solid ${GRADE_COLOR[pendingReplace.newItem.grade] ?? "#9E9E9E"}`,
+              }}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-bold text-gray-400 bg-white/70 px-1.5 py-0.5 rounded">NEW</span>
+                <GradeBadge grade={pendingReplace.newItem.grade} />
+                <span className="text-xs font-bold text-gray-800 truncate">{pendingReplace.newItem.name}</span>
               </div>
-              <div className="mt-1 space-y-0.5">
-                {pendingReplace.newItem.options.map((opt, i) =>
-                  opt.startsWith("[") ? (
-                    <p key={i} className="text-xs text-purple-600 font-medium">✦ {opt.slice(1, -1)}</p>
-                  ) : (
-                    <p key={i} className="text-xs text-gray-600">{opt}</p>
-                  )
-                )}
+              <div className="space-y-0.5 pl-1">
+                {pendingReplace.newItem.options.map((opt, i) => <OptionLine key={i} opt={opt} />)}
               </div>
             </div>
 
             {/* 기존 아이템 */}
-            <div className={`rounded-xl px-3 py-3 border-2 ${GRADE_BORDER[pendingReplace.oldItem.grade]} bg-gray-50 mb-4`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold text-gray-400 bg-white/60 px-1.5 py-0.5 rounded">현재</span>
-                <span className={`text-xs font-bold ${GRADE_TEXT[pendingReplace.oldItem.grade]}`}>{GRADE_LABEL[pendingReplace.oldItem.grade]}</span>
-                <span className="text-xs font-bold text-gray-500">{pendingReplace.oldItem.name}</span>
+            <div
+              className="rounded-xl px-3 py-3 mb-4"
+              style={{
+                background: "rgba(0,0,0,0.03)",
+                border: `2px solid ${GRADE_COLOR[pendingReplace.oldItem.grade] ?? "#9E9E9E"}50`,
+              }}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-bold text-gray-400 bg-white/70 px-1.5 py-0.5 rounded">현재</span>
+                <GradeBadge grade={pendingReplace.oldItem.grade} />
+                <span className="text-xs font-bold text-gray-500 truncate">{pendingReplace.oldItem.name}</span>
               </div>
-              <div className="mt-1 space-y-0.5">
-                {parseOptions(pendingReplace.oldItem.options).map((opt, i) => (
-                  <p key={i} className="text-xs text-gray-500">{opt}</p>
-                ))}
+              <div className="space-y-0.5 pl-1">
+                {parseOptions(pendingReplace.oldItem.options).map((opt, i) => <OptionLine key={i} opt={opt} />)}
               </div>
             </div>
 
@@ -268,7 +280,8 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
               </button>
               <button
                 onClick={handleReplace}
-                className="flex-1 py-3 rounded-2xl bg-amber-400 text-white text-sm font-bold"
+                className="flex-1 py-3 rounded-2xl text-white text-sm font-bold"
+                style={{ background: "#FF9500" }}
               >
                 교체 (기존 폐기)
               </button>
@@ -281,23 +294,34 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
       <div>
         <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">장착 장비</p>
         <div className="grid grid-cols-3 gap-2">
-          {SLOT_ORDER.map(({ id, label }) => {
+          {SLOT_ORDER.map(({ id, label, icon }) => {
             const item = equippedMap[id]
             if (item) {
               const opts = parseOptions(item.options)
+              const color = GRADE_COLOR[item.grade] ?? "#9E9E9E"
               return (
                 <div
                   key={id}
-                  className={`flex flex-col rounded-2xl p-2 border-2 ${GRADE_BORDER[item.grade]} ${GRADE_BG[item.grade]} ring-2 ring-offset-1 ring-amber-400`}
+                  className="flex flex-col rounded-2xl p-2.5"
+                  style={{
+                    background: GRADE_BG[item.grade],
+                    border: `2px solid ${color}`,
+                    boxShadow: `0 0 8px ${color}30`,
+                  }}
                 >
-                  {/* 부위 + 등급 */}
+                  {/* 헤더: 슬롯 아이콘 + 슬롯명 + 등급 배지 */}
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-bold text-gray-600">{label}</span>
-                    <span className={`text-[10px] font-bold ${GRADE_TEXT[item.grade]}`}>{GRADE_LABEL[item.grade]}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm leading-none">{icon}</span>
+                      <span className="text-[10px] font-bold text-gray-500">{label}</span>
+                    </div>
+                    <GradeBadge grade={item.grade} />
                   </div>
-                  {/* 옵션 */}
+                  {/* 아이템명 */}
+                  <p className="text-[11px] font-bold text-gray-800 leading-tight mb-1.5 line-clamp-2">{item.name}</p>
+                  {/* 옵션 (최대 3개) */}
                   <div className="space-y-0.5">
-                    <OptionList opts={opts} />
+                    {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
                   </div>
                 </div>
               )
@@ -306,17 +330,18 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
             return (
               <div
                 key={id}
-                className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 min-h-[90px]"
+                className="flex flex-col items-center justify-center rounded-2xl min-h-[90px] gap-1"
+                style={{ border: "1.5px dashed #D1D5DB", background: "#FAFAFA" }}
               >
-                <p className="text-xs font-bold text-gray-300">{label}</p>
-                <p className="text-[10px] text-gray-200 mt-0.5">비어있음</p>
+                <span className="text-2xl opacity-20">{icon}</span>
+                <p className="text-[10px] font-bold text-gray-300">{label}</p>
               </div>
             )
           })}
         </div>
       </div>
 
-      {/* 미장착 아이템 (있을 경우만 표시) */}
+      {/* 미장착 아이템 */}
       {unequipped.length > 0 && (
         <div>
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">
@@ -325,20 +350,29 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
           <div className="grid grid-cols-3 gap-2">
             {unequipped.map(item => {
               const opts = parseOptions(item.options)
-              const slotLabel = SLOT_ORDER.find(s => s.id === item.slot)?.label ?? item.slot
+              const slotInfo = SLOT_ORDER.find(s => s.id === item.slot)
+              const color = GRADE_COLOR[item.grade] ?? "#9E9E9E"
               return (
                 <div
                   key={item.id}
-                  className={`flex flex-col rounded-2xl p-2 border-2 ${GRADE_BORDER[item.grade]} ${GRADE_BG[item.grade]}`}
+                  className="flex flex-col rounded-2xl p-2.5"
+                  style={{
+                    background: GRADE_BG[item.grade],
+                    border: `2px solid ${color}50`,
+                  }}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-bold text-gray-600">{slotLabel}</span>
-                    <span className={`text-[10px] font-bold ${GRADE_TEXT[item.grade]}`}>{GRADE_LABEL[item.grade]}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm leading-none">{slotInfo?.icon}</span>
+                      <span className="text-[10px] font-bold text-gray-500">{slotInfo?.label ?? item.slot}</span>
+                    </div>
+                    <GradeBadge grade={item.grade} />
                   </div>
-                  <div className="flex-1 space-y-0.5">
-                    <OptionList opts={opts} />
+                  <p className="text-[11px] font-bold text-gray-800 leading-tight mb-1.5 line-clamp-2">{item.name}</p>
+                  <div className="flex-1 space-y-0.5 mb-2">
+                    {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
                   </div>
-                  <div className="flex gap-1 mt-2">
+                  <div className="flex gap-1 mt-auto">
                     <button
                       onClick={async () => {
                         const cur = equippedMap[item.slot]
@@ -346,13 +380,14 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
                         await patchInventory({ action: "equip", itemId: item.id })
                         await fetchInventory()
                       }}
-                      className="flex-1 text-[10px] font-bold py-1 rounded-lg bg-amber-400 text-white"
+                      className="flex-1 text-[10px] font-bold py-1.5 rounded-lg text-white"
+                      style={{ background: "#FF9500" }}
                     >
                       장착
                     </button>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="flex-1 text-[10px] font-bold py-1 rounded-lg bg-red-100 text-red-500"
+                      className="flex-1 text-[10px] font-bold py-1.5 rounded-lg bg-red-50 text-red-500"
                     >
                       삭제
                     </button>
