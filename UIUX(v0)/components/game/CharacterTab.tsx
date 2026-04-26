@@ -262,7 +262,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
     return true
   })
 
-  const totalSkillInvested = skills.reduce((a, s) => a + s.invested, 0)
+
 
   return (
     <div className="flex flex-col h-full">
@@ -383,17 +383,11 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
 
           {/* 스킬 포인트 헤더 */}
           <div className="px-4 pb-2">
-            <div className="flex items-center justify-between bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl px-4 py-3 text-white shadow-sm">
-              <div>
-                <p className="text-xs opacity-80">보유 스킬 포인트</p>
-                <p className="text-2xl font-extrabold leading-none mt-0.5">
-                  {availableSkp} <span className="text-sm font-medium opacity-70">SKP</span>
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs opacity-80">총 투자</p>
-                <p className="text-lg font-bold">{totalSkillInvested}</p>
-              </div>
+            <div className="bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl px-4 py-3 text-white shadow-sm">
+              <p className="text-xs opacity-80">보유 스킬 포인트</p>
+              <p className="text-2xl font-extrabold leading-none mt-0.5">
+                {availableSkp} <span className="text-sm font-medium opacity-70">SKP</span>
+              </p>
             </div>
           </div>
 
