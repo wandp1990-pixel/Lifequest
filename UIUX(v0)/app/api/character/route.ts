@@ -24,6 +24,7 @@ export async function DELETE() {
     const db = getClient()
     await db.execute("DELETE FROM activity_log")
     await db.execute("DELETE FROM checklist_log")
+    await db.execute("DELETE FROM equipment")
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
