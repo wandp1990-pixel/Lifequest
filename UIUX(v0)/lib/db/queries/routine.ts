@@ -105,6 +105,16 @@ export async function deleteRoutineItem(id: number) {
   await db.execute({ sql: "UPDATE routine_item SET is_active=0 WHERE id=?", args: [id] })
 }
 
+export async function reorderRoutineItems(orderedItemIds: number[]) {
+  const db = getClient()
+  for (let i = 0; i < orderedItemIds.length; i++) {
+    await db.execute({
+      sql: "UPDATE routine_item SET sort_order=? WHERE id=?",
+      args: [i, orderedItemIds[i]],
+    })
+  }
+}
+
 export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResult | null> {
   const db = getClient()
   const today = todayPrefix()

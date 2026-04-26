@@ -12,6 +12,7 @@ export { getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem } from "./q
 export {
   getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
+  reorderRoutineItems,
 } from "./queries/routine"
 export { getEquipment, addEquipment, equipItem, unequipItem, deleteEquipment } from "./queries/equipment"
 export { addBattleLog } from "./queries/battle"

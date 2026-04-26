@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, ChevronDown, Check } from "lucide-react"
+import { Plus, X, ChevronDown, GripVertical } from "lucide-react"
 
 interface DailyItem {
   id: number
@@ -55,6 +55,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [draggingItemId, setDraggingItemId] = useState<number | null>(null)
+  const [dragOverItemId, setDragOverItemId] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{
     type: "daily" | "todo" | "routine" | "routineItem"
     id: number
@@ -182,6 +184,50 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       else n.add(id)
       return n
     })
+  }
+
+  const handleItemDragStart = (e: React.DragEvent, itemId: number) => {
+    setDraggingItemId(itemId)
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  const handleItemDragOver = (e: React.DragEvent, itemId: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+    setDragOverItemId(itemId)
+  }
+
+  const handleItemDrop = async (e: React.DragEvent, targetItemId: number, routineId: number) => {
+    e.preventDefault()
+    const fromId = draggingItemId
+    setDraggingItemId(null)
+    setDragOverItemId(null)
+    if (!fromId || fromId === targetItemId) return
+
+    const routine = routines.find((r) => r.id === routineId)
+    if (!routine) return
+
+    const items = [...routine.items]
+    const fromIdx = items.findIndex((it) => it.id === fromId)
+    const toIdx = items.findIndex((it) => it.id === targetItemId)
+    if (fromIdx < 0 || toIdx < 0) return
+
+    const [moved] = items.splice(fromIdx, 1)
+    items.splice(toIdx, 0, moved)
+    const orderedItemIds = items.map((it) => it.id)
+
+    setRoutines((prev) => prev.map((r) => r.id === routineId ? { ...r, items } : r))
+
+    await fetch("/api/routines", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reorderItems", routineId, orderedItemIds }),
+    })
+  }
+
+  const handleItemDragEnd = () => {
+    setDraggingItemId(null)
+    setDragOverItemId(null)
   }
 
   const addRoutine = async () => {
@@ -408,34 +454,42 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 {r.items.map((item) => {
                   const done = checkedRoutineItemIds.has(item.id)
                   const isLoading = completing?.type === "routine" && completing?.id === item.id
+                  const isDragOver = dragOverItemId === item.id && draggingItemId !== item.id
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-2 px-4 py-2.5 border-b border-teal-50 last:border-b-0 ${done ? "opacity-50" : ""}`}
+                      onDragOver={(e) => handleItemDragOver(e, item.id)}
+                      onDrop={(e) => handleItemDrop(e, item.id, r.id)}
+                      className={`flex items-center gap-2 px-3 py-2.5 border-b border-teal-50 last:border-b-0 transition-colors ${done ? "opacity-50" : ""} ${isDragOver ? "bg-teal-50" : ""} ${draggingItemId === item.id ? "opacity-30" : ""}`}
                     >
-                      <button
-                        onClick={() => completeRoutineItem(item)}
-                        disabled={done || !!completing}
-                        aria-label="완료"
-                        className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all active:scale-90 ${
-                          done
-                            ? "bg-teal-500 border-teal-500 cursor-not-allowed"
-                            : isLoading
-                            ? "border-teal-300 animate-pulse cursor-wait"
-                            : "border-teal-300 hover:border-teal-500"
-                        }`}
+                      <div
+                        draggable
+                        onDragStart={(e) => handleItemDragStart(e, item.id)}
+                        onDragEnd={handleItemDragEnd}
+                        className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                        aria-label="순서 변경"
                       >
-                        {done && <Check className="w-3 h-3 text-white" />}
-                      </button>
+                        <GripVertical className="w-4 h-4 text-gray-300" />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm leading-snug ${done ? "line-through text-gray-400" : "text-gray-700"}`}>
                           {item.name}
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
-                          +{item.fixed_exp}
-                        </span>
+                        <button
+                          onClick={() => completeRoutineItem(item)}
+                          disabled={done || !!completing}
+                          className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
+                            done
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : isLoading
+                              ? "bg-teal-200 text-teal-700 animate-pulse cursor-wait"
+                              : "bg-teal-100 text-teal-600 hover:bg-teal-200"
+                          }`}
+                        >
+                          {done ? "✓ 완료" : isLoading ? "처리 중..." : `+${item.fixed_exp} EXP`}
+                        </button>
                         <button
                           onClick={() => confirmAndDelete("routineItem", item.id, item.name)}
                           className="text-gray-300 hover:text-red-400 transition-colors p-0.5"

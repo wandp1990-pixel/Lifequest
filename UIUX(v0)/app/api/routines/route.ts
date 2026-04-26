@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
-  addActivityLog, incrementTaskCount,
+  reorderRoutineItems, addActivityLog, incrementTaskCount,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -68,6 +68,14 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "필수값 누락" }, { status: 400 })
       }
       await addRoutineItem(routineId, name, fixedExp)
+      return NextResponse.json(await getRoutines())
+    }
+    if (action === "reorderItems") {
+      const orderedItemIds = body.orderedItemIds
+      if (!Array.isArray(orderedItemIds)) {
+        return NextResponse.json({ error: "orderedItemIds 필요" }, { status: 400 })
+      }
+      await reorderRoutineItems(orderedItemIds)
       return NextResponse.json(await getRoutines())
     }
     return NextResponse.json({ error: "알 수 없는 action" }, { status: 400 })
