@@ -1,8 +1,8 @@
 "use client"
 
-import { User, CheckSquare, Swords, ShoppingBag } from "lucide-react"
+import { User, CheckSquare, Swords, ShoppingBag, Sparkles } from "lucide-react"
 
-type TabType = "home" | "tasks" | "battle" | "items"
+type TabType = "home" | "tasks" | "battle" | "items" | "skills"
 
 interface BottomNavProps {
   activeTab: TabType
@@ -39,6 +39,13 @@ const TAB_CONFIG: {
     badgeColor: "bg-red-500",
   },
   {
+    id: "skills",
+    label: "스킬",
+    activeColor: "text-purple-500",
+    activeBg: "bg-purple-50",
+    badgeColor: "bg-purple-500",
+  },
+  {
     id: "items",
     label: "아이템",
     activeColor: "text-sky-500",
@@ -51,6 +58,7 @@ const ICONS: Record<TabType, React.ReactNode> = {
   home:   <User        className="w-5 h-5" />,
   tasks:  <CheckSquare className="w-5 h-5" />,
   battle: <Swords      className="w-5 h-5" />,
+  skills: <Sparkles    className="w-5 h-5" />,
   items:  <ShoppingBag className="w-5 h-5" />,
 }
 
