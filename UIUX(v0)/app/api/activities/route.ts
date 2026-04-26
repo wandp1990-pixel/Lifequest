@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initDb, addActivityLog, getRecentActivities } from "@/lib/db"
 import { gainExp } from "@/lib/game"
+import { judgeActivity } from "@/lib/ai"
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,12 +21,11 @@ export async function POST(req: NextRequest) {
     const { text } = await req.json()
     if (!text?.trim()) return NextResponse.json({ error: "활동 내용을 입력하세요" }, { status: 400 })
 
-    const exp = 50
-    const comment = "활동 완료!"
-    const levelResult = await gainExp(exp)
-    await addActivityLog(text, "ai", exp, comment)
+    const result = await judgeActivity(text)
+    const levelResult = await gainExp(result.exp)
+    await addActivityLog(text, "ai", result.exp, result.comment)
 
-    return NextResponse.json({ exp, comment, ...levelResult })
+    return NextResponse.json({ ...result, ...levelResult })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
