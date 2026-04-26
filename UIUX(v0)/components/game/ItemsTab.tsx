@@ -156,11 +156,6 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
     setPendingReplace(null)
   }
 
-  const handleUnequip = async (id: number) => {
-    await patchInventory({ action: "unequip", itemId: id })
-    await fetchInventory()
-  }
-
   const handleDelete = async (id: number) => {
     await patchInventory({ action: "delete", itemId: id })
     await fetchInventory()
@@ -301,15 +296,9 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
                     <span className={`text-[10px] font-bold ${GRADE_TEXT[item.grade]}`}>{GRADE_LABEL[item.grade]}</span>
                   </div>
                   {/* 옵션 */}
-                  <div className="flex-1 space-y-0.5">
+                  <div className="space-y-0.5">
                     <OptionList opts={opts} />
                   </div>
-                  <button
-                    onClick={() => handleUnequip(item.id)}
-                    className="mt-2 w-full text-[10px] font-bold py-1 rounded-lg bg-gray-200 text-gray-600"
-                  >
-                    해제
-                  </button>
                 </div>
               )
             }
