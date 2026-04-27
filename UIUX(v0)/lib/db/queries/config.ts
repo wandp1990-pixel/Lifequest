@@ -28,7 +28,7 @@ export async function getBattleConfig(): Promise<Record<string, string>> {
 
 export async function getBattleConfigFull() {
   const db = getClient()
-  const res = await db.execute("SELECT config_key, config_value, label FROM battle_config ORDER BY id")
+  const res = await db.execute("SELECT config_key, config_value, label, min_val, max_val, step FROM battle_config ORDER BY id")
   return res.rows
 }
 

@@ -29,6 +29,15 @@ interface ConfigRow {
   description: string
 }
 
+interface BattleConfigRow {
+  config_key: string
+  config_value: string
+  label: string
+  min_val: number
+  max_val: number
+  step: number
+}
+
 interface SettingsDrawerProps {
   char: CharacterData | null
   onCharUpdated: () => void
@@ -66,7 +75,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const [configSaving, setConfigSaving] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
 
-  const [battleConfigs, setBattleConfigs] = useState<ConfigRow[]>([])
+  const [battleConfigs, setBattleConfigs] = useState<BattleConfigRow[]>([])
   const [battleConfigEdits, setBattleConfigEdits] = useState<Record<string, string>>({})
   const [battleConfigSaving, setBattleConfigSaving] = useState(false)
   const [showBattleConfig, setShowBattleConfig] = useState(false)
@@ -105,7 +114,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const fetchBattleConfig = useCallback(async () => {
     const res = await fetch("/api/battle-config")
     if (res.ok) {
-      const data: ConfigRow[] = await res.json()
+      const data: BattleConfigRow[] = await res.json()
       setBattleConfigs(data)
       const map: Record<string, string> = {}
       data.forEach((r) => { map[r.config_key] = r.config_value })
@@ -358,40 +367,63 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
             onClick={() => setShowBattleConfig(!showBattleConfig)}
             className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
           >
-            <span className="text-sm font-bold text-gray-700">전투 설정 에디터</span>
-            {showBattleConfig ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+            <span className="text-sm font-bold text-blue-600">전투 상수 에디터</span>
+            {showBattleConfig ? <ChevronDown className="w-4 h-4 text-blue-300" /> : <ChevronRight className="w-4 h-4 text-blue-300" />}
           </button>
           {showBattleConfig && (
             <div className="px-4 pt-3 pb-4">
               {battleConfigs.length === 0 ? (
                 <p className="text-xs text-gray-400 py-4 text-center">불러오는 중...</p>
               ) : (
-                <div className="rounded-xl overflow-hidden border border-gray-100">
-                  {battleConfigs.map((cfg, i) => (
-                    <div
-                      key={cfg.config_key}
-                      className={`flex items-center gap-2 px-3 py-2.5 bg-white ${i < battleConfigs.length - 1 ? "border-b border-gray-50" : ""}`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-gray-700 truncate">{cfg.description || cfg.config_key}</p>
-                        <p className="text-[10px] text-gray-400 truncate">{cfg.config_key}</p>
+                <div className="flex flex-col gap-3">
+                  {battleConfigs.map((cfg) => {
+                    const isNumeric = cfg.step > 0
+                    const val = battleConfigEdits[cfg.config_key] ?? cfg.config_value
+                    const numVal = parseFloat(val)
+                    return (
+                      <div key={cfg.config_key} className="bg-blue-50 rounded-xl px-3 py-2.5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-blue-800">{cfg.label}</span>
+                          <input
+                            type="number"
+                            value={val}
+                            step={isNumeric ? cfg.step : undefined}
+                            min={isNumeric ? cfg.min_val : undefined}
+                            max={isNumeric ? cfg.max_val : undefined}
+                            onChange={(e) =>
+                              setBattleConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
+                            }
+                            className="w-20 text-right text-xs font-bold bg-white border border-blue-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-300"
+                          />
+                        </div>
+                        {isNumeric && (
+                          <input
+                            type="range"
+                            min={cfg.min_val}
+                            max={cfg.max_val}
+                            step={cfg.step}
+                            value={isNaN(numVal) ? cfg.min_val : numVal}
+                            onChange={(e) =>
+                              setBattleConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
+                            }
+                            className="w-full h-1.5 accent-blue-500"
+                          />
+                        )}
+                        {isNumeric && (
+                          <div className="flex justify-between mt-0.5">
+                            <span className="text-[10px] text-blue-400">{cfg.min_val}</span>
+                            <span className="text-[10px] text-blue-400">{cfg.max_val}</span>
+                          </div>
+                        )}
                       </div>
-                      <input
-                        type="text"
-                        value={battleConfigEdits[cfg.config_key] ?? cfg.config_value}
-                        onChange={(e) =>
-                          setBattleConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
-                        }
-                        className="w-20 text-right text-xs font-bold bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-violet-300"
-                      />
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
               <button
                 onClick={saveAllBattleConfigs}
                 disabled={battleConfigSaving || battleConfigs.length === 0}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+                className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-blue-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
               >
                 <Save className="w-4 h-4" />
                 {battleConfigSaving ? "저장 중..." : "일괄 저장"}
