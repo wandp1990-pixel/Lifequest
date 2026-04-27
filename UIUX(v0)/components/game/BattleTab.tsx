@@ -27,7 +27,6 @@ type Monster = {
   race_emoji: string
   stats: { HP: number; patk: number; matk: number; pdef: number; mdef: number; dex: number; luk: number }
   ticket_reward: number
-  exp_reward: number
   color: string
   total_coeff: number
 }

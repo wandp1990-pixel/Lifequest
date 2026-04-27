@@ -109,13 +109,6 @@ async function seedGameConfig(db: Client) {
     ["monster_grade_SR_tickets", "7", "필드보스 처치 뽑기권"],
     ["monster_grade_SSR_tickets", "10", "재앙 처치 뽑기권"],
     ["monster_grade_UR_tickets", "15", "종말 처치 뽑기권"],
-    ["monster_grade_C_exp", "50", "잡몹 처치 EXP"],
-    ["monster_grade_B_exp", "100", "정예 처치 EXP"],
-    ["monster_grade_A_exp", "180", "희귀 처치 EXP"],
-    ["monster_grade_S_exp", "300", "네임드 처치 EXP"],
-    ["monster_grade_SR_exp", "500", "필드보스 처치 EXP"],
-    ["monster_grade_SSR_exp", "800", "재앙 처치 EXP"],
-    ["monster_grade_UR_exp", "1500", "종말 처치 EXP"],
     ["monster_level_scale", "0.02", "유저 레벨당 몬스터 능력치 계수 증가"],
     ["monster_clear_scale", "0.01", "클리어 횟수당 몬스터 능력치 계수 증가"],
   ]

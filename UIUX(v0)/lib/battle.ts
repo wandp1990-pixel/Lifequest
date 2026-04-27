@@ -63,7 +63,6 @@ export type Monster = {
   race_emoji: string
   stats: MonsterStats
   ticket_reward: number
-  exp_reward: number
   color: string
   total_coeff: number
 }
@@ -204,13 +203,12 @@ export function generateMonster(
   gameCfg: Record<string, string>
 ): Monster {
   const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
-  type GradeEntry = { grade: string; prob: number; coeff: number; tickets: number; exp: number }
+  type GradeEntry = { grade: string; prob: number; coeff: number; tickets: number }
   const gradePool: GradeEntry[] = GRADE_KEYS.map((g) => ({
     grade: g,
     prob:    parseFloat(gameCfg[`monster_grade_${g}_prob`]    ?? "0"),
     coeff:   parseFloat(gameCfg[`monster_grade_${g}_mult`]    ?? "1"),
     tickets: parseInt(gameCfg[`monster_grade_${g}_tickets`]   ?? "1"),
-    exp:     parseInt(gameCfg[`monster_grade_${g}_exp`]       ?? "50"),
   }))
   const picked = weightedPick(gradePool, (g) => g.prob)
 
@@ -254,7 +252,6 @@ export function generateMonster(
     race_emoji:   race.emoji,
     stats,
     ticket_reward: picked.tickets,
-    exp_reward:    picked.exp,
     color:         meta.color,
     total_coeff:   totalCoeff,
   }

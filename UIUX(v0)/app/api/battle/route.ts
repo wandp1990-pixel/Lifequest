@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     await addBattleLog(
       monster.full_name, monster.grade_code,
-      result.winner, expGained, result.ticket_reward,
+      result.winner, 0, result.ticket_reward,
       result.logs as object[]
     )
 

@@ -267,6 +267,12 @@ export async function initDb() {
     try { await db.execute("ALTER TABLE checklist_item ADD COLUMN best_streak INTEGER DEFAULT 0") } catch {}
   })
 
+  await runMigration("remove_battle_exp_v1", async () => {
+    await db.execute(
+      "DELETE FROM game_config WHERE config_key IN ('monster_grade_C_exp','monster_grade_B_exp','monster_grade_A_exp','monster_grade_S_exp','monster_grade_SR_exp','monster_grade_SSR_exp','monster_grade_UR_exp')"
+    )
+  })
+
   await runMigration("labels_v1", async () => {
     await db.batch([
       "UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'",
