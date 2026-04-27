@@ -27,6 +27,14 @@ export async function completeTodoItem(id: number, exp: number, comment: string)
   })
 }
 
+export async function updateTodoExp(id: number, suggestedExp: number) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE todo_item SET suggested_exp=? WHERE id=?",
+    args: [suggestedExp, id],
+  })
+}
+
 export async function deleteTodoItem(id: number) {
   const db = getClient()
   await db.execute({ sql: "DELETE FROM todo_item WHERE id=?", args: [id] })

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem,
-  addActivityLog, incrementTaskCount,
+  updateTodoExp, addActivityLog, incrementTaskCount,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 import { judgeActivity } from "@/lib/ai"
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     await initDb()
     const { name, suggested_exp } = await req.json()
     if (!name?.trim()) return NextResponse.json({ error: "할 일을 입력하세요" }, { status: 400 })
-    await addTodoItem(name.trim(), suggested_exp ?? 10)
+    await addTodoItem(name.trim(), suggested_exp ?? 0)
     return NextResponse.json(await getTodoItems())
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
@@ -48,6 +48,17 @@ export async function PATCH(req: NextRequest) {
     const levelResult = await gainExp(exp)
 
     return NextResponse.json({ exp, comment, ...levelResult })
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    await initDb()
+    const { id, suggested_exp } = await req.json()
+    await updateTodoExp(id, suggested_exp ?? 0)
+    return NextResponse.json(await getTodoItems())
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

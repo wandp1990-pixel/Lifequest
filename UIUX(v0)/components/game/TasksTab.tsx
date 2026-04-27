@@ -54,6 +54,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
   const [completing, setCompleting] = useState<{ type: "daily" | "todo" | "routine"; id: number } | null>(null)
+  const [editingExpId, setEditingExpId] = useState<number | null>(null)
+  const [editingExpVal, setEditingExpVal] = useState(0)
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -312,6 +314,16 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     setNewName("")
     setNewExp(10)
     setAdding(null)
+  }
+
+  const saveEditingExp = async (id: number) => {
+    const res = await fetch("/api/todos", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, suggested_exp: editingExpVal }),
+    })
+    if (res.ok) setTodoItems(await res.json())
+    setEditingExpId(null)
   }
 
   const confirmAndDelete = (
@@ -680,7 +692,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           )}
         </div>
         <button
-          onClick={() => { setAdding(adding === "todo" ? null : "todo"); setNewName(""); setNewExp(10) }}
+          onClick={() => { setAdding(adding === "todo" ? null : "todo"); setNewName(""); setNewExp(0) }}
           className="w-7 h-7 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center active:scale-90 transition-transform"
           aria-label="할 일 추가"
         >
@@ -722,6 +734,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       {todoItems.map((item) => {
         const done = !!item.is_completed
         const isLoading = isCompletingType === "todo" && isCompletingId === item.id
+        const isEditingExp = editingExpId === item.id
         return (
           <div
             key={item.id}
@@ -731,6 +744,41 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
               <p className={`text-sm font-semibold leading-snug ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
                 {item.name}
               </p>
+              {!done && (
+                isEditingExp ? (
+                  <div className="flex items-center gap-1 mt-1">
+                    <input
+                      autoFocus
+                      type="number"
+                      min={0}
+                      value={editingExpVal}
+                      onChange={(e) => setEditingExpVal(Number(e.target.value))}
+                      onKeyDown={(e) => { if (e.key === "Enter") saveEditingExp(item.id); if (e.key === "Escape") setEditingExpId(null) }}
+                      className="w-16 text-xs text-center bg-violet-50 border border-violet-300 rounded-lg px-1.5 py-0.5 outline-none"
+                    />
+                    <span className="text-[10px] text-gray-400">EXP</span>
+                    <button
+                      onClick={() => saveEditingExp(item.id)}
+                      className="text-[10px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded-full active:scale-95"
+                    >
+                      확인
+                    </button>
+                    <button
+                      onClick={() => setEditingExpId(null)}
+                      className="text-[10px] text-gray-400 active:scale-95"
+                    >
+                      취소
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setEditingExpId(item.id); setEditingExpVal(item.suggested_exp ?? 0) }}
+                    className="mt-0.5 text-[10px] font-bold text-violet-500 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded-full active:scale-95"
+                  >
+                    {(item.suggested_exp ?? 0) === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
+                  </button>
+                )
+              )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
@@ -744,7 +792,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     : "bg-violet-100 text-violet-600 hover:bg-violet-200"
                 }`}
               >
-                {done ? "✓ 완료" : isLoading ? "판정 중..." : item.suggested_exp === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
+                {done ? "✓" : isLoading ? "..." : "완료"}
               </button>
               <button
                 onClick={() => confirmAndDelete("todo", item.id, item.name)}
