@@ -52,6 +52,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
   const [completing, setCompleting] = useState<{ type: "daily" | "todo" | "routine"; id: number } | null>(null)
+  const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -75,7 +76,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         setDailyItems(data.items ?? [])
         setCheckedDailyIds(new Set(data.checkedIds ?? []))
       }
-      if (todoRes.ok) setTodoItems(await todoRes.json())
+      if (todoRes.ok) {
+        const items = await todoRes.json()
+        setTodoItems(items)
+        setCompletedTodoCount(items.filter((t: TodoItem) => t.is_completed).length)
+      }
       if (routineRes.ok) {
         const data = await routineRes.json()
         setRoutines(data.routines ?? [])
@@ -103,10 +108,10 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       todoItems.filter((t) => !t.is_completed).length +
       (routineTotal - routineDone)
     onCountChange?.(incomplete)
-    // totalDone은 checkedDailyIds.size 전체 사용 — 완료 후 삭제해도 달성 수 유지
-    const totalDone = checkedDailyIds.size + routineDone + todoItems.filter((t) => t.is_completed).length
+    // totalDone: 완료 후 삭제해도 달성 수 유지 (daily=checkedDailyIds.size, todo=completedTodoCount)
+    const totalDone = checkedDailyIds.size + routineDone + completedTodoCount
     onDailyCompletedChange?.(totalDone)
-  }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, onCountChange, onDailyCompletedChange])
+  }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, completedTodoCount, onCountChange, onDailyCompletedChange])
 
   const showToast = (exp: number, comment: string, bonus?: number) => {
     setToast({ exp, comment, bonus })
@@ -148,6 +153,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       setTodoItems((prev) =>
         prev.map((t) => t.id === item.id ? { ...t, is_completed: 1, exp_gained: data.exp } : t)
       )
+      setCompletedTodoCount((prev) => prev + 1)
       showToast(data.exp, data.comment)
       onExpGained?.()
     } finally {
