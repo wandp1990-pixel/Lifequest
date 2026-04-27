@@ -1,4 +1,4 @@
-import { getClient } from "./client"
+import { getClient, now } from "./client"
 import { seedIfEmpty, seedCharacter, ensureChecklistItems, ensurePrompt, ensureItemSeeds, ensureSkills, ensureBattleConfig } from "./seed"
 
 let _initialized = false
@@ -208,6 +208,11 @@ CREATE TABLE IF NOT EXISTS attendance_log (
     checked_date TEXT UNIQUE,
     created_at   TEXT
 );
+CREATE TABLE IF NOT EXISTS migration_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    version    TEXT UNIQUE,
+    applied_at TEXT
+);
 `
 
 export async function initDb() {
@@ -236,22 +241,30 @@ export async function initDb() {
   await ensureSkills(db)
   await ensureBattleConfig(db)
 
-  // balance v1: 몬스터 등급 확률 조정 (기존 기본값에서만 변경)
-  await db.execute("UPDATE game_config SET config_value='50.0' WHERE config_key='monster_grade_C_prob'   AND config_value='40.0'")
-  await db.execute("UPDATE game_config SET config_value='20.0' WHERE config_key='monster_grade_B_prob'   AND config_value='25.0'")
-  await db.execute("UPDATE game_config SET config_value='15.0' WHERE config_key='monster_grade_A_prob'   AND config_value='18.0'")
-  await db.execute("UPDATE game_config SET config_value='8.0'  WHERE config_key='monster_grade_S_prob'   AND config_value='10.0'")
-  await db.execute("UPDATE game_config SET config_value='4.0'  WHERE config_key='monster_grade_SR_prob'  AND config_value='4.5'")
-  await db.execute("UPDATE game_config SET config_value='1.5'  WHERE config_key='monster_grade_SSR_prob' AND config_value='2.0'")
-  await db.execute("UPDATE game_config SET config_value='0.01' WHERE config_key='monster_clear_scale'    AND config_value='0.03'")
-  await db.execute("UPDATE game_config SET config_value='0.02' WHERE config_key='monster_level_scale'    AND config_value='0.04'")
+  // DB에 기록된 버전 확인 후 1회만 실행하는 마이그레이션 헬퍼
+  async function runMigration(version: string, fn: () => Promise<void>) {
+    const res = await db.execute({ sql: "SELECT 1 FROM migration_log WHERE version=?", args: [version] })
+    if (res.rows.length > 0) return
+    await fn()
+    await db.execute({ sql: "INSERT INTO migration_log (version, applied_at) VALUES (?,?)", args: [version, now()] })
+  }
 
-  // balance v1: 전투 상수 기본값 조정
-  await db.execute("UPDATE battle_config SET config_value='4.0'  WHERE config_key='str_to_patk'         AND config_value='2.0'")
-  await db.execute("UPDATE battle_config SET config_value='20.0' WHERE config_key='vit_to_max_hp'        AND config_value='10.0'")
-  await db.execute("UPDATE battle_config SET config_value='2.0'  WHERE config_key='base_crit_multiplier' AND config_value='1.5'")
+  // balance_v1: 몬스터 출현율 + 스케일 + 전투 상수 조정
+  await runMigration("balance_v1", async () => {
+    await db.execute("UPDATE game_config SET config_value='50.0' WHERE config_key='monster_grade_C_prob'")
+    await db.execute("UPDATE game_config SET config_value='20.0' WHERE config_key='monster_grade_B_prob'")
+    await db.execute("UPDATE game_config SET config_value='15.0' WHERE config_key='monster_grade_A_prob'")
+    await db.execute("UPDATE game_config SET config_value='8.0'  WHERE config_key='monster_grade_S_prob'")
+    await db.execute("UPDATE game_config SET config_value='4.0'  WHERE config_key='monster_grade_SR_prob'")
+    await db.execute("UPDATE game_config SET config_value='1.5'  WHERE config_key='monster_grade_SSR_prob'")
+    await db.execute("UPDATE game_config SET config_value='0.01' WHERE config_key='monster_clear_scale'")
+    await db.execute("UPDATE game_config SET config_value='0.02' WHERE config_key='monster_level_scale'")
+    await db.execute("UPDATE battle_config SET config_value='4.0'  WHERE config_key='str_to_patk'")
+    await db.execute("UPDATE battle_config SET config_value='20.0' WHERE config_key='vit_to_max_hp'")
+    await db.execute("UPDATE battle_config SET config_value='2.0'  WHERE config_key='base_crit_multiplier'")
+  })
 
-  // 전투 상수 라벨 한국어화 (항상 강제 업데이트)
+  // 라벨은 코드가 정의하는 메타데이터라 항상 동기화
   await db.execute("UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'")
   await db.execute("UPDATE battle_config SET label='DEX당 명중률 증가'     WHERE config_key='accuracy_per_dex'")
   await db.execute("UPDATE battle_config SET label='DEX당 회피율 증가'     WHERE config_key='evasion_per_dex'")
