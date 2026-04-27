@@ -19,4 +19,5 @@ export type Character = {
   max_hp: number
   current_mp: number
   max_mp: number
+  attendance_streak: number
 }

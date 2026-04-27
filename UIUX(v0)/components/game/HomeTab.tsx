@@ -23,7 +23,8 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
 
   const [attended, setAttended] = useState(false)
   const [attendLoading, setAttendLoading] = useState(false)
-  const [attendToast, setAttendToast] = useState(false)
+  const [streak, setStreak] = useState(0)
+  const [attendToast, setAttendToast] = useState<{ bonusTickets: number } | null>(null)
 
   const fetchActLogs = useCallback(async () => {
     const res = await fetch("/api/activities?type=ai&limit=5")
@@ -35,6 +36,7 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
     if (res.ok) {
       const data = await res.json()
       setAttended(data.checked)
+      setStreak(data.streak)
     }
   }, [])
 
@@ -49,15 +51,22 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
     try {
       const res = await fetch("/api/attendance", { method: "POST" })
       if (res.ok) {
+        const data = await res.json()
         setAttended(true)
-        setAttendToast(true)
-        setTimeout(() => setAttendToast(false), 3000)
+        setStreak(data.streak)
+        setAttendToast({ bonusTickets: data.bonusTickets })
+        setTimeout(() => setAttendToast(null), 3500)
         onExpGained()
       }
     } finally {
       setAttendLoading(false)
     }
   }
+
+  // 다음 마일스톤 계산 (streak은 초기화 후 값이므로 초기화 직전 streak으로 판단)
+  // streak=0이면 방금 14일 달성 후 초기화된 것
+  const nextMilestone = streak < 7 ? 7 : 14
+  const milestoneBonus = nextMilestone === 7 ? 5 : 10
 
   const submitActivity = async () => {
     if (!actText.trim() || actSubmitting) return
@@ -86,20 +95,23 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
 
       {/* 출석체크 */}
       <div className="mx-4 mt-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-4 pt-3 pb-3 bg-white flex items-center justify-between">
-          <div>
+        <div className="px-4 pt-3 pb-2 bg-white flex items-center justify-between">
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-black text-gray-500 uppercase tracking-wide">🗓️ 오늘의 출석</p>
-            {attendToast && (
+            {attendToast && attendToast.bonusTickets > 0 ? (
+              <p className="text-xs font-black text-violet-500 mt-0.5">
+                🎉 {streak === 0 ? "14" : "7"}일 연속! 뽑기권 +{attendToast.bonusTickets} 보너스!
+              </p>
+            ) : attendToast ? (
               <p className="text-xs font-black text-violet-500 mt-0.5">뽑기권 +1 획득!</p>
-            )}
-            {attended && !attendToast && (
+            ) : attended ? (
               <p className="text-xs text-gray-400 mt-0.5">오늘 출석 완료</p>
-            )}
+            ) : null}
           </div>
           <button
             onClick={handleAttendance}
             disabled={attended || attendLoading}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95 flex-shrink-0
               ${attended
                 ? "bg-gray-100 text-gray-400 cursor-default"
                 : "bg-violet-500 text-white shadow-sm"
@@ -111,6 +123,32 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
               <><Gift className="w-4 h-4" />{attendLoading ? "..." : "출석 체크"}</>
             )}
           </button>
+        </div>
+
+        {/* 연속 출석 진행바 */}
+        <div className="px-4 pb-3 bg-white">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] text-gray-500">
+              연속 <span className="font-black text-violet-500">{streak}일</span>
+            </span>
+            <span className="text-[11px] text-gray-400">
+              {nextMilestone}일 달성 시 뽑기권 +{milestoneBonus}
+            </span>
+          </div>
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-400 rounded-full transition-all duration-500"
+              style={{ width: `${(streak / nextMilestone) * 100}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            {Array.from({ length: nextMilestone }, (_, i) => (
+              <div
+                key={i}
+                className={`w-1 h-1 rounded-full ${i < streak ? "bg-violet-400" : "bg-gray-200"}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
