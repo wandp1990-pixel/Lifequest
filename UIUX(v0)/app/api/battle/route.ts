@@ -4,7 +4,6 @@ import {
   updateCharacter, addBattleLog, getSkillsWithInvestment,
 } from "@/lib/db"
 import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, type Monster } from "@/lib/battle"
-import { gainExp } from "@/lib/game"
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,20 +26,12 @@ export async function POST(req: NextRequest) {
     const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg)
     const result       = runBattle(playerCombat, monster, battleCfg, activeSkills)
 
-    let expGained = 0
-    let gainResult = null
-
     if (result.winner === "플레이어") {
-      expGained  = monster.exp_reward
-      gainResult = await gainExp(expGained)
-
-      // EXP 업데이트 후 다시 읽어 최신 draw_tickets + max_hp/mp 반영
-      const charAfterExp = await getCharacter()
       await updateCharacter({
-        draw_tickets: charAfterExp.draw_tickets + result.ticket_reward,
-        clear_count:  (charAfterExp.clear_count ?? 0) + 1,
-        current_hp:   charAfterExp.max_hp,
-        current_mp:   charAfterExp.max_mp,
+        draw_tickets: char.draw_tickets + result.ticket_reward,
+        clear_count:  (char.clear_count ?? 0) + 1,
+        current_hp:   char.max_hp,
+        current_mp:   char.max_mp,
       })
     } else {
       // 패배해도 HP/MP 전량 회복
@@ -60,8 +51,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ...result,
-      exp_gained: expGained,
-      leveled_up: gainResult?.leveledUp ?? false,
+      exp_gained: 0,
+      leveled_up: false,
       char_after: {
         level:        charFinal.level,
         draw_tickets: charFinal.draw_tickets,

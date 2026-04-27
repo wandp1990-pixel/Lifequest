@@ -372,13 +372,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
             <span className="text-gray-600 text-sm">🎫 뽑기권</span>
             <span className="text-amber-500 font-black text-xl">+{ticket_reward}장</span>
           </div>
-          <div className="flex justify-between items-center mt-1">
-            <span className="text-gray-600 text-sm">✨ EXP</span>
-            <span className="text-violet-500 font-bold text-lg">+{exp_gained}</span>
-          </div>
-          {leveled_up && (
-            <div className="mt-2 text-amber-500 text-sm font-bold text-center animate-pulse">🎉 레벨업!</div>
-          )}
         </div>
       ) : winner === "몬스터" ? (
         <div className="mx-4 mt-3 bg-red-50 border border-red-200 rounded-2xl p-4">
