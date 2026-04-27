@@ -276,7 +276,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
 
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
 
       {/* 뷰 전환 탭 */}
       <div className="px-4 pt-3 pb-2 flex gap-2 shrink-0">
@@ -300,7 +300,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
 
       {/* ── 스탯 뷰 ── */}
       {view === "stat" && (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
 
           {/* 스탯 포인트 헤더 */}
           <div className="px-4 pb-3 shrink-0">
@@ -390,7 +390,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
 
       {/* ── 스킬 뷰 ── */}
       {view === "skill" && (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
 
           {/* 스킬 포인트 헤더 */}
           <div className="px-4 pb-2 shrink-0">
