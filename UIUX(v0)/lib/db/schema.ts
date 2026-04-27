@@ -277,6 +277,10 @@ export async function initDb() {
     try { await db.execute("ALTER TABLE routine_item ADD COLUMN time_limit_minutes INTEGER") } catch {}
   })
 
+  await runMigration("routine_deadline_v1", async () => {
+    try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
+  })
+
   await runMigration("labels_v1", async () => {
     await db.batch([
       "UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'",

@@ -3,6 +3,7 @@ import {
   initDb, getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
   reorderRoutineItems, addActivityLog, incrementTaskCount,
+  updateRoutineDeadline,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -18,18 +19,16 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     await initDb()
-    const { itemId, startedAt } = await req.json()
+    const { itemId } = await req.json()
     if (typeof itemId !== "number") {
       return NextResponse.json({ error: "itemId 필요" }, { status: 400 })
     }
-    const result = await checkRoutineItem(itemId, startedAt)
+    const result = await checkRoutineItem(itemId)
     if (!result) return NextResponse.json({ error: "항목 없음 또는 이미 체크됨" }, { status: 400 })
 
     const totalExp = result.exp + result.bonusExp
-    const comment = result.timeBonus
-      ? result.allDone && result.bonusExp > 0
-        ? `⚡ 제한시간 달성! 🎉 ${result.routineName} 완수!`
-        : "⚡ 제한시간 달성! EXP 2배!"
+    const comment = result.deadlineBonus
+      ? `⏰ 마감 전 달성! 🎉 ${result.routineName} 완수! (2배 보너스)`
       : result.allDone && result.bonusExp > 0
         ? `🎉 ${result.routineName} 완수! 보너스 +${result.bonusExp}`
         : "루틴 항목 완료"
@@ -47,7 +46,7 @@ export async function POST(req: NextRequest) {
       bonusExp: result.bonusExp,
       allDone: result.allDone,
       routineName: result.routineName,
-      timeBonus: result.timeBonus,
+      deadlineBonus: result.deadlineBonus,
       ...levelResult,
     })
   } catch (e) {
@@ -70,11 +69,19 @@ export async function PUT(req: NextRequest) {
       const routineId = body.routineId
       const name = (body.name ?? "").trim()
       const fixedExp = Number(body.fixedExp ?? 10)
-      const timeLimitMinutes = body.timeLimitMinutes ? Number(body.timeLimitMinutes) : null
       if (typeof routineId !== "number" || !name) {
         return NextResponse.json({ error: "필수값 누락" }, { status: 400 })
       }
-      await addRoutineItem(routineId, name, fixedExp, timeLimitMinutes)
+      await addRoutineItem(routineId, name, fixedExp)
+      return NextResponse.json(await getRoutines())
+    }
+    if (action === "updateDeadline") {
+      const routineId = body.routineId
+      const deadlineTime = body.deadlineTime ?? null
+      if (typeof routineId !== "number") {
+        return NextResponse.json({ error: "routineId 필요" }, { status: 400 })
+      }
+      await updateRoutineDeadline(routineId, deadlineTime)
       return NextResponse.json(await getRoutines())
     }
     if (action === "reorderItems") {
