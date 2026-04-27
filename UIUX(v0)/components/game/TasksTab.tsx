@@ -565,11 +565,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
-      {/* ── 데일리 섹션 ─────────────────────────────────── */}
+      {/* ── 습관 섹션 ─────────────────────────────────── */}
       <div className="px-4 py-3 flex items-center justify-between bg-amber-50 border-y border-amber-100 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
-          <span className="text-sm font-bold text-gray-800">오늘의 데일리</span>
+          <span className="text-sm font-bold text-gray-800">습관</span>
           <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
             {checkedDailyIds.size} / {dailyItems.length}
           </span>
@@ -577,7 +577,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         <button
           onClick={() => { setAdding(adding === "daily" ? null : "daily"); setNewName(""); setNewExp(10) }}
           className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center active:scale-90 transition-transform"
-          aria-label="데일리 추가"
+          aria-label="습관 추가"
         >
           {adding === "daily" ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
         </button>
@@ -591,7 +591,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
-            placeholder="데일리 항목 이름..."
+            placeholder="습관 이름..."
             className="flex-1 min-w-0 text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
           />
           <input
@@ -611,7 +611,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       )}
 
       {dailyItems.length === 0 && (
-        <p className="text-center text-gray-400 text-sm py-4">+ 버튼으로 데일리를 추가하세요</p>
+        <p className="text-center text-gray-400 text-sm py-4">+ 버튼으로 습관을 추가하세요</p>
       )}
 
       {dailyItems.map((item) => {
