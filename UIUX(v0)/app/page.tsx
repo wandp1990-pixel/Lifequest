@@ -44,7 +44,7 @@ type CharacterData = {
 }
 
 export default function GamePage() {
-  const [activeTab, setActiveTab] = useState<TabType>("tasks")
+  const [activeTab, setActiveTab] = useState<TabType>("home")
   const [char, setChar] = useState<CharacterData | null>(null)
   const [tasksCount, setTasksCount] = useState(0)
   const [dailyCompleted, setDailyCompleted] = useState(0)

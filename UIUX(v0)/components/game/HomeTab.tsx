@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Send } from "lucide-react"
+import { Send, CheckCircle2, Gift } from "lucide-react"
 
 interface ActivityLog {
   id: number
@@ -21,14 +21,43 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
   const [actToast, setActToast] = useState<{ exp: number; comment: string } | null>(null)
   const [actError, setActError] = useState<string | null>(null)
 
+  const [attended, setAttended] = useState(false)
+  const [attendLoading, setAttendLoading] = useState(false)
+  const [attendToast, setAttendToast] = useState(false)
+
   const fetchActLogs = useCallback(async () => {
     const res = await fetch("/api/activities?type=ai&limit=5")
     if (res.ok) setActLogs(await res.json())
   }, [])
 
+  const fetchAttendance = useCallback(async () => {
+    const res = await fetch("/api/attendance")
+    if (res.ok) {
+      const data = await res.json()
+      setAttended(data.checked)
+    }
+  }, [])
+
   useEffect(() => {
     fetchActLogs()
-  }, [fetchActLogs])
+    fetchAttendance()
+  }, [fetchActLogs, fetchAttendance])
+
+  const handleAttendance = async () => {
+    if (attended || attendLoading) return
+    setAttendLoading(true)
+    try {
+      const res = await fetch("/api/attendance", { method: "POST" })
+      if (res.ok) {
+        setAttended(true)
+        setAttendToast(true)
+        setTimeout(() => setAttendToast(false), 3000)
+        onExpGained()
+      }
+    } finally {
+      setAttendLoading(false)
+    }
+  }
 
   const submitActivity = async () => {
     if (!actText.trim() || actSubmitting) return
@@ -54,7 +83,38 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
 
   return (
     <div className="flex flex-col gap-0 pb-6">
+
+      {/* 출석체크 */}
       <div className="mx-4 mt-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-4 pt-3 pb-3 bg-white flex items-center justify-between">
+          <div>
+            <p className="text-xs font-black text-gray-500 uppercase tracking-wide">🗓️ 오늘의 출석</p>
+            {attendToast && (
+              <p className="text-xs font-black text-violet-500 mt-0.5">뽑기권 +1 획득!</p>
+            )}
+            {attended && !attendToast && (
+              <p className="text-xs text-gray-400 mt-0.5">오늘 출석 완료</p>
+            )}
+          </div>
+          <button
+            onClick={handleAttendance}
+            disabled={attended || attendLoading}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95
+              ${attended
+                ? "bg-gray-100 text-gray-400 cursor-default"
+                : "bg-violet-500 text-white shadow-sm"
+              }`}
+          >
+            {attended ? (
+              <><CheckCircle2 className="w-4 h-4" /> 완료</>
+            ) : (
+              <><Gift className="w-4 h-4" />{attendLoading ? "..." : "출석 체크"}</>
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="mx-4 mt-3 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-4 pt-3 pb-3 bg-white">
           <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">✍️ 오늘의 활동</p>
 

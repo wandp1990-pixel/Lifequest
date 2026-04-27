@@ -203,6 +203,11 @@ CREATE TABLE IF NOT EXISTS routine_bonus_log (
     bonus_exp  INTEGER,
     granted_at TEXT
 );
+CREATE TABLE IF NOT EXISTS attendance_log (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    checked_date TEXT UNIQUE,
+    created_at   TEXT
+);
 `
 
 export async function initDb() {
