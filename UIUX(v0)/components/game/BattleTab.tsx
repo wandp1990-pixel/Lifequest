@@ -260,37 +260,28 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
                 </div>
                 <span className="text-[10px] text-gray-400">강도 ×{savedMonster.total_coeff.toFixed(2)}</span>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => doFight(savedMonster)}
-                  className="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 active:scale-95 text-sm"
-                >
-                  🔄 재도전
-                </button>
-                <button
-                  onClick={() => {
-                    setSavedMonster(null)
-                    try { localStorage.removeItem(MONSTER_STORAGE_KEY) } catch {}
-                  }}
-                  className="py-3 px-4 rounded-xl font-bold bg-gray-100 text-gray-500 active:scale-95 text-sm"
-                >
-                  ✕
-                </button>
-              </div>
+              <button
+                onClick={() => doFight(savedMonster)}
+                className="w-full py-3 rounded-xl font-bold text-white bg-red-500 active:scale-95 text-sm"
+              >
+                🔄 재도전
+              </button>
             </div>
           </div>
         )}
 
-        {/* 전투 시작 버튼 */}
-        <div className="px-4 pt-3 pb-4">
-          <button
-            onClick={() => doFight()}
-            disabled={phase === "loading"}
-            className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all active:scale-95 disabled:opacity-60 bg-red-500 shadow-sm"
-          >
-            {phase === "loading" ? "⚔️ 전투 중..." : "⚔️ 새 전투 시작"}
-          </button>
-        </div>
+        {/* 새 전투 버튼 — 저장된 상대 없을 때만 */}
+        {!savedMonster && (
+          <div className="px-4 pt-3 pb-4">
+            <button
+              onClick={() => doFight()}
+              disabled={phase === "loading"}
+              className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all active:scale-95 disabled:opacity-60 bg-red-500 shadow-sm"
+            >
+              {phase === "loading" ? "⚔️ 전투 중..." : "⚔️ 전투 시작"}
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -416,23 +407,22 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
 
       {/* 액션 버튼 */}
       {animDone && (
-        <div className="flex gap-2 px-4 pt-3 pb-4">
-          {winner !== "플레이어" && keepMonster && (
+        <div className="px-4 pt-3 pb-4">
+          {winner === "플레이어" ? (
             <button
-              onClick={() => doFight(keepMonster)}
-              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
+              onClick={newBattle}
+              className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
+            >
+              ⚔️ 전투 시작
+            </button>
+          ) : (
+            <button
+              onClick={() => doFight(keepMonster ?? undefined)}
+              className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
             >
               🔄 재도전
             </button>
           )}
-          <button
-            onClick={newBattle}
-            className={`flex-1 py-4 rounded-2xl font-bold active:scale-95 transition-all shadow-sm ${
-              winner === "플레이어" ? "bg-red-500 text-white" : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            ⚔️ 전투 시작
-          </button>
         </div>
       )}
     </div>
