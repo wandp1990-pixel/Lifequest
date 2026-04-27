@@ -6,7 +6,7 @@ export async function seedIfEmpty(db: Client) {
   if ((res.rows[0].cnt as number) > 0) return
 
   await seedGameConfig(db)
-  await seedBattleConfig(db)
+  await ensureBattleConfig(db)
   await seedItemGradeTable(db)
   await seedItemSlotTable(db)
   await seedItemAbilityPool(db)
@@ -127,7 +127,7 @@ async function seedGameConfig(db: Client) {
   }
 }
 
-async function seedBattleConfig(db: Client) {
+export async function ensureBattleConfig(db: Client) {
   const t = now()
   const data: [string, string, string, number, number, number][] = [
     ["base_accuracy", "0.9", "기본 명중률", 0.5, 1.0, 0.01],
