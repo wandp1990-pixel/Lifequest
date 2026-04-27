@@ -66,7 +66,7 @@ export default function GamePage() {
     fetchChar()
   }, [fetchChar])
 
-  const questTotal = 10 * (1 + Math.floor((char?.task_count ?? 0) / 10))
+  const questTotal = 10
 
   useEffect(() => {
     if (questRewardedRef.current) return
