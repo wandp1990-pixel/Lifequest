@@ -141,12 +141,11 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
               style={{ width: `${(streak / nextMilestone) * 100}%` }}
             />
           </div>
-          <div className="flex justify-between mt-1">
+          <div className="flex mt-1">
             {Array.from({ length: nextMilestone }, (_, i) => (
-              <div
-                key={i}
-                className={`w-1 h-1 rounded-full ${i < streak ? "bg-violet-400" : "bg-gray-200"}`}
-              />
+              <div key={i} className="flex-1 flex justify-end">
+                <div className={`w-1 h-1 rounded-full ${i < streak ? "bg-violet-400" : "bg-gray-200"}`} />
+              </div>
             ))}
           </div>
         </div>
