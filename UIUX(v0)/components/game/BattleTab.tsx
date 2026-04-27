@@ -146,13 +146,23 @@ function TurnItem({ log, pMax, mMax }: { log: TurnLog; pMax: number; mMax: numbe
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const MONSTER_STORAGE_KEY = "lq_last_monster"
+
 export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [phase, setPhase]   = useState<"lobby" | "loading" | "result">("lobby")
   const [result, setResult] = useState<BattleResultData | null>(null)
   const [error, setError]   = useState<string | null>(null)
   const [visibleTurns, setVisibleTurns] = useState(0)
   const [keepMonster, setKeepMonster] = useState<Monster | null>(null)
+  const [savedMonster, setSavedMonster] = useState<Monster | null>(null)
   const logEndRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(MONSTER_STORAGE_KEY)
+      if (raw) setSavedMonster(JSON.parse(raw))
+    } catch {}
+  }, [])
 
   // 0.5초/턴 애니메이션
   useEffect(() => {
@@ -182,6 +192,8 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
       if (!res.ok) throw new Error(data.error ?? "전투 오류")
       setResult(data)
       setKeepMonster(data.monster)
+      setSavedMonster(data.monster)
+      try { localStorage.setItem(MONSTER_STORAGE_KEY, JSON.stringify(data.monster)) } catch {}
       setPhase("result")
     } catch (e) {
       setError(String(e))
@@ -193,6 +205,8 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
     setPhase("lobby")
     setResult(null)
     setKeepMonster(null)
+    setSavedMonster(null)
+    try { localStorage.removeItem(MONSTER_STORAGE_KEY) } catch {}
     setVisibleTurns(0)
     onExpGained()
   }
@@ -234,6 +248,39 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           </div>
         )}
 
+        {/* 저장된 몬스터 카드 */}
+        {savedMonster && phase !== "loading" && (
+          <div className="px-4 pt-3">
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+              <p className="text-[10px] text-orange-400 font-bold mb-2">마지막 상대</p>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-bold" style={{ color: savedMonster.color }}>{savedMonster.full_name}</p>
+                  <p className="text-[10px] text-gray-400">{savedMonster.grade_name} · {savedMonster.race_emoji} {savedMonster.race_name}</p>
+                </div>
+                <span className="text-[10px] text-gray-400">강도 ×{savedMonster.total_coeff.toFixed(2)}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => doFight(savedMonster)}
+                  className="flex-1 py-3 rounded-xl font-bold text-white bg-red-500 active:scale-95 text-sm"
+                >
+                  🔄 재도전
+                </button>
+                <button
+                  onClick={() => {
+                    setSavedMonster(null)
+                    try { localStorage.removeItem(MONSTER_STORAGE_KEY) } catch {}
+                  }}
+                  className="py-3 px-4 rounded-xl font-bold bg-gray-100 text-gray-500 active:scale-95 text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 전투 시작 버튼 */}
         <div className="px-4 pt-3 pb-4">
           <button
@@ -241,7 +288,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
             disabled={phase === "loading"}
             className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all active:scale-95 disabled:opacity-60 bg-red-500 shadow-sm"
           >
-            {phase === "loading" ? "⚔️ 전투 중..." : "⚔️ 전투 시작"}
+            {phase === "loading" ? "⚔️ 전투 중..." : "⚔️ 새 전투 시작"}
           </button>
         </div>
       </div>
