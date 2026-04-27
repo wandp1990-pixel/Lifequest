@@ -80,18 +80,17 @@ export default function GamePage() {
   }, [dailyCompleted, questTotal, fetchChar])
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case "home":
-        return <HomeTab onExpGained={handleExpGained} />
-      case "tasks":
-        return <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} />
-      case "battle":
-        return <BattleTab char={char} onExpGained={handleExpGained} />
-      case "skills":
-        return <CharacterTab char={char} onCharUpdated={fetchChar} />
-      case "items":
-        return <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />
-    }
+    return (
+      <>
+        {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} />}
+        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} />}
+        {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} />}
+        {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />}
+        <div className={activeTab === "battle" ? "block" : "hidden"}>
+          <BattleTab char={char} onExpGained={handleExpGained} />
+        </div>
+      </>
+    )
   }
 
 
@@ -124,7 +123,7 @@ export default function GamePage() {
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {renderTabContent()}
         </div>
 
