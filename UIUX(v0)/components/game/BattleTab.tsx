@@ -192,8 +192,14 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
       if (!res.ok) throw new Error(data.error ?? "전투 오류")
       setResult(data)
       setKeepMonster(data.monster)
-      setSavedMonster(data.monster)
-      try { localStorage.setItem(MONSTER_STORAGE_KEY, JSON.stringify(data.monster)) } catch {}
+      if (data.winner === "플레이어") {
+        // 승리 시 즉시 초기화 — 새로고침해도 이미 이긴 몬스터 안 나옴
+        setSavedMonster(null)
+        try { localStorage.removeItem(MONSTER_STORAGE_KEY) } catch {}
+      } else {
+        setSavedMonster(data.monster)
+        try { localStorage.setItem(MONSTER_STORAGE_KEY, JSON.stringify(data.monster)) } catch {}
+      }
       setPhase("result")
     } catch (e) {
       setError(String(e))
@@ -411,9 +417,9 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           {winner === "플레이어" ? (
             <button
               onClick={newBattle}
-              className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
+              className="w-full py-4 rounded-2xl font-bold text-white bg-amber-500 active:scale-95 transition-all shadow-sm"
             >
-              ⚔️ 전투 시작
+              ✅ 확인
             </button>
           ) : (
             <button
