@@ -176,7 +176,7 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
               onKeyDown={(e) => e.key === "Enter" && submitActivity()}
               placeholder="오늘 한 일을 입력하세요..."
               style={{ fontSize: '16px' }}
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-amber-300 transition"
+              className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-amber-300 transition"
               disabled={actSubmitting}
             />
             <button
