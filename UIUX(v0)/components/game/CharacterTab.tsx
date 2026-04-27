@@ -300,10 +300,10 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
 
       {/* ── 스탯 뷰 ── */}
       {view === "stat" && (
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* 스탯 포인트 헤더 */}
-          <div className="px-4 pb-3">
+          <div className="px-4 pb-3 shrink-0">
             <div className="flex items-center justify-between bg-gradient-to-r from-amber-400 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-sm">
               <div>
                 <p className="text-xs opacity-80">배분 가능 스탯 포인트</p>
@@ -321,7 +321,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
           </div>
 
           {/* 스탯 목록 */}
-          <div className="px-4 flex flex-col gap-2.5 flex-1">
+          <div className="px-4 flex flex-col gap-2.5 flex-1 overflow-y-auto pb-2">
             {STATS.map(({ key, label, desc, icon: Icon, color, bar, bg, border }) => {
               const base = baseStats[key]
               const added = statDelta[key]
@@ -390,10 +390,10 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
 
       {/* ── 스킬 뷰 ── */}
       {view === "skill" && (
-        <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
 
           {/* 스킬 포인트 헤더 */}
-          <div className="px-4 pb-2">
+          <div className="px-4 pb-2 shrink-0">
             <div className="bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl px-4 py-3 text-white shadow-sm">
               <p className="text-xs opacity-80">보유 스킬 포인트</p>
               <p className="text-2xl font-extrabold leading-none mt-0.5">
@@ -418,7 +418,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
           </div>
 
           {/* 스킬 목록 */}
-          <div className="flex-1 px-4 flex flex-col gap-2">
+          <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-2 pb-2">
             {!skillsLoaded ? (
               <div className="flex items-center justify-center py-8 text-gray-400 text-sm gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> 스킬 로딩 중...
