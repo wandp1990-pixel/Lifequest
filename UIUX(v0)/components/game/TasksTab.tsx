@@ -655,7 +655,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           <span className="text-sm">☀️</span>
           <span className="text-sm font-bold text-gray-800">습관</span>
           <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-            {checkedDailyIds.size} / {dailyItems.length}
+            {dailyItems.filter(item => checkedDailyIds.has(item.id)).length} / {dailyItems.length}
           </span>
         </div>
         <button
