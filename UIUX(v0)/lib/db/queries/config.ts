@@ -25,3 +25,17 @@ export async function getBattleConfig(): Promise<Record<string, string>> {
   const res = await db.execute("SELECT config_key, config_value FROM battle_config")
   return Object.fromEntries(res.rows.map((r) => [r.config_key, r.config_value]))
 }
+
+export async function getBattleConfigFull() {
+  const db = getClient()
+  const res = await db.execute("SELECT config_key, config_value, label FROM battle_config ORDER BY id")
+  return res.rows
+}
+
+export async function updateBattleConfigValue(key: string, value: string) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE battle_config SET config_value=?, updated_at=? WHERE config_key=?",
+    args: [value, now(), key],
+  })
+}

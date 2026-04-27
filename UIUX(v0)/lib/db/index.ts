@@ -16,7 +16,7 @@ export {
 } from "./queries/routine"
 export { getEquipment, addEquipment, equipItem, unequipItem, deleteEquipment } from "./queries/equipment"
 export { addBattleLog } from "./queries/battle"
-export { getGameConfig, getGameConfigFull, updateGameConfigValue, getBattleConfig } from "./queries/config"
+export { getGameConfig, getGameConfigFull, updateGameConfigValue, getBattleConfig, getBattleConfigFull, updateBattleConfigValue } from "./queries/config"
 export { getActivePrompt, updatePromptContent } from "./queries/prompt"
 export { getItemGrades, getItemSlots, getAbilityPool, getPassivePool } from "./queries/items"
 export { getSkillsWithInvestment, saveSkillInvestments } from "./queries/skills"

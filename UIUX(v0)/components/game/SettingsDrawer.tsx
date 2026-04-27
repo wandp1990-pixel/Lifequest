@@ -66,6 +66,11 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const [configSaving, setConfigSaving] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
 
+  const [battleConfigs, setBattleConfigs] = useState<ConfigRow[]>([])
+  const [battleConfigEdits, setBattleConfigEdits] = useState<Record<string, string>>({})
+  const [battleConfigSaving, setBattleConfigSaving] = useState(false)
+  const [showBattleConfig, setShowBattleConfig] = useState(false)
+
   const [promptContent, setPromptContent] = useState("")
   const [promptInput, setPromptInput] = useState("")
   const [showPrompt, setShowPrompt] = useState(false)
@@ -97,12 +102,24 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
     }
   }, [])
 
+  const fetchBattleConfig = useCallback(async () => {
+    const res = await fetch("/api/battle-config")
+    if (res.ok) {
+      const data: ConfigRow[] = await res.json()
+      setBattleConfigs(data)
+      const map: Record<string, string> = {}
+      data.forEach((r) => { map[r.config_key] = r.config_value })
+      setBattleConfigEdits(map)
+    }
+  }, [])
+
   useEffect(() => {
     fetchConfig()
+    fetchBattleConfig()
     fetch("/api/prompt").then((r) => r.ok && r.json()).then((d) => {
       if (d) { setPromptContent(d.content ?? ""); setPromptInput(d.content ?? "") }
     })
-  }, [fetchConfig])
+  }, [fetchConfig, fetchBattleConfig])
 
   const saveChar = async () => {
     setCharSaving(true)
@@ -133,6 +150,24 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
       await fetchConfig()
     } finally {
       setConfigSaving(false)
+    }
+  }
+
+  const saveAllBattleConfigs = async () => {
+    setBattleConfigSaving(true)
+    try {
+      await Promise.all(
+        battleConfigs.map((cfg) =>
+          fetch("/api/battle-config", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: cfg.config_key, value: battleConfigEdits[cfg.config_key] }),
+          })
+        )
+      )
+      await fetchBattleConfig()
+    } finally {
+      setBattleConfigSaving(false)
     }
   }
 
@@ -314,6 +349,52 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
               >
                 <Save className="w-4 h-4" />
                 {configSaving ? "저장 중..." : "일괄 저장"}
+              </button>
+            </div>
+          )}
+
+          {/* 전투 설정 에디터 */}
+          <button
+            onClick={() => setShowBattleConfig(!showBattleConfig)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+          >
+            <span className="text-sm font-bold text-gray-700">전투 설정 에디터</span>
+            {showBattleConfig ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+          </button>
+          {showBattleConfig && (
+            <div className="px-4 pt-3 pb-4">
+              {battleConfigs.length === 0 ? (
+                <p className="text-xs text-gray-400 py-4 text-center">불러오는 중...</p>
+              ) : (
+                <div className="rounded-xl overflow-hidden border border-gray-100">
+                  {battleConfigs.map((cfg, i) => (
+                    <div
+                      key={cfg.config_key}
+                      className={`flex items-center gap-2 px-3 py-2.5 bg-white ${i < battleConfigs.length - 1 ? "border-b border-gray-50" : ""}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-gray-700 truncate">{cfg.description || cfg.config_key}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{cfg.config_key}</p>
+                      </div>
+                      <input
+                        type="text"
+                        value={battleConfigEdits[cfg.config_key] ?? cfg.config_value}
+                        onChange={(e) =>
+                          setBattleConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
+                        }
+                        className="w-20 text-right text-xs font-bold bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-violet-300"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={saveAllBattleConfigs}
+                disabled={battleConfigSaving || battleConfigs.length === 0}
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-violet-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+              >
+                <Save className="w-4 h-4" />
+                {battleConfigSaving ? "저장 중..." : "일괄 저장"}
               </button>
             </div>
           )}
