@@ -219,10 +219,8 @@ export async function initDb() {
   if (_initialized) return
   _initialized = true
   const db = getClient()
-  for (const stmt of SCHEMA.trim().split(";")) {
-    const s = stmt.trim()
-    if (s) await db.execute(s)
-  }
+  const ddl = SCHEMA.trim().split(";").map(s => s.trim()).filter(Boolean)
+  await db.batch(ddl, "write")
   try { await db.execute("ALTER TABLE character ADD COLUMN clear_count INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN task_count INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN name TEXT DEFAULT '전사'") } catch {}
@@ -264,25 +262,28 @@ export async function initDb() {
     await db.execute("UPDATE battle_config SET config_value='2.0'  WHERE config_key='base_crit_multiplier'")
   })
 
-  // 라벨은 코드가 정의하는 메타데이터라 항상 동기화
-  await db.execute("UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'")
-  await db.execute("UPDATE battle_config SET label='DEX당 명중률 증가'     WHERE config_key='accuracy_per_dex'")
-  await db.execute("UPDATE battle_config SET label='DEX당 회피율 증가'     WHERE config_key='evasion_per_dex'")
-  await db.execute("UPDATE battle_config SET label='기본 치명타 배율'      WHERE config_key='base_crit_multiplier'")
-  await db.execute("UPDATE battle_config SET label='LUK당 치명타율'        WHERE config_key='crit_rate_per_luk'")
-  await db.execute("UPDATE battle_config SET label='적 LUK당 치명타 억제' WHERE config_key='crit_suppression_per_enemy_luk'")
-  await db.execute("UPDATE battle_config SET label='INT당 치명타 배율'     WHERE config_key='crit_multiplier_per_int'")
-  await db.execute("UPDATE battle_config SET label='STR → 물리 공격력'    WHERE config_key='str_to_patk'")
-  await db.execute("UPDATE battle_config SET label='VIT → 최대 HP'        WHERE config_key='vit_to_max_hp'")
-  await db.execute("UPDATE battle_config SET label='INT → 마법 공격력'    WHERE config_key='int_to_matk'")
-  await db.execute("UPDATE battle_config SET label='INT → 최대 MP'        WHERE config_key='int_to_max_mp'")
-  await db.execute("UPDATE battle_config SET label='더블 어택 확률'        WHERE config_key='double_attack_chance'")
-  await db.execute("UPDATE battle_config SET label='생명 흡수 비율'        WHERE config_key='life_steal_ratio'")
-  await db.execute("UPDATE battle_config SET label='방어 무시 비율'        WHERE config_key='defense_ignore_ratio'")
-  await db.execute("UPDATE battle_config SET label='데미지 랜덤 최솟값'    WHERE config_key='damage_random_min'")
-  await db.execute("UPDATE battle_config SET label='데미지 랜덤 최댓값'    WHERE config_key='damage_random_max'")
-  await db.execute("UPDATE battle_config SET label='방어 최소 데미지 비율' WHERE config_key='min_damage_ratio_by_defense'")
-  await db.execute("UPDATE battle_config SET label='총 데미지 방식'        WHERE config_key='total_damage_mode'")
-  await db.execute("UPDATE battle_config SET label='선공 결정 방식'        WHERE config_key='first_strike_mode'")
-  await db.execute("UPDATE battle_config SET label='전투 후 HP/MP 회복'   WHERE config_key='restore_hp_after_battle'")
+  await runMigration("labels_v1", async () => {
+    await db.batch([
+      "UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'",
+      "UPDATE battle_config SET label='DEX당 명중률 증가'     WHERE config_key='accuracy_per_dex'",
+      "UPDATE battle_config SET label='DEX당 회피율 증가'     WHERE config_key='evasion_per_dex'",
+      "UPDATE battle_config SET label='기본 치명타 배율'      WHERE config_key='base_crit_multiplier'",
+      "UPDATE battle_config SET label='LUK당 치명타율'        WHERE config_key='crit_rate_per_luk'",
+      "UPDATE battle_config SET label='적 LUK당 치명타 억제' WHERE config_key='crit_suppression_per_enemy_luk'",
+      "UPDATE battle_config SET label='INT당 치명타 배율'     WHERE config_key='crit_multiplier_per_int'",
+      "UPDATE battle_config SET label='STR → 물리 공격력'    WHERE config_key='str_to_patk'",
+      "UPDATE battle_config SET label='VIT → 최대 HP'        WHERE config_key='vit_to_max_hp'",
+      "UPDATE battle_config SET label='INT → 마법 공격력'    WHERE config_key='int_to_matk'",
+      "UPDATE battle_config SET label='INT → 최대 MP'        WHERE config_key='int_to_max_mp'",
+      "UPDATE battle_config SET label='더블 어택 확률'        WHERE config_key='double_attack_chance'",
+      "UPDATE battle_config SET label='생명 흡수 비율'        WHERE config_key='life_steal_ratio'",
+      "UPDATE battle_config SET label='방어 무시 비율'        WHERE config_key='defense_ignore_ratio'",
+      "UPDATE battle_config SET label='데미지 랜덤 최솟값'    WHERE config_key='damage_random_min'",
+      "UPDATE battle_config SET label='데미지 랜덤 최댓값'    WHERE config_key='damage_random_max'",
+      "UPDATE battle_config SET label='방어 최소 데미지 비율' WHERE config_key='min_damage_ratio_by_defense'",
+      "UPDATE battle_config SET label='총 데미지 방식'        WHERE config_key='total_damage_mode'",
+      "UPDATE battle_config SET label='선공 결정 방식'        WHERE config_key='first_strike_mode'",
+      "UPDATE battle_config SET label='전투 후 HP/MP 회복'   WHERE config_key='restore_hp_after_battle'",
+    ], "write")
+  })
 }

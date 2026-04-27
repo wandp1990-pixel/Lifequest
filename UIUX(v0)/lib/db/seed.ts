@@ -128,6 +128,8 @@ async function seedGameConfig(db: Client) {
 }
 
 export async function ensureBattleConfig(db: Client) {
+  const res = await db.execute("SELECT COUNT(*) AS cnt FROM battle_config")
+  if ((res.rows[0].cnt as number) > 0) return
   const t = now()
   const data: [string, string, string, number, number, number][] = [
     ["base_accuracy", "0.9", "기본 명중률", 0.5, 1.0, 0.01],
