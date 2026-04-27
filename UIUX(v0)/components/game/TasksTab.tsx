@@ -627,7 +627,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           streak >= 100 ? "text-yellow-600 bg-yellow-50 border-yellow-200" :
           streak >= 30  ? "text-red-600 bg-red-50 border-red-200" :
           streak >= 7   ? "text-orange-600 bg-orange-50 border-orange-200" :
-                          "text-orange-500 bg-orange-50 border-orange-100"
+          streak >= 1   ? "text-orange-500 bg-orange-50 border-orange-100" :
+                          "text-gray-400 bg-gray-50 border-gray-200"
         return (
           <div
             key={item.id}
@@ -637,11 +638,9 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
               <p className={`text-sm font-semibold leading-snug ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
                 {item.name}
               </p>
-              {streak >= 1 && (
-                <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
-                  🔥 {streak}일 연속
-                </span>
-              )}
+              <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
+                {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
+              </span>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
