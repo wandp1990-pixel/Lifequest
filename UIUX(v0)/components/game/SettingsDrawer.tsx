@@ -385,7 +385,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-blue-800">{cfg.label}</span>
                           <input
-                            type="number"
+                            type={isNumeric ? "number" : "text"}
                             value={val}
                             step={isNumeric ? cfg.step : undefined}
                             min={isNumeric ? cfg.min_val : undefined}
