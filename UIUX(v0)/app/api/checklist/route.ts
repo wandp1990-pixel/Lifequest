@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getChecklistItems, addChecklistLog, getTodayCheckedItemIds,
   addChecklistItem, deleteChecklistItem, addActivityLog, incrementTaskCount,
+  updateChecklistStreak,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -25,14 +26,22 @@ export async function POST(req: NextRequest) {
     const item = items.find((i) => i.id === itemId)
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
 
-    const exp = (item.fixed_exp as number) ?? 10
-    const comment = "체크리스트 완료!"
-    await addChecklistLog(itemId, exp)
-    await addActivityLog(item.name as string, "daily", exp, comment)
-    await incrementTaskCount()
-    const levelResult = await gainExp(exp)
+    const baseExp = (item.fixed_exp as number) ?? 10
+    const { streak, bonusExp } = await updateChecklistStreak(itemId)
+    const totalExp = baseExp + bonusExp
 
-    return NextResponse.json({ exp, comment, ...levelResult })
+    const comment = streak >= 7
+      ? `🔥 ${streak}일 연속! (+${bonusExp} 보너스)`
+      : streak > 1
+      ? `🔥 ${streak}일 연속!`
+      : "습관 완료!"
+
+    await addChecklistLog(itemId, totalExp)
+    await addActivityLog(item.name as string, "daily", totalExp, comment)
+    await incrementTaskCount()
+    const levelResult = await gainExp(totalExp)
+
+    return NextResponse.json({ exp: baseExp, bonusExp, streak, comment, ...levelResult })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

@@ -7,6 +7,7 @@ export { addActivityLog, getRecentActivities } from "./queries/activity"
 export {
   getChecklistItems, addChecklistLog, addChecklistItem,
   deleteChecklistItem, getTodayCheckedItemIds,
+  updateChecklistStreak, streakBonusExp,
 } from "./queries/checklist"
 export { getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem } from "./queries/todo"
 export {

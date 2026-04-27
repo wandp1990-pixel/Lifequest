@@ -7,6 +7,8 @@ interface DailyItem {
   id: number
   name: string
   fixed_exp: number
+  streak?: number
+  best_streak?: number
 }
 
 interface TodoItem {
@@ -131,7 +133,10 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? "오류"); return }
       setCheckedDailyIds((prev) => new Set([...prev, item.id]))
-      showToast(data.exp, data.comment)
+      setDailyItems((prev) =>
+        prev.map((d) => d.id === item.id ? { ...d, streak: data.streak } : d)
+      )
+      showToast(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined)
       onExpGained?.()
     } finally {
       setCompleting(null)
@@ -617,6 +622,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       {dailyItems.map((item) => {
         const done = checkedDailyIds.has(item.id)
         const isLoading = isCompletingType === "daily" && isCompletingId === item.id
+        const streak = item.streak ?? 0
+        const streakColor =
+          streak >= 100 ? "text-yellow-600 bg-yellow-50 border-yellow-200" :
+          streak >= 30  ? "text-red-600 bg-red-50 border-red-200" :
+          streak >= 7   ? "text-orange-600 bg-orange-50 border-orange-200" :
+                          "text-orange-500 bg-orange-50 border-orange-100"
         return (
           <div
             key={item.id}
@@ -626,6 +637,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
               <p className={`text-sm font-semibold leading-snug ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
                 {item.name}
               </p>
+              {streak >= 1 && (
+                <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
+                  🔥 {streak}일 연속
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
@@ -639,7 +655,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     : "bg-amber-100 text-amber-600 hover:bg-amber-200"
                 }`}
               >
-                {done ? "✓ 완료" : isLoading ? "판정 중..." : `+${item.fixed_exp} EXP`}
+                {done ? "✓ 완료" : isLoading ? "처리 중..." : `+${item.fixed_exp} EXP`}
               </button>
               <button
                 onClick={() => confirmAndDelete("daily", item.id, item.name)}

@@ -262,6 +262,11 @@ export async function initDb() {
     await db.execute("UPDATE battle_config SET config_value='2.0'  WHERE config_key='base_crit_multiplier'")
   })
 
+  await runMigration("checklist_streak_v1", async () => {
+    try { await db.execute("ALTER TABLE checklist_item ADD COLUMN streak INTEGER DEFAULT 0") } catch {}
+    try { await db.execute("ALTER TABLE checklist_item ADD COLUMN best_streak INTEGER DEFAULT 0") } catch {}
+  })
+
   await runMigration("labels_v1", async () => {
     await db.batch([
       "UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'",
