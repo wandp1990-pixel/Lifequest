@@ -6,6 +6,7 @@ export interface RoutineItemRow {
   name: string
   fixed_exp: number
   sort_order: number
+  time_limit_minutes: number | null
 }
 
 export interface RoutineRow {
@@ -20,6 +21,7 @@ export interface RoutineCheckResult {
   bonusExp: number
   allDone: boolean
   routineName: string
+  timeBonus: boolean
 }
 
 
@@ -35,7 +37,7 @@ export async function getRoutines(): Promise<{
     "SELECT id, name, sort_order FROM routine WHERE is_active = 1 ORDER BY sort_order, id"
   )
   const iRes = await db.execute(
-    "SELECT id, routine_id, name, fixed_exp, sort_order FROM routine_item WHERE is_active = 1 ORDER BY sort_order, id"
+    "SELECT id, routine_id, name, fixed_exp, sort_order, time_limit_minutes FROM routine_item WHERE is_active = 1 ORDER BY sort_order, id"
   )
   const lRes = await db.execute({
     sql: "SELECT item_id FROM routine_log WHERE checked_at LIKE ?",
@@ -54,6 +56,7 @@ export async function getRoutines(): Promise<{
       name: r.name as string,
       fixed_exp: r.fixed_exp as number,
       sort_order: r.sort_order as number,
+      time_limit_minutes: (r.time_limit_minutes as number | null) ?? null,
     }
     const arr = itemsByRoutine.get(item.routine_id) ?? []
     arr.push(item)
@@ -83,11 +86,11 @@ export async function addRoutine(name: string): Promise<number> {
   return Number(res.lastInsertRowid)
 }
 
-export async function addRoutineItem(routineId: number, name: string, fixedExp: number) {
+export async function addRoutineItem(routineId: number, name: string, fixedExp: number, timeLimitMinutes?: number | null) {
   const db = getClient()
   await db.execute({
-    sql: "INSERT INTO routine_item (routine_id, name, fixed_exp, sort_order, is_active) VALUES (?,?,?,0,1)",
-    args: [routineId, name, fixedExp],
+    sql: "INSERT INTO routine_item (routine_id, name, fixed_exp, sort_order, is_active, time_limit_minutes) VALUES (?,?,?,0,1,?)",
+    args: [routineId, name, fixedExp, timeLimitMinutes ?? null],
   })
 }
 
@@ -112,12 +115,12 @@ export async function reorderRoutineItems(orderedItemIds: number[]) {
   }
 }
 
-export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResult | null> {
+export async function checkRoutineItem(itemId: number, startedAt?: string): Promise<RoutineCheckResult | null> {
   const db = getClient()
   const today = todayKST()
 
   const itemRes = await db.execute({
-    sql: "SELECT id, routine_id, name, fixed_exp FROM routine_item WHERE id=? AND is_active=1",
+    sql: "SELECT id, routine_id, name, fixed_exp, time_limit_minutes FROM routine_item WHERE id=? AND is_active=1",
     args: [itemId],
   })
   const item = itemRes.rows[0]
@@ -129,7 +132,17 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
   })
   if ((dupRes.rows[0].cnt as number) > 0) return null
 
-  const exp = item.fixed_exp as number
+  const timeLimitMinutes = item.time_limit_minutes as number | null
+  let exp = item.fixed_exp as number
+  let timeBonus = false
+  if (timeLimitMinutes && startedAt) {
+    const elapsedMs = Date.now() - new Date(startedAt).getTime()
+    if (elapsedMs >= 0 && elapsedMs <= timeLimitMinutes * 60 * 1000) {
+      exp = exp * 2
+      timeBonus = true
+    }
+  }
+
   const routineId = item.routine_id as number
   await db.execute({
     sql: "INSERT INTO routine_log (item_id, exp_gained, checked_at) VALUES (?,?,?)",
@@ -173,5 +186,5 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
   })
   const routineName = (rRes.rows[0]?.name as string) ?? ""
 
-  return { exp, bonusExp, allDone, routineName }
+  return { exp, bonusExp, allDone, routineName, timeBonus }
 }

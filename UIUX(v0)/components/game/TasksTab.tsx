@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, ChevronDown, GripVertical } from "lucide-react"
+import { Plus, X, ChevronDown, GripVertical, Timer } from "lucide-react"
 
 interface DailyItem {
   id: number
@@ -25,6 +25,7 @@ interface RoutineItem {
   routine_id: number
   name: string
   fixed_exp: number
+  time_limit_minutes: number | null
 }
 
 interface Routine {
@@ -50,6 +51,9 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [addingItemFor, setAddingItemFor] = useState<number | null>(null)
   const [newItemName, setNewItemName] = useState("")
   const [newItemExp, setNewItemExp] = useState(10)
+  const [newItemTimeLimit, setNewItemTimeLimit] = useState<number | null>(null)
+  const [activeTimers, setActiveTimers] = useState<Record<number, number>>({})
+  const [, setTick] = useState(0)
   const [adding, setAdding] = useState<"daily" | "todo" | "routine" | null>(null)
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
@@ -67,6 +71,31 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     id: number
     name: string
   } | null>(null)
+
+  useEffect(() => {
+    if (Object.keys(activeTimers).length === 0) return
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [activeTimers])
+
+  const startTimer = (itemId: number) => {
+    setActiveTimers((prev) => ({ ...prev, [itemId]: Date.now() }))
+  }
+
+  const getTimerInfo = (item: RoutineItem) => {
+    if (!item.time_limit_minutes) return null
+    const startMs = activeTimers[item.id]
+    if (!startMs) return { status: "idle" as const, remaining: item.time_limit_minutes * 60 }
+    const remaining = item.time_limit_minutes * 60 - (Date.now() - startMs) / 1000
+    if (remaining <= 0) return { status: "expired" as const, remaining: 0, startedAt: new Date(startMs).toISOString() }
+    return { status: "running" as const, remaining, startedAt: new Date(startMs).toISOString() }
+  }
+
+  const formatCountdown = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return `${m}:${s.toString().padStart(2, "0")}`
+  }
 
   const fetchAll = useCallback(async () => {
     try {
@@ -172,21 +201,25 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     if (checkedRoutineItemIds.has(item.id) || completing) return
     setCompleting({ type: "routine", id: item.id })
     setError(null)
+    const timerInfo = getTimerInfo(item)
+    const startedAt = timerInfo?.status === "running" ? timerInfo.startedAt : undefined
     try {
       const res = await fetch("/api/routines", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId: item.id }),
+        body: JSON.stringify({ itemId: item.id, startedAt }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? "오류"); return }
       setCheckedRoutineItemIds((prev) => new Set([...prev, item.id]))
+      setActiveTimers((prev) => { const n = { ...prev }; delete n[item.id]; return n })
       if (data.allDone && data.bonusExp > 0) {
         setBonusRoutineIds((prev) => new Set([...prev, item.routine_id]))
-        showToast(data.exp, `🎉 ${data.routineName} 완수!`, data.bonusExp)
-      } else {
-        showToast(data.exp, "루틴 항목 완료")
       }
+      const comment = data.timeBonus
+        ? data.allDone && data.bonusExp > 0 ? `⚡ 2배! 🎉 ${data.routineName} 완수!` : "⚡ 제한시간 달성! 2배 EXP!"
+        : data.allDone && data.bonusExp > 0 ? `🎉 ${data.routineName} 완수!` : "루틴 항목 완료"
+      showToast(data.exp, comment, data.bonusExp > 0 ? data.bonusExp : undefined)
       onExpGained?.()
     } finally {
       setCompleting(null)
@@ -276,6 +309,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         routineId,
         name: newItemName.trim(),
         fixedExp: newItemExp,
+        timeLimitMinutes: newItemTimeLimit,
       }),
     })
     if (res.ok) {
@@ -286,6 +320,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     }
     setNewItemName("")
     setNewItemExp(10)
+    setNewItemTimeLimit(null)
     setAddingItemFor(null)
   }
 
@@ -481,18 +516,26 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   const done = checkedRoutineItemIds.has(item.id)
                   const isLoading = completing?.type === "routine" && completing?.id === item.id
                   const isDragOver = dragOverItemId === item.id && draggingItemId !== item.id
+                  const timerInfo = getTimerInfo(item)
+                  const withinLimit = timerInfo?.status === "running"
+                  const timerColor =
+                    !timerInfo || timerInfo.status === "idle" ? ""
+                    : timerInfo.status === "expired" ? "text-red-500"
+                    : timerInfo.remaining > item.time_limit_minutes! * 60 * 0.5 ? "text-teal-600"
+                    : timerInfo.remaining > item.time_limit_minutes! * 60 * 0.2 ? "text-amber-500"
+                    : "text-red-500"
                   return (
                     <div
                       key={item.id}
                       onDragOver={(e) => handleItemDragOver(e, item.id)}
                       onDrop={(e) => handleItemDrop(e, item.id, r.id)}
-                      className={`flex items-center gap-2 px-3 py-2.5 border-b border-teal-50 last:border-b-0 transition-colors ${done ? "opacity-50" : ""} ${isDragOver ? "bg-teal-50" : ""} ${draggingItemId === item.id ? "opacity-30" : ""}`}
+                      className={`flex items-start gap-2 px-3 py-2.5 border-b border-teal-50 last:border-b-0 transition-colors ${done ? "opacity-50" : ""} ${isDragOver ? "bg-teal-50" : ""} ${draggingItemId === item.id ? "opacity-30" : ""}`}
                     >
                       <div
                         draggable
                         onDragStart={(e) => handleItemDragStart(e, item.id)}
                         onDragEnd={handleItemDragEnd}
-                        className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                        className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none mt-1"
                         aria-label="순서 변경"
                       >
                         <GripVertical className="w-4 h-4 text-gray-300" />
@@ -501,6 +544,29 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                         <p className={`text-sm leading-snug ${done ? "line-through text-gray-400" : "text-gray-700"}`}>
                           {item.name}
                         </p>
+                        {timerInfo && !done && (
+                          <div className="mt-1">
+                            {timerInfo.status === "idle" && (
+                              <button
+                                onClick={() => startTimer(item.id)}
+                                className="flex items-center gap-1 text-[10px] font-bold text-teal-500 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded-full active:scale-95"
+                              >
+                                <Timer className="w-3 h-3" />
+                                {item.time_limit_minutes}분 시작
+                              </button>
+                            )}
+                            {timerInfo.status === "running" && (
+                              <span className={`flex items-center gap-1 text-[10px] font-bold ${timerColor}`}>
+                                <Timer className="w-3 h-3" />
+                                {formatCountdown(timerInfo.remaining)}
+                                <span className="text-[10px] text-amber-500 font-bold">⚡ 2배</span>
+                              </span>
+                            )}
+                            {timerInfo.status === "expired" && (
+                              <span className="text-[10px] font-bold text-red-400">⏱ 시간초과</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
@@ -511,10 +577,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                               ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                               : isLoading
                               ? "bg-teal-200 text-teal-700 animate-pulse cursor-wait"
+                              : withinLimit
+                              ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
                               : "bg-teal-100 text-teal-600 hover:bg-teal-200"
                           }`}
                         >
-                          {done ? "✓ 완료" : isLoading ? "처리 중..." : `+${item.fixed_exp} EXP`}
+                          {done ? "✓ 완료" : isLoading ? "처리 중..." : withinLimit ? `⚡ +${item.fixed_exp * 2}` : `+${item.fixed_exp} EXP`}
                         </button>
                         <button
                           onClick={() => confirmAndDelete("routineItem", item.id, item.name)}
@@ -529,36 +597,53 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 })}
 
                 {isAddingItem ? (
-                  <div className="px-4 py-2 flex gap-1.5 bg-teal-50/50">
-                    <input
-                      autoFocus
-                      type="text"
-                      value={newItemName}
-                      onChange={(e) => setNewItemName(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && addRoutineItemSubmit(r.id)}
-                      placeholder="항목 이름..."
-                      className="flex-1 min-w-0 text-sm bg-white border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
-                    />
-                    <input
-                      type="number"
-                      value={newItemExp}
-                      onChange={(e) => setNewItemExp(Number(e.target.value))}
-                      className="w-14 text-sm text-center bg-white border border-teal-200 rounded-xl px-1 py-2 outline-none"
-                      min={1}
-                    />
-                    <button
-                      onClick={() => addRoutineItemSubmit(r.id)}
-                      className="px-3 py-2 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
-                    >
-                      추가
-                    </button>
-                    <button
-                      onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }}
-                      className="text-gray-400 px-1"
-                      aria-label="취소"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                  <div className="px-3 py-2 flex flex-col gap-1.5 bg-teal-50/50">
+                    <div className="flex gap-1.5">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={newItemName}
+                        onChange={(e) => setNewItemName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addRoutineItemSubmit(r.id)}
+                        placeholder="항목 이름..."
+                        className="flex-1 min-w-0 text-sm bg-white border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
+                      />
+                      <input
+                        type="number"
+                        value={newItemExp}
+                        onChange={(e) => setNewItemExp(Number(e.target.value))}
+                        className="w-14 text-sm text-center bg-white border border-teal-200 rounded-xl px-1 py-2 outline-none"
+                        min={1}
+                        placeholder="EXP"
+                      />
+                    </div>
+                    <div className="flex gap-1.5 items-center">
+                      <Timer className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
+                      <input
+                        type="number"
+                        value={newItemTimeLimit ?? ""}
+                        onChange={(e) => setNewItemTimeLimit(e.target.value ? Number(e.target.value) : null)}
+                        className="w-16 text-sm text-center bg-white border border-teal-200 rounded-xl px-1 py-1.5 outline-none"
+                        min={1}
+                        max={180}
+                        placeholder="분"
+                      />
+                      <span className="text-xs text-gray-400">분 제한 (선택)</span>
+                      <div className="flex-1" />
+                      <button
+                        onClick={() => addRoutineItemSubmit(r.id)}
+                        className="px-3 py-1.5 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
+                      >
+                        추가
+                      </button>
+                      <button
+                        onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10); setNewItemTimeLimit(null) }}
+                        className="text-gray-400 px-1"
+                        aria-label="취소"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between px-4 py-2 bg-teal-50/30">
