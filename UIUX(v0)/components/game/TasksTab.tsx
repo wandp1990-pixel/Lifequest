@@ -585,62 +585,63 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     </button>
                   </div>
                 ) : (
-                  <div className="flex flex-col bg-teal-50/30">
-                    <div className="flex items-center justify-between px-4 py-2">
-                      <button
-                        onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }}
-                        className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95"
-                      >
-                        <Plus className="w-3 h-3" /> 항목 추가
-                      </button>
-                      <button
-                        onClick={() => confirmAndDelete("routine", r.id, r.name)}
-                        className="text-xs text-red-400 hover:text-red-500 active:scale-95"
-                      >
-                        루틴 삭제
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2 px-4 pb-2">
-                      <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
-                      {editingDeadlineFor === r.id ? (
-                        <>
-                          <input
-                            autoFocus
-                            type="time"
-                            value={deadlineInputVal}
-                            onChange={(e) => setDeadlineInputVal(e.target.value)}
-                            className="text-xs bg-white border border-sky-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-sky-300"
-                          />
-                          <button
-                            onClick={() => saveDeadline(r.id, deadlineInputVal || null)}
-                            className="text-xs font-bold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg active:scale-95"
-                          >
-                            저장
-                          </button>
-                          {r.deadline_time && (
-                            <button
-                              onClick={() => saveDeadline(r.id, null)}
-                              className="text-xs text-gray-400 active:scale-95"
-                            >
-                              제거
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setEditingDeadlineFor(null)}
-                            className="text-gray-400 active:scale-95"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </>
-                      ) : (
+                  <div className="bg-teal-50/30">
+                    {editingDeadlineFor === r.id ? (
+                      <div className="px-4 py-2 flex flex-wrap items-center gap-2">
+                        <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
+                        <input
+                          autoFocus
+                          type="time"
+                          value={deadlineInputVal}
+                          onChange={(e) => setDeadlineInputVal(e.target.value)}
+                          className="text-xs bg-white border border-sky-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-sky-300"
+                        />
                         <button
-                          onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }}
-                          className="text-xs text-sky-500 active:scale-95"
+                          onClick={() => saveDeadline(r.id, deadlineInputVal || null)}
+                          className="text-xs font-bold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg active:scale-95"
                         >
-                          {r.deadline_time ? `${r.deadline_time}까지 완료 시 2배` : "마감 시간 설정 (완료 시 2배 EXP)"}
+                          저장
                         </button>
-                      )}
-                    </div>
+                        {r.deadline_time && (
+                          <button
+                            onClick={() => saveDeadline(r.id, null)}
+                            className="text-xs text-gray-400 active:scale-95"
+                          >
+                            제거
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setEditingDeadlineFor(null)}
+                          className="text-gray-400 active:scale-95"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between px-4 py-2">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }}
+                            className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95"
+                          >
+                            <Plus className="w-3 h-3" /> 항목 추가
+                          </button>
+                          <button
+                            onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }}
+                            className="flex items-center gap-1 text-xs text-sky-500 active:scale-95"
+                          >
+                            <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
+                            {r.deadline_time ? `${r.deadline_time}까지 2배` : "마감 시간"}
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => confirmAndDelete("routine", r.id, r.name)}
+                          className="text-xs text-red-400 hover:text-red-500 active:scale-95"
+                        >
+                          루틴 삭제
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
