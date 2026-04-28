@@ -61,6 +61,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [editingExpVal, setEditingExpVal] = useState(0)
   const [editingTodoNameId, setEditingTodoNameId] = useState<number | null>(null)
   const [editingTodoNameVal, setEditingTodoNameVal] = useState("")
+  const [editingDailyNameId, setEditingDailyNameId] = useState<number | null>(null)
+  const [editingDailyNameVal, setEditingDailyNameVal] = useState("")
+  const [editingRoutineNameId, setEditingRoutineNameId] = useState<number | null>(null)
+  const [editingRoutineNameVal, setEditingRoutineNameVal] = useState("")
+  const [editingRoutineItemNameId, setEditingRoutineItemNameId] = useState<number | null>(null)
+  const [editingRoutineItemNameVal, setEditingRoutineItemNameVal] = useState("")
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -358,6 +364,48 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     setEditingTodoNameId(null)
   }
 
+  const saveDailyName = async (id: number) => {
+    if (!editingDailyNameVal.trim()) return
+    const res = await fetch("/api/checklist", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name: editingDailyNameVal }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setDailyItems(data.items ?? [])
+    }
+    setEditingDailyNameId(null)
+  }
+
+  const saveRoutineName = async (routineId: number) => {
+    if (!editingRoutineNameVal.trim()) return
+    const res = await fetch("/api/routines", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "updateRoutineName", routineId, name: editingRoutineNameVal }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setRoutines(data.routines ?? [])
+    }
+    setEditingRoutineNameId(null)
+  }
+
+  const saveRoutineItemName = async (itemId: number) => {
+    if (!editingRoutineItemNameVal.trim()) return
+    const res = await fetch("/api/routines", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "updateItemName", itemId, name: editingRoutineItemNameVal }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setRoutines(data.routines ?? [])
+    }
+    setEditingRoutineItemNameId(null)
+  }
+
   const confirmAndDelete = (
     type: "daily" | "todo" | "routine" | "routineItem",
     id: number,
@@ -486,28 +534,57 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         const isAddingItem = addingItemFor === r.id
         return (
           <div key={r.id} className="mx-4 mb-2 bg-white border border-teal-100 rounded-2xl overflow-hidden">
-            <button
-              onClick={() => toggleRoutine(r.id)}
-              className="w-full flex items-center justify-between px-4 py-3 active:bg-teal-50 transition-colors"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-bold text-gray-800 truncate">{r.name}</span>
-                <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100 flex-shrink-0">
-                  {checked}/{total}
-                </span>
-                {r.deadline_time && !bonusGranted && (
-                  <span className="flex items-center gap-0.5 text-[10px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100 flex-shrink-0">
-                    <Clock className="w-2.5 h-2.5" />{r.deadline_time}까지 2배
-                  </span>
-                )}
-                {bonusGranted && (
-                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex-shrink-0">
-                    🎉 +{totalExp} EXP
-                  </span>
-                )}
+            {editingRoutineNameId === r.id ? (
+              <div className="flex items-center gap-1.5 px-4 py-3">
+                <input
+                  autoFocus
+                  type="text"
+                  value={editingRoutineNameVal}
+                  onChange={(e) => setEditingRoutineNameVal(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveRoutineName(r.id); if (e.key === "Escape") setEditingRoutineNameId(null) }}
+                  className="flex-1 min-w-0 text-sm bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
+                />
+                <button
+                  onClick={() => saveRoutineName(r.id)}
+                  className="text-[10px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                >
+                  저장
+                </button>
+                <button onClick={() => setEditingRoutineNameId(null)} className="text-gray-400 flex-shrink-0">
+                  <X className="w-3 h-3" />
+                </button>
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
-            </button>
+            ) : (
+              <button
+                onClick={() => toggleRoutine(r.id)}
+                className="w-full flex items-center justify-between px-4 py-3 active:bg-teal-50 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-bold text-gray-800 truncate">{r.name}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingRoutineNameId(r.id); setEditingRoutineNameVal(r.name) }}
+                    className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
+                    aria-label="루틴 이름 수정"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100 flex-shrink-0">
+                    {checked}/{total}
+                  </span>
+                  {r.deadline_time && !bonusGranted && (
+                    <span className="flex items-center gap-0.5 text-[10px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100 flex-shrink-0">
+                      <Clock className="w-2.5 h-2.5" />{r.deadline_time}까지 2배
+                    </span>
+                  )}
+                  {bonusGranted && (
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex-shrink-0">
+                      🎉 +{totalExp} EXP
+                    </span>
+                  )}
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
+              </button>
+            )}
 
             {expanded && (
               <div className="border-t border-teal-100">
@@ -518,6 +595,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   const done = checkedRoutineItemIds.has(item.id)
                   const isLoading = completing?.type === "routine" && completing?.id === item.id
                   const isDragOver = dragOverItemId === item.id && draggingItemId !== item.id
+                  const isEditingItemName = editingRoutineItemNameId === item.id
                   return (
                     <div
                       key={item.id}
@@ -535,9 +613,42 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                         <GripVertical className="w-4 h-4 text-gray-300" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm leading-snug ${done ? "line-through text-gray-400" : "text-gray-700"}`}>
-                          {item.name}
-                        </p>
+                        {isEditingItemName ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={editingRoutineItemNameVal}
+                              onChange={(e) => setEditingRoutineItemNameVal(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveRoutineItemName(item.id); if (e.key === "Escape") setEditingRoutineItemNameId(null) }}
+                              className="flex-1 min-w-0 text-sm bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
+                            />
+                            <button
+                              onClick={() => saveRoutineItemName(item.id)}
+                              className="text-[10px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                            >
+                              저장
+                            </button>
+                            <button onClick={() => setEditingRoutineItemNameId(null)} className="text-gray-400 flex-shrink-0">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className={`text-sm leading-snug truncate ${done ? "line-through text-gray-400" : "text-gray-700"}`}>
+                              {item.name}
+                            </p>
+                            {!done && (
+                              <button
+                                onClick={() => { setEditingRoutineItemNameId(item.id); setEditingRoutineItemNameVal(item.name) }}
+                                className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
+                                aria-label="항목 이름 수정"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
@@ -722,18 +833,54 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           streak >= 7   ? "text-orange-600 bg-orange-50 border-orange-200" :
           streak >= 1   ? "text-orange-500 bg-orange-50 border-orange-100" :
                           "text-gray-400 bg-gray-50 border-gray-200"
+        const isEditingName = editingDailyNameId === item.id
         return (
           <div
             key={item.id}
             className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 transition-opacity ${done ? "opacity-50" : ""}`}
           >
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold leading-snug ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
-                {item.name}
-              </p>
-              <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
-                {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
-              </span>
+              {isEditingName ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editingDailyNameVal}
+                    onChange={(e) => setEditingDailyNameVal(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveDailyName(item.id); if (e.key === "Escape") setEditingDailyNameId(null) }}
+                    className="flex-1 min-w-0 text-sm bg-amber-50 border border-amber-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                  <button
+                    onClick={() => saveDailyName(item.id)}
+                    className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                  >
+                    저장
+                  </button>
+                  <button onClick={() => setEditingDailyNameId(null)} className="text-gray-400 flex-shrink-0">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
+                    {item.name}
+                  </p>
+                  {!done && (
+                    <button
+                      onClick={() => { setEditingDailyNameId(item.id); setEditingDailyNameVal(item.name) }}
+                      className="text-gray-300 hover:text-amber-400 transition-colors flex-shrink-0 p-0.5"
+                      aria-label="이름 수정"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+              {!isEditingName && (
+                <span className={`inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
+                  {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <button

@@ -7,13 +7,14 @@ export { addActivityLog, getRecentActivities } from "./queries/activity"
 export {
   getChecklistItems, addChecklistLog, addChecklistItem,
   deleteChecklistItem, getTodayCheckedItemIds,
-  updateChecklistStreak, streakBonusExp,
+  updateChecklistStreak, streakBonusExp, updateChecklistItemName,
 } from "./queries/checklist"
 export { getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName } from "./queries/todo"
 export {
   getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
   reorderRoutineItems, updateRoutineDeadline,
+  updateRoutineName, updateRoutineItemName,
 } from "./queries/routine"
 export { getEquipment, addEquipment, equipItem, unequipItem, deleteEquipment } from "./queries/equipment"
 export { addBattleLog } from "./queries/battle"

@@ -3,7 +3,7 @@ import {
   initDb, getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
   reorderRoutineItems, addActivityLog, incrementTaskCount,
-  updateRoutineDeadline,
+  updateRoutineDeadline, updateRoutineName, updateRoutineItemName,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -90,6 +90,22 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "orderedItemIds 필요" }, { status: 400 })
       }
       await reorderRoutineItems(orderedItemIds)
+      return NextResponse.json(await getRoutines())
+    }
+    if (action === "updateRoutineName") {
+      const name = (body.name ?? "").trim()
+      if (typeof body.routineId !== "number" || !name) {
+        return NextResponse.json({ error: "필수값 누락" }, { status: 400 })
+      }
+      await updateRoutineName(body.routineId, name)
+      return NextResponse.json(await getRoutines())
+    }
+    if (action === "updateItemName") {
+      const name = (body.name ?? "").trim()
+      if (typeof body.itemId !== "number" || !name) {
+        return NextResponse.json({ error: "필수값 누락" }, { status: 400 })
+      }
+      await updateRoutineItemName(body.itemId, name)
       return NextResponse.json(await getRoutines())
     }
     return NextResponse.json({ error: "알 수 없는 action" }, { status: 400 })

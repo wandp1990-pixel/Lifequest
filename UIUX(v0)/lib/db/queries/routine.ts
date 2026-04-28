@@ -100,6 +100,16 @@ export async function updateRoutineDeadline(routineId: number, deadlineTime: str
   })
 }
 
+export async function updateRoutineName(routineId: number, name: string) {
+  const db = getClient()
+  await db.execute({ sql: "UPDATE routine SET name=? WHERE id=?", args: [name, routineId] })
+}
+
+export async function updateRoutineItemName(itemId: number, name: string) {
+  const db = getClient()
+  await db.execute({ sql: "UPDATE routine_item SET name=? WHERE id=?", args: [name, itemId] })
+}
+
 export async function addRoutineItem(routineId: number, name: string, fixedExp: number) {
   const db = getClient()
   await db.execute({

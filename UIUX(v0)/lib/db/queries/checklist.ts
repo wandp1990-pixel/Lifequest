@@ -75,6 +75,11 @@ export async function deleteChecklistItem(id: number) {
   await db.execute({ sql: "UPDATE checklist_item SET is_active=0 WHERE id=?", args: [id] })
 }
 
+export async function updateChecklistItemName(id: number, name: string) {
+  const db = getClient()
+  await db.execute({ sql: "UPDATE checklist_item SET name=? WHERE id=?", args: [name, id] })
+}
+
 export async function getTodayCheckedItemIds(): Promise<Set<number>> {
   const db = getClient()
   const today = todayKST()

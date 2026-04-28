@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getChecklistItems, addChecklistLog, getTodayCheckedItemIds,
   addChecklistItem, deleteChecklistItem, addActivityLog, incrementTaskCount,
-  updateChecklistStreak,
+  updateChecklistStreak, updateChecklistItemName,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -50,9 +50,14 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     await initDb()
-    const { name, suggested_exp } = await req.json()
-    if (!name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
-    await addChecklistItem(name.trim(), suggested_exp ?? 10)
+    const body = await req.json()
+    if ("id" in body) {
+      if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
+      await updateChecklistItemName(body.id, body.name.trim())
+    } else {
+      if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
+      await addChecklistItem(body.name.trim(), body.suggested_exp ?? 10)
+    }
     const items = await getChecklistItems()
     const checkedIds = await getTodayCheckedItemIds()
     return NextResponse.json({ items, checkedIds: [...checkedIds] })
