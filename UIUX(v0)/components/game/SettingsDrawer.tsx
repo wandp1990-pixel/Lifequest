@@ -221,14 +221,14 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
       <div
-        className="fixed inset-0 left-1/2 -translate-x-1/2 w-full max-w-sm bg-white z-50 flex flex-col"
+        className="fixed inset-0 left-1/2 -translate-x-1/2 w-full max-w-sm bg-background z-50 flex flex-col"
         style={{ maxHeight: "100dvh" }}
       >
         {/* 헤더 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
-          <h2 className="text-base font-bold text-gray-800">설정</h2>
-          <button onClick={onClose} className="p-1.5 rounded-xl bg-gray-100 active:scale-95">
-            <X className="w-4 h-4 text-gray-600" />
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+          <h2 className="text-base font-bold text-foreground">설정</h2>
+          <button onClick={onClose} className="p-1.5 rounded-xl bg-muted active:scale-95">
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>
 
@@ -237,26 +237,26 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           {/* AI 판정 프롬프트 */}
           <button
             onClick={() => setShowPrompt(!showPrompt)}
-            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
           >
-            <span className="flex items-center gap-2 text-sm font-bold text-gray-700">
+            <span className="flex items-center gap-2 text-sm font-bold text-foreground">
               <FileText className="w-4 h-4 text-violet-400" />
               AI 판정 프롬프트
             </span>
-            {showPrompt ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+            {showPrompt ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
           </button>
           {showPrompt && (
             <div className="px-4 pt-3 pb-4">
               <textarea
                 value={promptInput}
                 onChange={(e) => setPromptInput(e.target.value)}
-                className="w-full text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-violet-300 resize-none leading-relaxed"
+                className="w-full text-xs text-foreground bg-muted border border-border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-violet-300 resize-none leading-relaxed"
                 rows={10}
               />
               <div className="flex justify-between items-center mt-2">
                 {promptSaved
                   ? <span className="text-[10px] text-violet-500 font-bold">저장 완료!</span>
-                  : <span className="text-[10px] text-gray-400">재배포 후에도 유지됩니다</span>
+                  : <span className="text-[10px] text-muted-foreground">재배포 후에도 유지됩니다</span>
                 }
                 <button
                   onClick={savePrompt}
@@ -273,33 +273,33 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           {/* 캐릭터 수치 편집 */}
           <button
             onClick={() => setShowChar(!showChar)}
-            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
           >
-            <span className="text-sm font-bold text-gray-700">캐릭터 수치 편집</span>
-            {showChar ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+            <span className="text-sm font-bold text-foreground">캐릭터 수치 편집</span>
+            {showChar ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
           </button>
           {showChar && (
             <div className="px-4 pt-3 pb-4">
-              <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100">
-                <span className="text-sm text-gray-600">캐릭터명</span>
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
+                <span className="text-sm text-muted-foreground">캐릭터명</span>
                 <input
                   type="text"
                   value={nameEdit}
                   onChange={(e) => setNameEdit(e.target.value)}
                   maxLength={20}
                   placeholder="전사"
-                  className="w-32 text-right text-sm font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-300"
+                  className="w-32 text-right text-sm font-bold bg-muted border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-300"
                 />
               </div>
               <div className="flex flex-col gap-2.5">
                 {CHAR_FIELDS.map(({ key, label }) => (
                   <div key={key} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">{label}</span>
+                    <span className="text-sm text-muted-foreground">{label}</span>
                     <input
                       type="number"
                       value={charEdits[key] ?? "0"}
                       onChange={(e) => setCharEdits((p) => ({ ...p, [key]: e.target.value }))}
-                      className="w-24 text-right text-sm font-bold bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-300"
+                      className="w-24 text-right text-sm font-bold bg-muted border border-border rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-violet-300"
                       min={0}
                     />
                   </div>
@@ -319,25 +319,25 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           {/* 게임 설정 에디터 */}
           <button
             onClick={() => setShowConfig(!showConfig)}
-            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
           >
-            <span className="text-sm font-bold text-gray-700">게임 설정 에디터</span>
-            {showConfig ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+            <span className="text-sm font-bold text-foreground">게임 설정 에디터</span>
+            {showConfig ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
           </button>
           {showConfig && (
             <div className="px-4 pt-3 pb-4">
               {configs.length === 0 ? (
-                <p className="text-xs text-gray-400 py-4 text-center">불러오는 중...</p>
+                <p className="text-xs text-muted-foreground py-4 text-center">불러오는 중...</p>
               ) : (
-                <div className="rounded-xl overflow-hidden border border-gray-100">
+                <div className="rounded-xl overflow-hidden border border-border">
                   {configs.map((cfg, i) => (
                     <div
                       key={cfg.config_key}
-                      className={`flex items-center gap-2 px-3 py-2.5 bg-white ${i < configs.length - 1 ? "border-b border-gray-50" : ""}`}
+                      className={`flex items-center gap-2 px-3 py-2.5 bg-background ${i < configs.length - 1 ? "border-b border-border" : ""}`}
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-gray-700 truncate">{cfg.config_key}</p>
-                        <p className="text-[10px] text-gray-400 truncate">{cfg.description}</p>
+                        <p className="text-xs font-bold text-foreground truncate">{cfg.config_key}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{cfg.description}</p>
                       </div>
                       <input
                         type="text"
@@ -345,7 +345,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                         onChange={(e) =>
                           setConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
                         }
-                        className="w-20 text-right text-xs font-bold bg-gray-50 border border-gray-200 rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-violet-300"
+                        className="w-20 text-right text-xs font-bold bg-muted border border-border rounded-lg px-1.5 py-1 outline-none focus:ring-2 focus:ring-violet-300"
                       />
                     </div>
                   ))}
@@ -365,7 +365,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           {/* 전투 설정 에디터 */}
           <button
             onClick={() => setShowBattleConfig(!showBattleConfig)}
-            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
           >
             <span className="text-sm font-bold text-blue-600">전투 상수 에디터</span>
             {showBattleConfig ? <ChevronDown className="w-4 h-4 text-blue-300" /> : <ChevronRight className="w-4 h-4 text-blue-300" />}
@@ -373,7 +373,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           {showBattleConfig && (
             <div className="px-4 pt-3 pb-4">
               {battleConfigs.length === 0 ? (
-                <p className="text-xs text-gray-400 py-4 text-center">불러오는 중...</p>
+                <p className="text-xs text-muted-foreground py-4 text-center">불러오는 중...</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {battleConfigs.map((cfg) => {
@@ -393,7 +393,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                             onChange={(e) =>
                               setBattleConfigEdits((p) => ({ ...p, [cfg.config_key]: e.target.value }))
                             }
-                            className="w-20 text-right text-xs font-bold bg-white border border-blue-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-300"
+                            className="w-20 text-right text-xs font-bold bg-background border border-blue-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-300"
                           />
                         </div>
                         {isNumeric && (
@@ -434,14 +434,14 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           {/* 캐릭터 초기화 */}
           <button
             onClick={() => setShowReset(!showReset)}
-            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-gray-100 active:bg-gray-50"
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
           >
             <span className="text-sm font-bold text-red-500">캐릭터 초기화</span>
             {showReset ? <ChevronDown className="w-4 h-4 text-red-300" /> : <ChevronRight className="w-4 h-4 text-red-300" />}
           </button>
           {showReset && (
             <div className="px-4 pt-3 pb-4">
-              <p className="text-xs text-gray-500 mb-3">레벨·스탯·EXP가 모두 초기화됩니다. 복구할 수 없습니다.</p>
+              <p className="text-xs text-muted-foreground mb-3">레벨·스탯·EXP가 모두 초기화됩니다. 복구할 수 없습니다.</p>
               {!confirmReset ? (
                 <button
                   onClick={() => setConfirmReset(true)}
@@ -454,7 +454,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfirmReset(false)}
-                    className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-bold active:scale-95"
+                    className="flex-1 py-2.5 bg-muted text-muted-foreground rounded-xl text-sm font-bold active:scale-95"
                   >
                     취소
                   </button>

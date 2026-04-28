@@ -79,7 +79,7 @@ function OptionLine({ opt }: { opt: string }) {
   if (opt.startsWith("[")) {
     return <p className="text-[10px] font-medium leading-tight" style={{ color: "#9B59B6" }}>✦ {opt.slice(1, -1)}</p>
   }
-  return <p className="text-[10px] text-gray-500 leading-tight">{opt}</p>
+  return <p className="text-[10px] text-muted-foreground leading-tight">{opt}</p>
 }
 
 export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProps) {
@@ -164,7 +164,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center py-16"><p className="text-gray-400 text-sm">불러오는 중...</p></div>
+    return <div className="flex items-center justify-center py-16"><p className="text-muted-foreground text-sm">불러오는 중...</p></div>
   }
 
   const equippedMap = Object.fromEntries(
@@ -185,7 +185,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
             <div>
               <p className="text-amber-400 text-xs font-bold tracking-widest uppercase mb-0.5">GACHA</p>
               <p className="text-white font-bold text-base leading-tight">아이템 뽑기</p>
-              <p className="text-gray-400 text-xs mt-0.5">🎫 {drawTickets}장 보유</p>
+              <p className="text-muted-foreground text-xs mt-0.5">🎫 {drawTickets}장 보유</p>
             </div>
             <button
               onClick={handleGacha}
@@ -230,10 +230,10 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
       {pendingReplace && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={handleDiscard}>
           <div
-            className="w-full max-w-sm bg-white rounded-t-3xl px-4 pt-5 pb-8"
+            className="w-full max-w-sm bg-background rounded-t-3xl px-4 pt-5 pb-8"
             onClick={e => e.stopPropagation()}
           >
-            <p className="text-sm font-bold text-gray-800 mb-3 text-center">장착 중인 아이템이 있습니다</p>
+            <p className="text-sm font-bold text-foreground mb-3 text-center">장착 중인 아이템이 있습니다</p>
 
             {/* 새 아이템 */}
             <div
@@ -244,9 +244,9 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
               }}
             >
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-bold text-gray-400 bg-white/70 px-1.5 py-0.5 rounded">NEW</span>
+                <span className="text-[10px] font-bold text-muted-foreground bg-white/70 px-1.5 py-0.5 rounded">NEW</span>
                 <GradeBadge grade={pendingReplace.newItem.grade} />
-                <span className="text-xs font-bold text-gray-800 truncate">{pendingReplace.newItem.name}</span>
+                <span className="text-xs font-bold text-foreground truncate">{pendingReplace.newItem.name}</span>
               </div>
               <div className="space-y-0.5 pl-1">
                 {pendingReplace.newItem.options.map((opt, i) => <OptionLine key={i} opt={opt} />)}
@@ -262,9 +262,9 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
               }}
             >
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-bold text-gray-400 bg-white/70 px-1.5 py-0.5 rounded">현재</span>
+                <span className="text-[10px] font-bold text-muted-foreground bg-white/70 px-1.5 py-0.5 rounded">현재</span>
                 <GradeBadge grade={pendingReplace.oldItem.grade} />
-                <span className="text-xs font-bold text-gray-500 truncate">{pendingReplace.oldItem.name}</span>
+                <span className="text-xs font-bold text-muted-foreground truncate">{pendingReplace.oldItem.name}</span>
               </div>
               <div className="space-y-0.5 pl-1">
                 {parseOptions(pendingReplace.oldItem.options).map((opt, i) => <OptionLine key={i} opt={opt} />)}
@@ -274,7 +274,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
             <div className="flex gap-2">
               <button
                 onClick={handleDiscard}
-                className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 text-sm font-bold"
+                className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground text-sm font-bold"
               >
                 버리기
               </button>
@@ -292,7 +292,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
 
       {/* 장착 슬롯 그리드 (9칸 항상 표시) */}
       <div>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">장착 장비</p>
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">장착 장비</p>
         <div className="grid grid-cols-3 gap-2">
           {SLOT_ORDER.map(({ id, label, icon }) => {
             const item = equippedMap[id]
@@ -313,12 +313,12 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1">
                       <span className="text-sm leading-none">{icon}</span>
-                      <span className="text-[10px] font-bold text-gray-500">{label}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground">{label}</span>
                     </div>
                     <GradeBadge grade={item.grade} />
                   </div>
                   {/* 아이템명 */}
-                  <p className="text-[11px] font-bold text-gray-800 leading-tight mb-1.5 line-clamp-2">{item.name}</p>
+                  <p className="text-[11px] font-bold text-foreground leading-tight mb-1.5 line-clamp-2">{item.name}</p>
                   {/* 옵션 (최대 3개) */}
                   <div className="space-y-0.5">
                     {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
@@ -331,7 +331,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
               <div
                 key={id}
                 className="flex flex-col items-center justify-center rounded-2xl min-h-[90px] gap-1"
-                style={{ border: "1.5px dashed #D1D5DB", background: "#FAFAFA" }}
+                style={{ border: "1.5px dashed var(--border)", background: "var(--muted)" }}
               >
                 <span className="text-2xl opacity-20">{icon}</span>
                 <p className="text-[10px] font-bold text-gray-300">{label}</p>
@@ -344,7 +344,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
       {/* 미장착 아이템 */}
       {unequipped.length > 0 && (
         <div>
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">
             보관함 ({unequipped.length})
           </p>
           <div className="grid grid-cols-3 gap-2">
@@ -364,11 +364,11 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1">
                       <span className="text-sm leading-none">{slotInfo?.icon}</span>
-                      <span className="text-[10px] font-bold text-gray-500">{slotInfo?.label ?? item.slot}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground">{slotInfo?.label ?? item.slot}</span>
                     </div>
                     <GradeBadge grade={item.grade} />
                   </div>
-                  <p className="text-[11px] font-bold text-gray-800 leading-tight mb-1.5 line-clamp-2">{item.name}</p>
+                  <p className="text-[11px] font-bold text-foreground leading-tight mb-1.5 line-clamp-2">{item.name}</p>
                   <div className="flex-1 space-y-0.5 mb-2">
                     {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
                   </div>

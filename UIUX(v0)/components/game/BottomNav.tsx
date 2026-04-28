@@ -73,8 +73,7 @@ export default function BottomNav({
 
   return (
     <nav
-      className="flex items-center justify-around px-2 py-2 border-t border-gray-200"
-      style={{ background: "#f9f9fb" }}
+      className="flex items-center justify-around px-2 py-2 border-t border-border bg-muted"
       aria-label="메인 내비게이션"
     >
       {TAB_CONFIG.map((tab) => {
@@ -94,20 +93,20 @@ export default function BottomNav({
             {badge !== undefined && badge > 0 && (
               <div
                 className={`absolute -top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center z-10 ${
-                  isActive ? tab.badgeColor : "bg-gray-700"
+                  isActive ? tab.badgeColor : "bg-muted-foreground"
                 }`}
               >
                 <span className="text-[10px] font-bold text-white leading-none">{badge}</span>
               </div>
             )}
 
-            <div className={`transition-colors duration-200 ${isActive ? tab.activeColor : "text-gray-400"}`}>
+            <div className={`transition-colors duration-200 ${isActive ? tab.activeColor : "text-muted-foreground"}`}>
               {ICONS[tab.id]}
             </div>
 
             <span
               className={`text-[10px] font-bold transition-colors duration-200 ${
-                isActive ? tab.activeColor : "text-gray-400"
+                isActive ? tab.activeColor : "text-muted-foreground"
               }`}
             >
               {tab.label}

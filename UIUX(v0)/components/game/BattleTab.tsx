@@ -90,7 +90,7 @@ function monsterBaseStats(m: Monster) {
 function MiniBar({ current, max, color }: { current: number; max: number; color: string }) {
   const pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0
   return (
-    <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+    <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
       <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
     </div>
   )
@@ -120,7 +120,7 @@ function TurnItem({ log, pMax, mMax }: { log: TurnLog; pMax: number; mMax: numbe
   }
 
   return (
-    <div className="flex items-stretch bg-white border-b border-gray-100 last:border-0">
+    <div className="flex items-stretch bg-background border-b border-border last:border-0">
       <div className={`w-1 flex-shrink-0 rounded-l ${isPlayer ? "bg-blue-400" : "bg-red-400"}`} />
       <div className="flex-1 px-3 py-2">
         <div className="text-[11px] mb-1.5">
@@ -128,15 +128,15 @@ function TurnItem({ log, pMax, mMax }: { log: TurnLog; pMax: number; mMax: numbe
           <span>{icon} </span>
           <span className={isPlayer ? "text-blue-600" : "text-red-500"}>{text}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[9px] text-gray-400">
+        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
           <span className="w-4">나</span>
           <MiniBar current={log.player_hp} max={pMax} color="#ef4444" />
-          <span className="w-12 text-right text-gray-400">{log.player_hp}/{pMax}</span>
+          <span className="w-12 text-right text-muted-foreground">{log.player_hp}/{pMax}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-[9px] text-gray-400 mt-0.5">
+        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mt-0.5">
           <span className="w-4">적</span>
           <MiniBar current={log.monster_hp} max={mMax} color="#f97316" />
-          <span className="w-12 text-right text-gray-400">{log.monster_hp}/{mMax}</span>
+          <span className="w-12 text-right text-muted-foreground">{log.monster_hp}/{mMax}</span>
         </div>
       </div>
     </div>
@@ -225,8 +225,8 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
     return (
       <div className="flex flex-col gap-0">
         {/* 스탯 */}
-        <div className="px-4 py-3 bg-white border-b border-gray-100">
-          <p className="text-[10px] text-gray-400 font-bold mb-2">캐릭터 스탯</p>
+        <div className="px-4 py-3 bg-background border-b border-border">
+          <p className="text-[10px] text-muted-foreground font-bold mb-2">캐릭터 스탯</p>
           <div className="grid grid-cols-5 gap-1.5">
             {([
               ["💪", "STR", char?.str],
@@ -235,14 +235,14 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
               ["🧠", "INT", char?.int_stat],
               ["🍀", "LUK", char?.luk],
             ] as [string, string, number | undefined][]).map(([icon, label, val]) => (
-              <div key={label} className="text-center bg-gray-50 rounded-xl py-2 border border-gray-100">
+              <div key={label} className="text-center bg-muted rounded-xl py-2 border border-border">
                 <div className="text-[10px] mb-0.5">{icon}</div>
-                <div className="text-[9px] text-gray-400 mb-0.5">{label}</div>
-                <div className="text-sm font-bold text-gray-800">{val ?? 0}</div>
+                <div className="text-[9px] text-muted-foreground mb-0.5">{label}</div>
+                <div className="text-sm font-bold text-foreground">{val ?? 0}</div>
               </div>
             ))}
           </div>
-          <div className="mt-2 text-right text-[10px] text-gray-400">
+          <div className="mt-2 text-right text-[10px] text-muted-foreground">
             몬스터 강도 ×{coeff}
           </div>
         </div>
@@ -261,9 +261,9 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-sm font-bold" style={{ color: savedMonster.color }}>{savedMonster.full_name}</p>
-                  <p className="text-[10px] text-gray-400">{savedMonster.grade_name} · {savedMonster.race_emoji} {savedMonster.race_name}</p>
+                  <p className="text-[10px] text-muted-foreground">{savedMonster.grade_name} · {savedMonster.race_emoji} {savedMonster.race_name}</p>
                 </div>
-                <span className="text-[10px] text-gray-400">강도 ×{savedMonster.total_coeff.toFixed(2)}</span>
+                <span className="text-[10px] text-muted-foreground">강도 ×{savedMonster.total_coeff.toFixed(2)}</span>
               </div>
               <button
                 onClick={() => doFight(savedMonster)}
@@ -308,37 +308,37 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
     <div className="flex flex-col gap-0">
 
       {/* 몬스터 정보 */}
-      <div className="px-4 py-2.5 bg-white border-b border-gray-100 flex items-center justify-between">
-        <span className="text-[10px] text-gray-400 font-bold">VS</span>
+      <div className="px-4 py-2.5 bg-background border-b border-border flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground font-bold">VS</span>
         <div className="text-center flex-1 mx-2">
           <p className="text-sm font-bold" style={{ color: monster.color }}>{monster.full_name}</p>
-          <p className="text-[10px] text-gray-400">{monster.grade_name} · {monster.race_emoji} {monster.race_name}</p>
+          <p className="text-[10px] text-muted-foreground">{monster.grade_name} · {monster.race_emoji} {monster.race_name}</p>
         </div>
-        <span className="text-[10px] text-gray-400">클리어 {char_after.clear_count}회</span>
+        <span className="text-[10px] text-muted-foreground">클리어 {char_after.clear_count}회</span>
       </div>
 
       {/* HP/MP 바 (실시간 업데이트) */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100">
+      <div className="px-4 py-3 bg-background border-b border-border">
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[10px] text-gray-400 w-10 shrink-0">내 HP</span>
+          <span className="text-[10px] text-muted-foreground w-10 shrink-0">내 HP</span>
           <MiniBar current={pFinal} max={player_max_hp} color="#ef4444" />
-          <span className="text-[10px] text-gray-400 w-16 text-right">{pFinal}/{player_max_hp}</span>
+          <span className="text-[10px] text-muted-foreground w-16 text-right">{pFinal}/{player_max_hp}</span>
         </div>
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[10px] text-gray-400 w-10 shrink-0">내 MP</span>
+          <span className="text-[10px] text-muted-foreground w-10 shrink-0">내 MP</span>
           <MiniBar current={pMpFinal} max={player_max_mp} color="#3b82f6" />
-          <span className="text-[10px] text-gray-400 w-16 text-right">{pMpFinal}/{player_max_mp}</span>
+          <span className="text-[10px] text-muted-foreground w-16 text-right">{pMpFinal}/{player_max_mp}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-400 w-10 shrink-0">적 HP</span>
+          <span className="text-[10px] text-muted-foreground w-10 shrink-0">적 HP</span>
           <MiniBar current={mFinal} max={monster_max_hp} color="#f97316" />
-          <span className="text-[10px] text-gray-400 w-16 text-right">{mFinal}/{monster_max_hp}</span>
+          <span className="text-[10px] text-muted-foreground w-16 text-right">{mFinal}/{monster_max_hp}</span>
         </div>
       </div>
 
       {/* 스탯 비교 (STR/VIT/DEX/INT/LUK) */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100">
-        <p className="text-[10px] text-gray-400 font-bold mb-2">스탯 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
+      <div className="px-4 py-3 bg-background border-b border-border">
+        <p className="text-[10px] text-muted-foreground font-bold mb-2">스탯 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
         {([
           ["💪", "힘",   char?.str      ?? 0, monStats.str],
           ["🛡️", "체력", char?.vit      ?? 0, monStats.vit],
@@ -351,13 +351,13 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           const pWin  = pv >= mv
           return (
             <div key={label} className="flex items-center gap-1.5 my-1">
-              <span className="text-[10px] text-gray-500 w-12 shrink-0">{icon} {label}</span>
-              <span className={`text-[10px] w-8 text-right shrink-0 ${pWin ? "font-bold text-gray-700" : "text-gray-300"}`}>{pv}</span>
-              <div className="flex-1 h-2 overflow-hidden rounded-full flex bg-gray-100">
+              <span className="text-[10px] text-muted-foreground w-12 shrink-0">{icon} {label}</span>
+              <span className={`text-[10px] w-8 text-right shrink-0 ${pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{pv}</span>
+              <div className="flex-1 h-2 overflow-hidden rounded-full flex bg-muted">
                 <div className="bg-blue-400 rounded-l-full" style={{ width: `${pPct}%` }} />
                 <div className="bg-orange-400 rounded-r-full" style={{ width: `${100 - pPct}%` }} />
               </div>
-              <span className={`text-[10px] w-8 shrink-0 ${!pWin ? "font-bold text-gray-700" : "text-gray-300"}`}>{mv}</span>
+              <span className={`text-[10px] w-8 shrink-0 ${!pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{mv}</span>
             </div>
           )
         })}
@@ -368,31 +368,31 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
           <div className="text-amber-600 font-bold text-base mb-2">🏆 승리!</div>
           <div className="flex justify-between items-center">
-            <span className="text-gray-600 text-sm">🎫 뽑기권</span>
+            <span className="text-muted-foreground text-sm">🎫 뽑기권</span>
             <span className="text-amber-500 font-black text-xl">+{ticket_reward}장</span>
           </div>
         </div>
       ) : winner === "몬스터" ? (
         <div className="mx-4 mt-3 bg-red-50 border border-red-200 rounded-2xl p-4">
           <div className="text-red-500 font-bold text-base">💀 패배</div>
-          <div className="text-gray-500 text-sm mt-1">HP가 회복됩니다. 다시 도전!</div>
+          <div className="text-muted-foreground text-sm mt-1">HP가 회복됩니다. 다시 도전!</div>
         </div>
       ) : (
         <div className="mx-4 mt-3 bg-orange-50 border border-orange-200 rounded-2xl p-4">
           <div className="text-orange-500 font-bold text-base">⏰ 시간 초과</div>
-          <div className="text-gray-500 text-sm mt-1">전투가 끝나지 않았습니다.</div>
+          <div className="text-muted-foreground text-sm mt-1">전투가 끝나지 않았습니다.</div>
         </div>
       ))}
 
       {!animDone && (
-        <div className="mx-4 mt-3 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-center">
-          <div className="text-gray-500 font-bold text-sm">⚔️ 전투 중... ({visibleTurns}/{logs.length})</div>
+        <div className="mx-4 mt-3 bg-muted border border-border rounded-2xl p-4 text-center">
+          <div className="text-muted-foreground font-bold text-sm">⚔️ 전투 중... ({visibleTurns}/{logs.length})</div>
         </div>
       )}
 
       {/* 전투 로그 */}
-      <div className="mx-4 mt-3 border border-gray-100 rounded-2xl overflow-hidden">
-        <p className="text-[10px] font-bold text-gray-400 px-3 py-2 bg-gray-50 border-b border-gray-100">
+      <div className="mx-4 mt-3 border border-border rounded-2xl overflow-hidden">
+        <p className="text-[10px] font-bold text-muted-foreground px-3 py-2 bg-muted border-b border-border">
           📜 전투 로그 · 선공: {first_strike} · 총 {result.turns}턴
         </p>
         <div>

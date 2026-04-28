@@ -13,12 +13,12 @@ export default function TopHeader({ title, onMenuClick }: TopHeaderProps) {
       <button
         aria-label="Menu"
         onClick={onMenuClick}
-        className="bg-gray-100 rounded-2xl p-2.5 active:scale-95"
+        className="bg-muted rounded-2xl p-2.5 active:scale-95"
       >
-        <AlignLeft className="w-5 h-5 text-gray-600" />
+        <AlignLeft className="w-5 h-5 text-muted-foreground" />
       </button>
 
-      <h1 className="text-lg font-bold text-gray-800">{title}</h1>
+      <h1 className="text-lg font-bold text-foreground">{title}</h1>
 
       <div className="w-10" />
     </header>

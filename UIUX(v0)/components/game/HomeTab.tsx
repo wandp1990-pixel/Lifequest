@@ -94,10 +94,10 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
     <div className="flex flex-col gap-0 pb-6">
 
       {/* 출석체크 */}
-      <div className="mx-4 mt-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-4 pt-3 pb-2 bg-white flex items-center justify-between">
+      <div className="mx-4 mt-4 rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-4 pt-3 pb-2 bg-background flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-gray-500 uppercase tracking-wide">🗓️ 오늘의 출석</p>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-wide">🗓️ 오늘의 출석</p>
             {attendToast && attendToast.bonusTickets > 0 ? (
               <p className="text-xs font-black text-violet-500 mt-0.5">
                 🎉 {streak === 0 ? "14" : "7"}일 연속! 뽑기권 +{attendToast.bonusTickets} 보너스!
@@ -105,7 +105,7 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
             ) : attendToast ? (
               <p className="text-xs font-black text-violet-500 mt-0.5">뽑기권 +1 획득!</p>
             ) : attended ? (
-              <p className="text-xs text-gray-400 mt-0.5">오늘 출석 완료</p>
+              <p className="text-xs text-muted-foreground mt-0.5">오늘 출석 완료</p>
             ) : null}
           </div>
           <button
@@ -113,7 +113,7 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
             disabled={attended || attendLoading}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95 flex-shrink-0
               ${attended
-                ? "bg-gray-100 text-gray-400 cursor-default"
+                ? "bg-muted text-muted-foreground cursor-default"
                 : "bg-violet-500 text-white shadow-sm"
               }`}
           >
@@ -126,16 +126,16 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
         </div>
 
         {/* 연속 출석 진행바 */}
-        <div className="px-4 pb-3 bg-white">
+        <div className="px-4 pb-3 bg-background">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] text-gray-500">
+            <span className="text-[11px] text-muted-foreground">
               연속 <span className="font-black text-violet-500">{streak}일</span>
             </span>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-muted-foreground">
               {nextMilestone}일 달성 시 뽑기권 +{milestoneBonus}
             </span>
           </div>
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-violet-400 rounded-full transition-all duration-500"
               style={{ width: `${(streak / nextMilestone) * 100}%` }}
@@ -144,16 +144,16 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
           <div className="flex mt-1">
             {Array.from({ length: nextMilestone }, (_, i) => (
               <div key={i} className="flex-1 flex justify-end">
-                <div className={`w-1 h-1 rounded-full ${i < streak ? "bg-violet-400" : "bg-gray-200"}`} />
+                <div className={`w-1 h-1 rounded-full ${i < streak ? "bg-violet-400" : "bg-muted"}`} />
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="mx-4 mt-3 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-4 pt-3 pb-3 bg-white">
-          <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">✍️ 오늘의 활동</p>
+      <div className="mx-4 mt-3 rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-4 pt-3 pb-3 bg-background">
+          <p className="text-xs font-black text-muted-foreground uppercase tracking-wide mb-2">✍️ 오늘의 활동</p>
 
           {actToast && (
             <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex flex-col gap-0.5">
@@ -175,7 +175,7 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
               onKeyDown={(e) => e.key === "Enter" && submitActivity()}
               placeholder="오늘 한 일을 입력하세요..."
               style={{ fontSize: '16px' }}
-              className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-amber-300 transition"
+              className="flex-1 min-w-0 bg-muted border border-border rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-amber-300 transition"
               disabled={actSubmitting}
             />
             <button
@@ -198,12 +198,12 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
         </div>
 
         {actLogs.length > 0 && (
-          <div className="border-t border-gray-100">
+          <div className="border-t border-border">
             {actLogs.map((log) => (
-              <div key={log.id} className="flex items-start gap-2 px-4 py-2.5 border-b border-gray-50 last:border-0 bg-white">
+              <div key={log.id} className="flex items-start gap-2 px-4 py-2.5 border-b border-border last:border-0 bg-background">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-700 truncate">{log.input_text}</p>
-                  <p className="text-[10px] text-gray-400 leading-snug break-keep">{log.ai_comment}</p>
+                  <p className="text-xs font-semibold text-foreground truncate">{log.input_text}</p>
+                  <p className="text-[10px] text-muted-foreground leading-snug break-keep">{log.ai_comment}</p>
                 </div>
                 <span className="text-xs font-black text-amber-500 flex-shrink-0">+{log.exp_gained}</span>
               </div>

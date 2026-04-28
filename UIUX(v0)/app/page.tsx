@@ -97,10 +97,10 @@ export default function GamePage() {
   return (
     <main className="h-dvh overflow-hidden bg-background flex items-center justify-center">
       <div
-        className="relative flex flex-col bg-white w-full max-w-sm"
+        className="relative flex flex-col bg-background w-full max-w-sm"
         style={{ minHeight: "100dvh", maxHeight: "100dvh" }}
       >
-        <div className="flex-shrink-0 bg-white">
+        <div className="flex-shrink-0 bg-background">
           <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
           <CharacterPanel
             name={char?.name ?? "모험가"}

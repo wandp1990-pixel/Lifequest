@@ -455,7 +455,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <p className="text-gray-400 text-sm">불러오는 중...</p>
+        <p className="text-muted-foreground text-sm">불러오는 중...</p>
       </div>
     )
   }
@@ -485,7 +485,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       <div className="px-4 py-3 flex items-center justify-between bg-teal-50 border-y border-teal-100">
         <div className="flex items-center gap-2">
           <span className="text-sm">🔁</span>
-          <span className="text-sm font-bold text-gray-800">루틴</span>
+          <span className="text-sm font-bold text-foreground">루틴</span>
           {routines.length > 0 && (
             <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
               {routines.length}개
@@ -522,7 +522,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       )}
 
       {routines.length === 0 && (
-        <p className="text-center text-gray-400 text-sm py-4">+ 버튼으로 루틴을 추가하세요</p>
+        <p className="text-center text-muted-foreground text-sm py-4">+ 버튼으로 루틴을 추가하세요</p>
       )}
 
       {routines.map((r) => {
@@ -533,7 +533,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         const expanded = expandedRoutineIds.has(r.id)
         const isAddingItem = addingItemFor === r.id
         return (
-          <div key={r.id} className="mx-4 mb-2 bg-white border border-teal-100 rounded-2xl overflow-hidden">
+          <div key={r.id} className="mx-4 mb-2 bg-background border border-teal-100 rounded-2xl overflow-hidden">
             {editingRoutineNameId === r.id ? (
               <div className="flex items-center gap-1.5 px-4 py-3">
                 <input
@@ -550,7 +550,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 >
                   저장
                 </button>
-                <button onClick={() => setEditingRoutineNameId(null)} className="text-gray-400 flex-shrink-0">
+                <button onClick={() => setEditingRoutineNameId(null)} className="text-muted-foreground flex-shrink-0">
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -560,7 +560,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 className="w-full flex items-center justify-between px-4 py-3 active:bg-teal-50 transition-colors"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-bold text-gray-800 truncate">{r.name}</span>
+                  <span className="text-sm font-bold text-foreground truncate">{r.name}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingRoutineNameId(r.id); setEditingRoutineNameVal(r.name) }}
                     className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
@@ -582,14 +582,14 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     </span>
                   )}
                 </div>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
               </button>
             )}
 
             {expanded && (
               <div className="border-t border-teal-100">
                 {r.items.length === 0 && !isAddingItem && (
-                  <p className="text-center text-gray-400 text-xs py-3">하위 항목을 추가하세요</p>
+                  <p className="text-center text-muted-foreground text-xs py-3">하위 항목을 추가하세요</p>
                 )}
                 {r.items.map((item) => {
                   const done = checkedRoutineItemIds.has(item.id)
@@ -629,13 +629,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                             >
                               저장
                             </button>
-                            <button onClick={() => setEditingRoutineItemNameId(null)} className="text-gray-400 flex-shrink-0">
+                            <button onClick={() => setEditingRoutineItemNameId(null)} className="text-muted-foreground flex-shrink-0">
                               <X className="w-3 h-3" />
                             </button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <p className={`text-sm leading-snug truncate ${done ? "line-through text-gray-400" : "text-gray-700"}`}>
+                            <p className={`text-sm leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                               {item.name}
                             </p>
                             {!done && (
@@ -656,7 +656,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                           disabled={done || !!completing}
                           className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
                             done
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              ? "bg-muted text-muted-foreground cursor-not-allowed"
                               : isLoading
                               ? "bg-teal-200 text-teal-700 animate-pulse cursor-wait"
                               : "bg-teal-100 text-teal-600 hover:bg-teal-200"
@@ -685,13 +685,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                       onChange={(e) => setNewItemName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && addRoutineItemSubmit(r.id)}
                       placeholder="항목 이름..."
-                      className="flex-1 min-w-0 text-sm bg-white border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
+                      className="flex-1 min-w-0 text-sm bg-background border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
                     />
                     <input
                       type="number"
                       value={newItemExp}
                       onChange={(e) => setNewItemExp(Number(e.target.value))}
-                      className="w-14 text-sm text-center bg-white border border-teal-200 rounded-xl px-1 py-2 outline-none"
+                      className="w-14 text-sm text-center bg-background border border-teal-200 rounded-xl px-1 py-2 outline-none"
                       min={1}
                     />
                     <button
@@ -702,7 +702,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     </button>
                     <button
                       onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }}
-                      className="text-gray-400 px-1"
+                      className="text-muted-foreground px-1"
                       aria-label="취소"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -718,7 +718,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                           type="time"
                           value={deadlineInputVal}
                           onChange={(e) => setDeadlineInputVal(e.target.value)}
-                          className="text-xs bg-white border border-sky-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-sky-300"
+                          className="text-xs bg-background border border-sky-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-sky-300"
                         />
                         <button
                           onClick={() => saveDeadline(r.id, deadlineInputVal || null)}
@@ -729,14 +729,14 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                         {r.deadline_time && (
                           <button
                             onClick={() => saveDeadline(r.id, null)}
-                            className="text-xs text-gray-400 active:scale-95"
+                            className="text-xs text-muted-foreground active:scale-95"
                           >
                             제거
                           </button>
                         )}
                         <button
                           onClick={() => setEditingDeadlineFor(null)}
-                          className="text-gray-400 active:scale-95"
+                          className="text-muted-foreground active:scale-95"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -778,7 +778,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       <div className="px-4 py-3 flex items-center justify-between bg-amber-50 border-y border-amber-100 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
-          <span className="text-sm font-bold text-gray-800">습관</span>
+          <span className="text-sm font-bold text-foreground">습관</span>
           <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
             {dailyItems.filter(item => checkedDailyIds.has(item.id)).length} / {dailyItems.length}
           </span>
@@ -820,7 +820,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       )}
 
       {dailyItems.length === 0 && (
-        <p className="text-center text-gray-400 text-sm py-4">+ 버튼으로 습관을 추가하세요</p>
+        <p className="text-center text-muted-foreground text-sm py-4">+ 버튼으로 습관을 추가하세요</p>
       )}
 
       {dailyItems.map((item) => {
@@ -832,12 +832,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           streak >= 30  ? "text-red-600 bg-red-50 border-red-200" :
           streak >= 7   ? "text-orange-600 bg-orange-50 border-orange-200" :
           streak >= 1   ? "text-orange-500 bg-orange-50 border-orange-100" :
-                          "text-gray-400 bg-gray-50 border-gray-200"
+                          "text-muted-foreground bg-muted border-border"
         const isEditingName = editingDailyNameId === item.id
         return (
           <div
             key={item.id}
-            className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 transition-opacity ${done ? "opacity-50" : ""}`}
+            className={`flex items-center gap-3 px-4 py-3 border-b border-border transition-opacity ${done ? "opacity-50" : ""}`}
           >
             <div className="flex-1 min-w-0">
               {isEditingName ? (
@@ -856,13 +856,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   >
                     저장
                   </button>
-                  <button onClick={() => setEditingDailyNameId(null)} className="text-gray-400 flex-shrink-0">
+                  <button onClick={() => setEditingDailyNameId(null)} className="text-muted-foreground flex-shrink-0">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
+                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                     {item.name}
                   </p>
                   {!done && (
@@ -888,7 +888,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 disabled={done || !!completing}
                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
                   done
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
                     : isLoading
                     ? "bg-amber-200 text-amber-700 animate-pulse cursor-wait"
                     : "bg-amber-100 text-amber-600 hover:bg-amber-200"
@@ -912,7 +912,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       <div className="px-4 py-3 flex items-center justify-between bg-violet-50 border-y border-violet-100 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">📋</span>
-          <span className="text-sm font-bold text-gray-800">할 일</span>
+          <span className="text-sm font-bold text-foreground">할 일</span>
           {todoItems.filter((t) => !t.is_completed).length > 0 && (
             <span className="text-[11px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">
               {todoItems.filter((t) => !t.is_completed).length}개
@@ -956,7 +956,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       )}
 
       {todoItems.length === 0 && (
-        <p className="text-center text-gray-400 text-sm py-4">+ 버튼으로 할 일을 추가하세요</p>
+        <p className="text-center text-muted-foreground text-sm py-4">+ 버튼으로 할 일을 추가하세요</p>
       )}
 
       {todoItems.map((item) => {
@@ -967,7 +967,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         return (
           <div
             key={item.id}
-            className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 transition-opacity ${done ? "opacity-50" : ""}`}
+            className={`flex items-center gap-3 px-4 py-3 border-b border-border transition-opacity ${done ? "opacity-50" : ""}`}
           >
             <div className="flex-1 min-w-0">
               {isEditingName ? (
@@ -988,14 +988,14 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   </button>
                   <button
                     onClick={() => setEditingTodoNameId(null)}
-                    className="text-gray-400 flex-shrink-0"
+                    className="text-muted-foreground flex-shrink-0"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
+                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                     {item.name}
                   </p>
                   {!done && (
@@ -1021,7 +1021,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                       onKeyDown={(e) => { if (e.key === "Enter") saveEditingExp(item.id); if (e.key === "Escape") setEditingExpId(null) }}
                       className="w-16 text-xs text-center bg-violet-50 border border-violet-300 rounded-lg px-1.5 py-0.5 outline-none"
                     />
-                    <span className="text-[10px] text-gray-400">EXP</span>
+                    <span className="text-[10px] text-muted-foreground">EXP</span>
                     <button
                       onClick={() => saveEditingExp(item.id)}
                       className="text-[10px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded-full active:scale-95"
@@ -1030,7 +1030,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     </button>
                     <button
                       onClick={() => setEditingExpId(null)}
-                      className="text-[10px] text-gray-400 active:scale-95"
+                      className="text-[10px] text-muted-foreground active:scale-95"
                     >
                       취소
                     </button>
@@ -1051,7 +1051,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 disabled={done || !!completing}
                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
                   done
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
                     : isLoading
                     ? "bg-violet-200 text-violet-700 animate-pulse cursor-wait"
                     : "bg-violet-100 text-violet-600 hover:bg-violet-200"
@@ -1078,17 +1078,17 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             className="fixed inset-0 bg-black/40 z-30"
             onClick={() => setConfirmDelete(null)}
           />
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm bg-white rounded-t-3xl z-40 px-6 py-6 shadow-2xl">
-            <p className="text-sm font-bold text-gray-800 text-center mb-1">
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm bg-background rounded-t-3xl z-40 px-6 py-6 shadow-2xl">
+            <p className="text-sm font-bold text-foreground text-center mb-1">
               항목을 삭제하시겠습니까?
             </p>
-            <p className="text-xs text-gray-500 text-center mb-5">
+            <p className="text-xs text-muted-foreground text-center mb-5">
               &ldquo;{confirmDelete.name}&rdquo;
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold text-sm active:scale-95"
+                className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-bold text-sm active:scale-95"
               >
                 취소
               </button>

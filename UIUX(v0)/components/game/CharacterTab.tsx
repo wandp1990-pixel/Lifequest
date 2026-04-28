@@ -67,16 +67,16 @@ function SkillCard({
 
   if (!isUnlocked) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 opacity-55">
-        <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-          <Lock className="w-3.5 h-3.5 text-gray-400" />
+      <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl border border-border opacity-55">
+        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+          <Lock className="w-3.5 h-3.5 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-400">{skill.name}</span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 text-gray-400 rounded-full">Lv.{skill.unlock_level}</span>
+            <span className="text-sm font-semibold text-muted-foreground">{skill.name}</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">Lv.{skill.unlock_level}</span>
           </div>
-          <p className="text-xs text-gray-400">{skill.description}</p>
+          <p className="text-xs text-muted-foreground">{skill.description}</p>
         </div>
       </div>
     )
@@ -86,21 +86,21 @@ function SkillCard({
     <div className={`px-4 py-3 rounded-xl border ${
       skill.invested > 0
         ? `bg-${accentColor}-50 border-${accentColor}-200`
-        : "bg-white border-gray-200"
+        : "bg-background border-border"
     }`}>
       <div className="flex items-start gap-3">
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-          skill.invested > 0 ? `bg-${accentColor}-500` : "bg-gray-200"
+          skill.invested > 0 ? `bg-${accentColor}-500` : "bg-muted"
         }`}>
           {isPassive
-            ? <Shield className={`w-3.5 h-3.5 ${skill.invested > 0 ? "text-white" : "text-gray-500"}`} />
-            : <Zap    className={`w-3.5 h-3.5 ${skill.invested > 0 ? "text-white" : "text-gray-500"}`} />
+            ? <Shield className={`w-3.5 h-3.5 ${skill.invested > 0 ? "text-white" : "text-muted-foreground"}`} />
+            : <Zap    className={`w-3.5 h-3.5 ${skill.invested > 0 ? "text-white" : "text-muted-foreground"}`} />
           }
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-              <span className={`text-sm font-bold ${skill.invested > 0 ? `text-${accentColor}-700` : "text-gray-700"}`}>
+              <span className={`text-sm font-bold ${skill.invested > 0 ? `text-${accentColor}-700` : "text-foreground"}`}>
                 {skill.name}
               </span>
               {skill.type === "active" && skill.trigger_condition && (
@@ -113,11 +113,11 @@ function SkillCard({
               <button
                 onClick={() => onInvest(skill.id, -1)}
                 disabled={skill.invested <= 0}
-                className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 flex items-center justify-center"
+                className="w-6 h-6 rounded-full bg-muted hover:bg-muted disabled:opacity-30 flex items-center justify-center"
               >
-                <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
-              <span className={`text-xs font-bold w-9 text-center ${skill.invested > 0 ? `text-${accentColor}-600` : "text-gray-400"}`}>
+              <span className={`text-xs font-bold w-9 text-center ${skill.invested > 0 ? `text-${accentColor}-600` : "text-muted-foreground"}`}>
                 {skill.invested}/{skill.max_skp}
               </span>
               <button
@@ -125,20 +125,20 @@ function SkillCard({
                 disabled={skill.invested >= skill.max_skp || availableSkp <= 0}
                 className={`w-6 h-6 rounded-full flex items-center justify-center disabled:opacity-30 ${
                   isPassive ? "bg-violet-100 hover:bg-violet-200" : "bg-purple-100 hover:bg-purple-200"
-                } disabled:bg-gray-100`}
+                } disabled:bg-muted`}
               >
                 <ChevronUp className={`w-3.5 h-3.5 ${isPassive ? "text-violet-600" : "text-purple-600"}`} />
               </button>
             </div>
           </div>
           <div className="mt-1.5 flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${isPassive ? "bg-violet-400" : "bg-purple-400"}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className={`text-xs font-semibold shrink-0 ${skill.invested > 0 ? `text-${accentColor}-600` : "text-gray-400"}`}>
+            <span className={`text-xs font-semibold shrink-0 ${skill.invested > 0 ? `text-${accentColor}-600` : "text-muted-foreground"}`}>
               {effectLabel(skill)}
             </span>
             {skill.type === "active" && skill.mp_cost > 0 && (
@@ -147,7 +147,7 @@ function SkillCard({
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">{skill.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{skill.description}</p>
         </div>
       </div>
     </div>
@@ -283,7 +283,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
         <button
           onClick={() => setView("stat")}
           className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
-            view === "stat" ? "bg-amber-500 text-white shadow-sm" : "bg-gray-100 text-gray-500"
+            view === "stat" ? "bg-amber-500 text-white shadow-sm" : "bg-muted text-muted-foreground"
           }`}
         >
           스탯 배분
@@ -291,7 +291,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
         <button
           onClick={() => setView("skill")}
           className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
-            view === "skill" ? "bg-purple-500 text-white shadow-sm" : "bg-gray-100 text-gray-500"
+            view === "skill" ? "bg-purple-500 text-white shadow-sm" : "bg-muted text-muted-foreground"
           }`}
         >
           스킬 투자
@@ -327,16 +327,16 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
               const added = statDelta[key]
               const total = base + added
               return (
-                <div key={key} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${added > 0 ? `${bg} ${border}` : "bg-white border-gray-200"}`}>
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${added > 0 ? `${bg}` : "bg-gray-100"}`}>
-                    <Icon className={`w-5 h-5 ${added > 0 ? color : "text-gray-400"}`} />
+                <div key={key} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${added > 0 ? `${bg} ${border}` : "bg-background border-border"}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${added > 0 ? `${bg}` : "bg-muted"}`}>
+                    <Icon className={`w-5 h-5 ${added > 0 ? color : "text-muted-foreground"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1.5">
-                      <span className={`text-xs font-bold ${added > 0 ? color : "text-gray-500"}`}>{label}</span>
-                      <span className="text-xs text-gray-400">{desc}</span>
+                      <span className={`text-xs font-bold ${added > 0 ? color : "text-muted-foreground"}`}>{label}</span>
+                      <span className="text-xs text-muted-foreground">{desc}</span>
                     </div>
-                    <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${bar}`}
                         style={{ width: `${Math.min(100, (total / 100) * 100)}%` }}
@@ -347,12 +347,12 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
                     <button
                       onClick={() => addStat(key, -1)}
                       disabled={added <= 0}
-                      className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 flex items-center justify-center"
+                      className="w-7 h-7 rounded-full bg-muted hover:bg-muted disabled:opacity-30 flex items-center justify-center"
                     >
-                      <ChevronDown className="w-4 h-4 text-gray-600" />
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </button>
                     <div className="w-10 text-center">
-                      <span className={`text-base font-extrabold ${added > 0 ? color : "text-gray-700"}`}>{total}</span>
+                      <span className={`text-base font-extrabold ${added > 0 ? color : "text-foreground"}`}>{total}</span>
                       {added > 0 && (
                         <span className={`block text-[10px] font-bold ${color}`}>+{added}</span>
                       )}
@@ -361,7 +361,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
                       onClick={() => addStat(key, +1)}
                       disabled={remainingStatPts <= 0}
                       className={`w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-30 ${
-                        remainingStatPts > 0 ? "bg-amber-100 hover:bg-amber-200" : "bg-gray-100"
+                        remainingStatPts > 0 ? "bg-amber-100 hover:bg-amber-200" : "bg-muted"
                       }`}
                     >
                       <ChevronUp className="w-4 h-4 text-amber-600" />
@@ -409,7 +409,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
                 key={f}
                 onClick={() => setSkillFilter(f)}
                 className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  skillFilter === f ? "bg-purple-500 text-white shadow-sm" : "bg-gray-100 text-gray-500"
+                  skillFilter === f ? "bg-purple-500 text-white shadow-sm" : "bg-muted text-muted-foreground"
                 }`}
               >
                 {f === "all" ? "전체" : f === "active" ? "⚡ 액티브" : "🛡 패시브"}
@@ -420,7 +420,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
           {/* 스킬 목록 */}
           <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-2 pb-2">
             {!skillsLoaded ? (
-              <div className="flex items-center justify-center py-8 text-gray-400 text-sm gap-2">
+              <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> 스킬 로딩 중...
               </div>
             ) : filteredSkills.map((skill) => (

@@ -68,16 +68,16 @@ function SkillCard({ skill, isUnlocked, availablePoints, onInvest }: SkillCardPr
 
   if (!isUnlocked) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 opacity-60">
-        <div className="w-9 h-9 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-          <Lock className="w-4 h-4 text-gray-400" />
+      <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl border border-border opacity-60">
+        <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+          <Lock className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-400">{skill.name}</span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 text-gray-400 rounded-full">Lv.{skill.unlock_level} 해금</span>
+            <span className="text-sm font-semibold text-muted-foreground">{skill.name}</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">Lv.{skill.unlock_level} 해금</span>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">{skill.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{skill.description}</p>
         </div>
       </div>
     )
@@ -91,24 +91,24 @@ function SkillCard({ skill, isUnlocked, availablePoints, onInvest }: SkillCardPr
         ? isPassive
           ? "bg-violet-50 border-violet-200"
           : "bg-purple-50 border-purple-200"
-        : "bg-white border-gray-200"
+        : "bg-background border-border"
     }`}>
       <div className="flex items-start gap-3">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
           skill.invested > 0
             ? isPassive ? "bg-violet-500" : "bg-purple-500"
-            : "bg-gray-200"
+            : "bg-muted"
         }`}>
           {isPassive
-            ? <Shield className={`w-4 h-4 ${skill.invested > 0 ? "text-white" : "text-gray-500"}`} />
-            : <Zap    className={`w-4 h-4 ${skill.invested > 0 ? "text-white" : "text-gray-500"}`} />
+            ? <Shield className={`w-4 h-4 ${skill.invested > 0 ? "text-white" : "text-muted-foreground"}`} />
+            : <Zap    className={`w-4 h-4 ${skill.invested > 0 ? "text-white" : "text-muted-foreground"}`} />
           }
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`text-sm font-bold ${skill.invested > 0 ? (isPassive ? "text-violet-700" : "text-purple-700") : "text-gray-700"}`}>
+              <span className={`text-sm font-bold ${skill.invested > 0 ? (isPassive ? "text-violet-700" : "text-purple-700") : "text-foreground"}`}>
                 {skill.name}
               </span>
               {skill.type === "active" && skill.trigger_condition && (
@@ -121,11 +121,11 @@ function SkillCard({ skill, isUnlocked, availablePoints, onInvest }: SkillCardPr
               <button
                 onClick={() => onInvest(skill.id, -1)}
                 disabled={skill.invested <= 0}
-                className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 flex items-center justify-center transition-colors"
+                className="w-6 h-6 rounded-full bg-muted hover:bg-muted disabled:opacity-30 flex items-center justify-center transition-colors"
               >
-                <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
-              <span className={`text-xs font-bold w-8 text-center ${skill.invested > 0 ? (isPassive ? "text-violet-600" : "text-purple-600") : "text-gray-400"}`}>
+              <span className={`text-xs font-bold w-8 text-center ${skill.invested > 0 ? (isPassive ? "text-violet-600" : "text-purple-600") : "text-muted-foreground"}`}>
                 {skill.invested}/{skill.max_skp}
               </span>
               <button
@@ -133,8 +133,8 @@ function SkillCard({ skill, isUnlocked, availablePoints, onInvest }: SkillCardPr
                 disabled={skill.invested >= skill.max_skp || availablePoints <= 0}
                 className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors disabled:opacity-30 ${
                   isPassive
-                    ? "bg-violet-100 hover:bg-violet-200 disabled:bg-gray-100"
-                    : "bg-purple-100 hover:bg-purple-200 disabled:bg-gray-100"
+                    ? "bg-violet-100 hover:bg-violet-200 disabled:bg-muted"
+                    : "bg-purple-100 hover:bg-purple-200 disabled:bg-muted"
                 }`}
               >
                 <ChevronUp className={`w-3.5 h-3.5 ${isPassive ? "text-violet-600" : "text-purple-600"}`} />
@@ -143,13 +143,13 @@ function SkillCard({ skill, isUnlocked, availablePoints, onInvest }: SkillCardPr
           </div>
 
           <div className="mt-1.5 flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${isPassive ? "bg-violet-400" : "bg-purple-400"}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className={`text-xs font-semibold flex-shrink-0 ${skill.invested > 0 ? (isPassive ? "text-violet-600" : "text-purple-600") : "text-gray-400"}`}>
+            <span className={`text-xs font-semibold flex-shrink-0 ${skill.invested > 0 ? (isPassive ? "text-violet-600" : "text-purple-600") : "text-muted-foreground"}`}>
               {effectLabel(skill)}
             </span>
             {skill.type === "active" && (
@@ -157,7 +157,7 @@ function SkillCard({ skill, isUnlocked, availablePoints, onInvest }: SkillCardPr
             )}
           </div>
 
-          <p className="text-xs text-gray-500 mt-0.5">{skill.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{skill.description}</p>
         </div>
       </div>
     </div>
@@ -220,7 +220,7 @@ export default function SkillsTab({ skillPoints, characterLevel }: SkillsTabProp
             className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
               filter === f
                 ? "bg-purple-500 text-white shadow-sm"
-                : "bg-gray-100 text-gray-500"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             {f === "all" ? "전체" : f === "active" ? "⚡ 액티브" : "🛡 패시브"}
