@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, ChevronDown, GripVertical, Clock } from "lucide-react"
+import { Plus, X, ChevronDown, GripVertical, Clock, Pencil } from "lucide-react"
 
 interface DailyItem {
   id: number
@@ -59,6 +59,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [completing, setCompleting] = useState<{ type: "daily" | "todo" | "routine"; id: number } | null>(null)
   const [editingExpId, setEditingExpId] = useState<number | null>(null)
   const [editingExpVal, setEditingExpVal] = useState(0)
+  const [editingTodoNameId, setEditingTodoNameId] = useState<number | null>(null)
+  const [editingTodoNameVal, setEditingTodoNameVal] = useState("")
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -343,6 +345,17 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     })
     if (res.ok) setTodoItems(await res.json())
     setEditingExpId(null)
+  }
+
+  const saveTodoName = async (id: number) => {
+    if (!editingTodoNameVal.trim()) return
+    const res = await fetch("/api/todos", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name: editingTodoNameVal }),
+    })
+    if (res.ok) setTodoItems(await res.json())
+    setEditingTodoNameId(null)
   }
 
   const confirmAndDelete = (
@@ -803,16 +816,53 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         const done = !!item.is_completed
         const isLoading = isCompletingType === "todo" && isCompletingId === item.id
         const isEditingExp = editingExpId === item.id
+        const isEditingName = editingTodoNameId === item.id
         return (
           <div
             key={item.id}
             className={`flex items-center gap-3 px-4 py-3 border-b border-gray-100 transition-opacity ${done ? "opacity-50" : ""}`}
           >
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-semibold leading-snug ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
-                {item.name}
-              </p>
-              {!done && (
+              {isEditingName ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editingTodoNameVal}
+                    onChange={(e) => setEditingTodoNameVal(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveTodoName(item.id); if (e.key === "Escape") setEditingTodoNameId(null) }}
+                    className="flex-1 min-w-0 text-sm bg-violet-50 border border-violet-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
+                  />
+                  <button
+                    onClick={() => saveTodoName(item.id)}
+                    className="text-[10px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                  >
+                    저장
+                  </button>
+                  <button
+                    onClick={() => setEditingTodoNameId(null)}
+                    className="text-gray-400 flex-shrink-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-gray-400" : "text-gray-800"}`}>
+                    {item.name}
+                  </p>
+                  {!done && (
+                    <button
+                      onClick={() => { setEditingTodoNameId(item.id); setEditingTodoNameVal(item.name) }}
+                      className="text-gray-300 hover:text-violet-400 transition-colors flex-shrink-0 p-0.5"
+                      aria-label="이름 수정"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+              {!done && !isEditingName && (
                 isEditingExp ? (
                   <div className="flex items-center gap-1 mt-1">
                     <input

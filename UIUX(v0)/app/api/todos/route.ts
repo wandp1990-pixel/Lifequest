@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem,
-  updateTodoExp, addActivityLog, incrementTaskCount,
+  updateTodoExp, updateTodoName, addActivityLog, incrementTaskCount,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 import { judgeActivity } from "@/lib/ai"
@@ -56,8 +56,14 @@ export async function PATCH(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     await initDb()
-    const { id, suggested_exp } = await req.json()
-    await updateTodoExp(id, suggested_exp ?? 0)
+    const body = await req.json()
+    const { id } = body
+    if ("name" in body) {
+      if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
+      await updateTodoName(id, body.name.trim())
+    } else {
+      await updateTodoExp(id, body.suggested_exp ?? 0)
+    }
     return NextResponse.json(await getTodoItems())
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

@@ -9,7 +9,7 @@ export {
   deleteChecklistItem, getTodayCheckedItemIds,
   updateChecklistStreak, streakBonusExp,
 } from "./queries/checklist"
-export { getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp } from "./queries/todo"
+export { getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName } from "./queries/todo"
 export {
   getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
