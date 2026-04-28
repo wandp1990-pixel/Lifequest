@@ -467,11 +467,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     <div className="flex flex-col gap-0 relative pb-6">
       {/* 토스트 */}
       {toast && (
-        <div className="sticky top-0 z-20 mx-4 mt-2 bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg flex justify-between items-center">
+        <div className="sticky top-0 z-20 mx-4 mt-2 bg-amber-400 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5">
           <span className="text-sm">
             +{toast.exp} EXP{toast.bonus ? ` · 보너스 +${toast.bonus}` : "!"}
           </span>
-          <span className="opacity-90 text-right leading-snug">{toast.comment}</span>
+          <span className="opacity-90 font-normal leading-snug">{toast.comment}</span>
         </div>
       )}
 

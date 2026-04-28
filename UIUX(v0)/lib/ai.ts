@@ -11,12 +11,12 @@ const RESPONSE_SCHEMA: ObjectSchema = {
   type: SchemaType.OBJECT,
   properties: {
     exp: { type: SchemaType.INTEGER, description: "0~200 사이 정수" },
-    comment: { type: SchemaType.STRING, description: "20자 이내 한국어 격려 멘트" },
+    comment: { type: SchemaType.STRING, description: "경험치 산정 근거 요약 (Base XP 이유 · Bonus XP 이유 포함, 60자 이내 한국어)" },
   },
   required: ["exp", "comment"],
 }
 
-const JSON_ENFORCEMENT = `\n\n반드시 아래 JSON 한 개만 출력하라. 다른 텍스트(마크다운/설명/코드블록) 절대 금지:\n{"exp": <0~200 정수>, "comment": "<20자 이내 한국어 멘트>"}`
+const JSON_ENFORCEMENT = `\n\n반드시 아래 JSON 한 개만 출력하라. 다른 텍스트(마크다운/설명/코드블록) 절대 금지:\n{"exp": <0~200 정수>, "comment": "<Base XP 이유 · Bonus XP 이유 포함, 60자 이내 한국어 근거 요약>"}`
 
 async function tryGenerate(
   genai: GoogleGenerativeAI,
@@ -147,7 +147,7 @@ function parseResponse(text: string): { exp: number; comment: string } | null {
 
   return {
     exp: Math.max(0, Math.min(200, Math.floor(exp))),
-    comment: (comment ?? "활동 완료!").slice(0, 30),
+    comment: (comment ?? "활동 완료!").slice(0, 80),
   }
 }
 

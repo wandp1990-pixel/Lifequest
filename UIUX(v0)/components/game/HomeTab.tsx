@@ -156,9 +156,9 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
           <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">✍️ 오늘의 활동</p>
 
           {actToast && (
-            <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex justify-between items-center">
+            <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex flex-col gap-0.5">
               <span className="text-sm font-black text-amber-600">+{actToast.exp} EXP!</span>
-              <span className="text-xs text-amber-500 ml-2 truncate">{actToast.comment}</span>
+              <span className="text-xs text-amber-500 leading-snug">{actToast.comment}</span>
             </div>
           )}
           {actError && (
@@ -203,7 +203,7 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
               <div key={log.id} className="flex items-start gap-2 px-4 py-2.5 border-b border-gray-50 last:border-0 bg-white">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-700 truncate">{log.input_text}</p>
-                  <p className="text-[10px] text-gray-400 leading-snug">{log.ai_comment}</p>
+                  <p className="text-[10px] text-gray-400 leading-snug break-keep">{log.ai_comment}</p>
                 </div>
                 <span className="text-xs font-black text-amber-500 flex-shrink-0">+{log.exp_gained}</span>
               </div>
