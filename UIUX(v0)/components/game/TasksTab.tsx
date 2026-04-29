@@ -514,7 +514,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           />
           <button
             onClick={addRoutine}
-            className="px-3 py-2 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
+            className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-bold active:scale-95"
           >
             추가
           </button>
@@ -696,7 +696,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     />
                     <button
                       onClick={() => addRoutineItemSubmit(r.id)}
-                      className="px-3 py-2 bg-teal-500 text-white rounded-xl text-xs font-bold active:scale-95"
+                      className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-bold active:scale-95"
                     >
                       추가
                     </button>
@@ -812,7 +812,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           />
           <button
             onClick={addItem}
-            className="px-3 py-2 bg-amber-400 text-white rounded-xl text-xs font-bold active:scale-95"
+            className="px-3 py-2 bg-amber-400 text-white rounded-xl text-sm font-bold active:scale-95"
           >
             추가
           </button>
@@ -948,7 +948,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           />
           <button
             onClick={addItem}
-            className="px-3 py-2 bg-violet-500 text-white rounded-xl text-xs font-bold active:scale-95"
+            className="px-3 py-2 bg-violet-500 text-white rounded-xl text-sm font-bold active:scale-95"
           >
             추가
           </button>
