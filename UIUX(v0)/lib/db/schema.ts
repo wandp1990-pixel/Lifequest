@@ -281,6 +281,21 @@ export async function initDb() {
     try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
   })
 
+  await runMigration("daily_quest_config_v1", async () => {
+    const t = now()
+    const keys: [string, string, string][] = [
+      ["daily_quest_total",   "10", "데일리 완료 목표 횟수"],
+      ["daily_quest_exp_min", "10", "데일리 퀘스트 보상 최소 EXP"],
+      ["daily_quest_exp_max", "50", "데일리 퀘스트 보상 최대 EXP"],
+    ]
+    for (const [key, val, desc] of keys) {
+      await db.execute({
+        sql: "INSERT OR IGNORE INTO game_config (config_key, config_value, description, updated_at) VALUES (?,?,?,?)",
+        args: [key, val, desc, t],
+      })
+    }
+  })
+
   await runMigration("labels_v1", async () => {
     await db.batch([
       "UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'",

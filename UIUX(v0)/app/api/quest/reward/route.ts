@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server"
-import { initDb, addActivityLog } from "@/lib/db"
+import { initDb, addActivityLog, getGameConfig } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
 export async function POST() {
   try {
     await initDb()
-    const exp = Math.floor(Math.random() * 41) + 10  // 10~50 랜덤
+    const cfg = await getGameConfig()
+    const expMin = parseInt(cfg.daily_quest_exp_min ?? "10")
+    const expMax = parseInt(cfg.daily_quest_exp_max ?? "50")
+    const exp = Math.floor(Math.random() * (expMax - expMin + 1)) + expMin
     const levelResult = await gainExp(exp)
     await addActivityLog("데일리 퀘스트 완료", "daily", exp, "퀘스트 달성!")
     return NextResponse.json({ exp, ...levelResult })

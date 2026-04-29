@@ -55,6 +55,7 @@ export default function GamePage() {
   const [char, setChar] = useState<CharacterData | null>(null)
   const [tasksCount, setTasksCount] = useState(0)
   const [dailyCompleted, setDailyCompleted] = useState(0)
+  const [questTotal, setQuestTotal] = useState(10)
   const [showSettings, setShowSettings] = useState(false)
   const questRewardedRef = useRef(false)
 
@@ -65,15 +66,24 @@ export default function GamePage() {
     } catch {}
   }, [])
 
+  const fetchQuestTotal = useCallback(async () => {
+    try {
+      const res = await fetch("/api/config")
+      if (!res.ok) return
+      const rows: { config_key: string; config_value: string }[] = await res.json()
+      const item = rows.find((r) => r.config_key === "daily_quest_total")
+      if (item) setQuestTotal(parseInt(item.config_value) || 10)
+    } catch {}
+  }, [])
+
   useEffect(() => {
     fetchChar()
-  }, [fetchChar])
+    fetchQuestTotal()
+  }, [fetchChar, fetchQuestTotal])
 
   const handleExpGained = useCallback(() => {
     fetchChar()
   }, [fetchChar])
-
-  const questTotal = 10
 
   useEffect(() => {
     if (questRewardedRef.current) return
@@ -124,7 +134,7 @@ export default function GamePage() {
           {activeTab !== "home" && activeTab !== "skills" && activeTab !== "battle" && (
             <QuestBanner
               title="데일리 완료"
-              progress={dailyCompleted}
+              progress={Math.min(dailyCompleted, questTotal)}
               total={questTotal}
             />
           )}
@@ -146,7 +156,7 @@ export default function GamePage() {
           <SettingsDrawer
             char={char}
             onCharUpdated={fetchChar}
-            onClose={() => setShowSettings(false)}
+            onClose={() => { setShowSettings(false); fetchQuestTotal() }}
           />
         )}
       </div>
