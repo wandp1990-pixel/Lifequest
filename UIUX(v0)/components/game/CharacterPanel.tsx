@@ -59,7 +59,7 @@ export default function CharacterPanel({
             <span className="ml-auto text-[11px] font-semibold text-[#e74c3c]">{maxHp}</span>
           </div>
           <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#e74c3c] to-[#ff6b6b] transition-all" style={{ width: `${hpPct}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-[#e74c3c] to-[#ff6b6b]" style={{ width: "100%" }} />
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export default function CharacterPanel({
             <span className="ml-auto text-[11px] font-semibold text-[#3498db]">{maxMp}</span>
           </div>
           <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#3498db] to-[#5dade2] transition-all" style={{ width: `${mpPct}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-[#3498db] to-[#5dade2]" style={{ width: "100%" }} />
           </div>
         </div>
 
