@@ -179,9 +179,17 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(MONSTER_STORAGE_KEY)
-      if (raw) setSavedMonster(JSON.parse(raw))
+      if (!raw) return
+      const m: Monster = JSON.parse(raw)
+      const maxClearedIdx = char?.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
+      const gradeIdx = GRADE_KEYS.indexOf(m.grade_code)
+      if (gradeIdx >= 0 && gradeIdx <= maxClearedIdx + 1) {
+        setSavedMonster(m)
+      } else {
+        localStorage.removeItem(MONSTER_STORAGE_KEY)
+      }
     } catch {}
-  }, [])
+  }, [char?.max_cleared_grade])
 
   // battle_config + game_config에서 변환 비율/계수 로드 (하드코딩 방지)
   useEffect(() => {

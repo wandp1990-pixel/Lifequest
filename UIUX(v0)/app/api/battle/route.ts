@@ -24,7 +24,11 @@ export async function POST(req: NextRequest) {
 
     const activeSkills = getActiveSkills(allSkills)
     const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, allSkills)
-    const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
+    const GRADE_KEYS_ORDER = ["C", "B", "A", "S", "SR", "SSR", "UR"]
+    const maxUnlockedIdx = char.max_cleared_grade ? GRADE_KEYS_ORDER.indexOf(char.max_cleared_grade) + 1 : 0
+    const providedGradeIdx = body.monster ? GRADE_KEYS_ORDER.indexOf(body.monster.grade_code) : -1
+    const useProvided = body.monster && providedGradeIdx >= 0 && providedGradeIdx <= maxUnlockedIdx
+    const monster      = useProvided ? body.monster! : generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
     const result       = runBattle(playerCombat, monster, battleCfg, activeSkills)
 
     // 전투 후 HP/MP 처리 모드 (full / none / half)
