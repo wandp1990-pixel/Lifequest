@@ -35,12 +35,13 @@ export async function updateTodoExp(id: number, suggestedExp: number) {
   })
 }
 
-export async function updateTodoName(id: number, name: string) {
+export async function updateTodoName(id: number, name: string, suggestedExp?: number) {
   const db = getClient()
-  await db.execute({
-    sql: "UPDATE todo_item SET name=? WHERE id=?",
-    args: [name, id],
-  })
+  if (suggestedExp !== undefined) {
+    await db.execute({ sql: "UPDATE todo_item SET name=?, suggested_exp=? WHERE id=?", args: [name, suggestedExp, id] })
+  } else {
+    await db.execute({ sql: "UPDATE todo_item SET name=? WHERE id=?", args: [name, id] })
+  }
 }
 
 export async function deleteTodoItem(id: number) {

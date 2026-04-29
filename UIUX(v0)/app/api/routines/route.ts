@@ -105,7 +105,7 @@ export async function PUT(req: NextRequest) {
       if (typeof body.itemId !== "number" || !name) {
         return NextResponse.json({ error: "필수값 누락" }, { status: 400 })
       }
-      await updateRoutineItemName(body.itemId, name)
+      await updateRoutineItemName(body.itemId, name, body.fixedExp !== undefined ? Number(body.fixedExp) : undefined)
       return NextResponse.json(await getRoutines())
     }
     return NextResponse.json({ error: "알 수 없는 action" }, { status: 400 })

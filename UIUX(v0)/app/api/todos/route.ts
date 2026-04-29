@@ -60,7 +60,7 @@ export async function PUT(req: NextRequest) {
     const { id } = body
     if ("name" in body) {
       if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
-      await updateTodoName(id, body.name.trim())
+      await updateTodoName(id, body.name.trim(), body.suggested_exp !== undefined ? Number(body.suggested_exp) : undefined)
     } else {
       await updateTodoExp(id, body.suggested_exp ?? 0)
     }

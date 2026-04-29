@@ -75,9 +75,13 @@ export async function deleteChecklistItem(id: number) {
   await db.execute({ sql: "UPDATE checklist_item SET is_active=0 WHERE id=?", args: [id] })
 }
 
-export async function updateChecklistItemName(id: number, name: string) {
+export async function updateChecklistItemName(id: number, name: string, fixedExp?: number) {
   const db = getClient()
-  await db.execute({ sql: "UPDATE checklist_item SET name=? WHERE id=?", args: [name, id] })
+  if (fixedExp !== undefined) {
+    await db.execute({ sql: "UPDATE checklist_item SET name=?, fixed_exp=? WHERE id=?", args: [name, fixedExp, id] })
+  } else {
+    await db.execute({ sql: "UPDATE checklist_item SET name=? WHERE id=?", args: [name, id] })
+  }
 }
 
 export async function getTodayCheckedItemIds(): Promise<Set<number>> {

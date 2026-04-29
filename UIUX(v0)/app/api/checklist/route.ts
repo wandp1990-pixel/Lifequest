@@ -53,7 +53,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     if ("id" in body) {
       if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
-      await updateChecklistItemName(body.id, body.name.trim())
+      await updateChecklistItemName(body.id, body.name.trim(), body.fixed_exp !== undefined ? Number(body.fixed_exp) : undefined)
     } else {
       if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
       await addChecklistItem(body.name.trim(), body.suggested_exp ?? 10)

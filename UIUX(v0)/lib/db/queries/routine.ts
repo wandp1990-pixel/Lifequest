@@ -105,9 +105,13 @@ export async function updateRoutineName(routineId: number, name: string) {
   await db.execute({ sql: "UPDATE routine SET name=? WHERE id=?", args: [name, routineId] })
 }
 
-export async function updateRoutineItemName(itemId: number, name: string) {
+export async function updateRoutineItemName(itemId: number, name: string, fixedExp?: number) {
   const db = getClient()
-  await db.execute({ sql: "UPDATE routine_item SET name=? WHERE id=?", args: [name, itemId] })
+  if (fixedExp !== undefined) {
+    await db.execute({ sql: "UPDATE routine_item SET name=?, fixed_exp=? WHERE id=?", args: [name, fixedExp, itemId] })
+  } else {
+    await db.execute({ sql: "UPDATE routine_item SET name=? WHERE id=?", args: [name, itemId] })
+  }
 }
 
 export async function addRoutineItem(routineId: number, name: string, fixedExp: number) {

@@ -57,16 +57,17 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [newName, setNewName] = useState("")
   const [newExp, setNewExp] = useState(10)
   const [completing, setCompleting] = useState<{ type: "daily" | "todo" | "routine"; id: number } | null>(null)
-  const [editingExpId, setEditingExpId] = useState<number | null>(null)
-  const [editingExpVal, setEditingExpVal] = useState(0)
   const [editingTodoNameId, setEditingTodoNameId] = useState<number | null>(null)
   const [editingTodoNameVal, setEditingTodoNameVal] = useState("")
+  const [editingTodoExpVal, setEditingTodoExpVal] = useState(0)
   const [editingDailyNameId, setEditingDailyNameId] = useState<number | null>(null)
   const [editingDailyNameVal, setEditingDailyNameVal] = useState("")
+  const [editingDailyExpVal, setEditingDailyExpVal] = useState(10)
   const [editingRoutineNameId, setEditingRoutineNameId] = useState<number | null>(null)
   const [editingRoutineNameVal, setEditingRoutineNameVal] = useState("")
   const [editingRoutineItemNameId, setEditingRoutineItemNameId] = useState<number | null>(null)
   const [editingRoutineItemNameVal, setEditingRoutineItemNameVal] = useState("")
+  const [editingRoutineItemExpVal, setEditingRoutineItemExpVal] = useState(10)
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -354,22 +355,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     setAdding(null)
   }
 
-  const saveEditingExp = async (id: number) => {
-    const res = await fetch("/api/todos", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, suggested_exp: editingExpVal }),
-    })
-    if (res.ok) setTodoItems(await res.json())
-    setEditingExpId(null)
-  }
-
   const saveTodoName = async (id: number) => {
     if (!editingTodoNameVal.trim()) return
     const res = await fetch("/api/todos", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: editingTodoNameVal }),
+      body: JSON.stringify({ id, name: editingTodoNameVal, suggested_exp: editingTodoExpVal }),
     })
     if (res.ok) setTodoItems(await res.json())
     setEditingTodoNameId(null)
@@ -380,7 +371,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     const res = await fetch("/api/checklist", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: editingDailyNameVal }),
+      body: JSON.stringify({ id, name: editingDailyNameVal, fixed_exp: editingDailyExpVal }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -408,7 +399,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     const res = await fetch("/api/routines", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "updateItemName", itemId, name: editingRoutineItemNameVal }),
+      body: JSON.stringify({ action: "updateItemName", itemId, name: editingRoutineItemNameVal, fixedExp: editingRoutineItemExpVal }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -557,7 +548,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 />
                 <button
                   onClick={() => saveRoutineName(r.id)}
-                  className="text-[10px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                  className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0"
                 >
                   저장
                 </button>
@@ -634,9 +625,16 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                               onKeyDown={(e) => { if (e.key === "Enter") saveRoutineItemName(item.id); if (e.key === "Escape") setEditingRoutineItemNameId(null) }}
                               className="flex-1 min-w-0 text-sm bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
                             />
+                            <input
+                              type="number"
+                              value={editingRoutineItemExpVal}
+                              onChange={(e) => setEditingRoutineItemExpVal(Number(e.target.value))}
+                              className="w-14 text-xs text-center bg-teal-50 border border-teal-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                              min={1}
+                            />
                             <button
                               onClick={() => saveRoutineItemName(item.id)}
-                              className="text-[10px] font-bold text-teal-600 bg-teal-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                              className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0"
                             >
                               저장
                             </button>
@@ -651,7 +649,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                             </p>
                             {!done && (
                               <button
-                                onClick={() => { setEditingRoutineItemNameId(item.id); setEditingRoutineItemNameVal(item.name) }}
+                                onClick={() => { setEditingRoutineItemNameId(item.id); setEditingRoutineItemNameVal(item.name); setEditingRoutineItemExpVal(item.fixed_exp) }}
                                 className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
                                 aria-label="항목 이름 수정"
                               >
@@ -861,9 +859,16 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     onKeyDown={(e) => { if (e.key === "Enter") saveDailyName(item.id); if (e.key === "Escape") setEditingDailyNameId(null) }}
                     className="flex-1 min-w-0 text-sm bg-amber-50 border border-amber-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
                   />
+                  <input
+                    type="number"
+                    value={editingDailyExpVal}
+                    onChange={(e) => setEditingDailyExpVal(Number(e.target.value))}
+                    className="w-14 text-xs text-center bg-amber-50 border border-amber-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                    min={1}
+                  />
                   <button
                     onClick={() => saveDailyName(item.id)}
-                    className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                    className="px-2.5 py-1 rounded-full text-xs font-bold text-amber-600 bg-amber-100 active:scale-95 flex-shrink-0"
                   >
                     저장
                   </button>
@@ -878,7 +883,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   </p>
                   {!done && (
                     <button
-                      onClick={() => { setEditingDailyNameId(item.id); setEditingDailyNameVal(item.name) }}
+                      onClick={() => { setEditingDailyNameId(item.id); setEditingDailyNameVal(item.name); setEditingDailyExpVal(item.fixed_exp) }}
                       className="text-gray-300 hover:text-amber-400 transition-colors flex-shrink-0 p-0.5"
                       aria-label="이름 수정"
                     >
@@ -973,7 +978,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       {todoItems.map((item) => {
         const done = !!item.is_completed
         const isLoading = isCompletingType === "todo" && isCompletingId === item.id
-        const isEditingExp = editingExpId === item.id
         const isEditingName = editingTodoNameId === item.id
         return (
           <div
@@ -991,9 +995,16 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     onKeyDown={(e) => { if (e.key === "Enter") saveTodoName(item.id); if (e.key === "Escape") setEditingTodoNameId(null) }}
                     className="flex-1 min-w-0 text-sm bg-violet-50 border border-violet-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
                   />
+                  <input
+                    type="number"
+                    value={editingTodoExpVal}
+                    onChange={(e) => setEditingTodoExpVal(Number(e.target.value))}
+                    className="w-14 text-xs text-center bg-violet-50 border border-violet-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                    min={0}
+                  />
                   <button
                     onClick={() => saveTodoName(item.id)}
-                    className="text-[10px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded-full active:scale-95 flex-shrink-0"
+                    className="px-2.5 py-1 rounded-full text-xs font-bold text-violet-600 bg-violet-100 active:scale-95 flex-shrink-0"
                   >
                     저장
                   </button>
@@ -1011,7 +1022,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   </p>
                   {!done && (
                     <button
-                      onClick={() => { setEditingTodoNameId(item.id); setEditingTodoNameVal(item.name) }}
+                      onClick={() => { setEditingTodoNameId(item.id); setEditingTodoNameVal(item.name); setEditingTodoExpVal(item.suggested_exp ?? 0) }}
                       className="text-gray-300 hover:text-violet-400 transition-colors flex-shrink-0 p-0.5"
                       aria-label="이름 수정"
                     >
@@ -1021,39 +1032,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 </div>
               )}
               {!done && !isEditingName && (
-                isEditingExp ? (
-                  <div className="flex items-center gap-1 mt-1">
-                    <input
-                      autoFocus
-                      type="number"
-                      min={0}
-                      value={editingExpVal}
-                      onChange={(e) => setEditingExpVal(Number(e.target.value))}
-                      onKeyDown={(e) => { if (e.key === "Enter") saveEditingExp(item.id); if (e.key === "Escape") setEditingExpId(null) }}
-                      className="w-16 text-xs text-center bg-violet-50 border border-violet-300 rounded-lg px-1.5 py-0.5 outline-none"
-                    />
-                    <span className="text-[10px] text-muted-foreground">EXP</span>
-                    <button
-                      onClick={() => saveEditingExp(item.id)}
-                      className="text-[10px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded-full active:scale-95"
-                    >
-                      확인
-                    </button>
-                    <button
-                      onClick={() => setEditingExpId(null)}
-                      className="text-[10px] text-muted-foreground active:scale-95"
-                    >
-                      취소
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => { setEditingExpId(item.id); setEditingExpVal(item.suggested_exp ?? 0) }}
-                    className="mt-0.5 text-[10px] font-bold text-violet-500 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded-full active:scale-95"
-                  >
-                    {(item.suggested_exp ?? 0) === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
-                  </button>
-                )
+                <button
+                  onClick={() => { setEditingTodoNameId(item.id); setEditingTodoNameVal(item.name); setEditingTodoExpVal(item.suggested_exp ?? 0) }}
+                  className="mt-0.5 text-[10px] font-bold text-violet-500 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded-full active:scale-95"
+                >
+                  {(item.suggested_exp ?? 0) === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
+                </button>
               )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
