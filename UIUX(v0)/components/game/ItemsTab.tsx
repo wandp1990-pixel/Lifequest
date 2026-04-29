@@ -131,6 +131,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
       if (!currentEquipped) {
         await patchInventory({ action: "equip", itemId: item.id })
         await fetchInventory()
+        onTicketsChanged?.()
         setLastResult({ item, autoEquipped: true })
       } else {
         await fetchInventory()
@@ -147,6 +148,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
     await patchInventory({ action: "equip", itemId: newItem.id })
     await patchInventory({ action: "delete", itemId: oldItem.id })
     await fetchInventory()
+    onTicketsChanged?.()
     setLastResult({ item: newItem, autoEquipped: false })
     setPendingReplace(null)
   }
@@ -379,6 +381,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
                         if (cur) await patchInventory({ action: "delete", itemId: cur.id })
                         await patchInventory({ action: "equip", itemId: item.id })
                         await fetchInventory()
+                        onTicketsChanged?.()
                       }}
                       className="flex-1 text-[10px] font-bold py-1.5 rounded-lg text-white"
                       style={{ background: "#FF9500" }}
