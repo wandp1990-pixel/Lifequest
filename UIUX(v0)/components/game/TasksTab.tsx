@@ -1031,14 +1031,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   )}
                 </div>
               )}
-              {!done && !isEditingName && (
-                <button
-                  onClick={() => { setEditingTodoNameId(item.id); setEditingTodoNameVal(item.name); setEditingTodoExpVal(item.suggested_exp ?? 0) }}
-                  className="mt-0.5 text-[10px] font-bold text-violet-500 bg-violet-50 border border-violet-100 px-1.5 py-0.5 rounded-full active:scale-95"
-                >
-                  {(item.suggested_exp ?? 0) === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
-                </button>
-              )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <button
@@ -1052,7 +1044,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     : "bg-violet-100 text-violet-600 hover:bg-violet-200"
                 }`}
               >
-                {done ? "✓" : isLoading ? "..." : "완료"}
+                {done ? "✓ 완료" : isLoading ? "처리 중..." : (item.suggested_exp ?? 0) === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
               </button>
               <button
                 onClick={() => confirmAndDelete("todo", item.id, item.name)}
