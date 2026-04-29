@@ -493,12 +493,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       )}
 
       {/* ── 루틴 섹션 ───────────────────────────────────── */}
-      <div className="px-4 py-3 flex items-center justify-between bg-teal-50 border-y border-teal-100">
+      <div className="px-4 py-3 flex items-center justify-between bg-teal-50 dark:bg-teal-900/30 border-y border-teal-100 dark:border-teal-800/50">
         <div className="flex items-center gap-2">
           <span className="text-sm">🔁</span>
           <span className="text-sm font-bold text-foreground">루틴</span>
           {routines.length > 0 && (
-            <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
+            <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-2 py-0.5 rounded-full border border-teal-100 dark:border-teal-700/50">
               {routines.length}개
             </span>
           )}
@@ -786,11 +786,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       })}
 
       {/* ── 습관 섹션 ─────────────────────────────────── */}
-      <div className="px-4 py-3 flex items-center justify-between bg-amber-50 border-y border-amber-100 mt-2">
+      <div className="px-4 py-3 flex items-center justify-between bg-amber-50 dark:bg-amber-900/30 border-y border-amber-100 dark:border-amber-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
           <span className="text-sm font-bold text-foreground">습관</span>
-          <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+          <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-700/50">
             {dailyItems.filter(item => checkedDailyIds.has(item.id)).length} / {dailyItems.length}
           </span>
         </div>
@@ -920,12 +920,12 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       })}
 
       {/* ── 할 일 섹션 ──────────────────────────────────── */}
-      <div className="px-4 py-3 flex items-center justify-between bg-violet-50 border-y border-violet-100 mt-2">
+      <div className="px-4 py-3 flex items-center justify-between bg-violet-50 dark:bg-violet-900/30 border-y border-violet-100 dark:border-violet-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">📋</span>
           <span className="text-sm font-bold text-foreground">할 일</span>
           {todoItems.filter((t) => !t.is_completed).length > 0 && (
-            <span className="text-[11px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">
+            <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/40 px-2 py-0.5 rounded-full border border-violet-100 dark:border-violet-700/50">
               {todoItems.filter((t) => !t.is_completed).length}개
             </span>
           )}
