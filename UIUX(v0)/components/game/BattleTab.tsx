@@ -200,6 +200,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         try { localStorage.setItem(MONSTER_STORAGE_KEY, JSON.stringify(data.monster)) } catch {}
       }
       setPhase("result")
+      onExpGained() // 전투 후 DB에 full HP 저장됐으므로 캐릭터 패널 즉시 갱신
     } catch (e) {
       setError(String(e))
       setPhase("lobby")
