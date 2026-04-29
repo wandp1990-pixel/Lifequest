@@ -56,7 +56,7 @@ export default function CharacterPanel({
           <div className="flex items-center gap-1 mb-0.5">
             <span className="text-xs leading-none">❤️</span>
             <span className="text-[11px] font-bold text-[#e74c3c] uppercase tracking-wide">HP</span>
-            <span className="ml-auto text-[11px] font-semibold text-[#e74c3c]">{hp} / {maxHp}</span>
+            <span className="ml-auto text-[11px] font-semibold text-[#e74c3c]">{maxHp}</span>
           </div>
           <div className="h-2.5 bg-muted rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-[#e74c3c] to-[#ff6b6b] transition-all" style={{ width: `${hpPct}%` }} />
@@ -68,7 +68,7 @@ export default function CharacterPanel({
           <div className="flex items-center gap-1 mb-0.5">
             <span className="text-xs leading-none">💎</span>
             <span className="text-[11px] font-bold text-[#3498db] uppercase tracking-wide">MP</span>
-            <span className="ml-auto text-[11px] font-semibold text-[#3498db]">{mp} / {maxMp}</span>
+            <span className="ml-auto text-[11px] font-semibold text-[#3498db]">{maxMp}</span>
           </div>
           <div className="h-2.5 bg-muted rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-[#3498db] to-[#5dade2] transition-all" style={{ width: `${mpPct}%` }} />
