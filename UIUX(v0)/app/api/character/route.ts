@@ -96,9 +96,12 @@ export async function PUT(req: NextRequest) {
                      "clear_count", "task_count"]
     const fields: Record<string, number | string> = {}
     for (const key of allowed) {
-      if (key in body && body[key] !== "" && !isNaN(Number(body[key]))) {
-        fields[key] = Number(body[key])
-      }
+      if (!(key in body) || body[key] === "") continue
+      const n = Number(body[key])
+      if (!Number.isFinite(n)) continue
+      // level은 1 이상, 나머지 수치는 0 이상으로 캡
+      const min = key === "level" ? 1 : 0
+      fields[key] = Math.max(min, Math.floor(n))
     }
     if (typeof body.name === "string") {
       const trimmed = body.name.trim().slice(0, 20)

@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
     const item = items.find((i) => i.id === itemId)
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
 
+    const todayChecked = await getTodayCheckedItemIds()
+    if (todayChecked.has(itemId)) {
+      return NextResponse.json({ error: "오늘 이미 완료한 항목입니다" }, { status: 400 })
+    }
+
     const baseExp = (item.fixed_exp as number) ?? 10
     const { streak, bonusExp } = await updateChecklistStreak(itemId)
     const totalExp = baseExp + bonusExp

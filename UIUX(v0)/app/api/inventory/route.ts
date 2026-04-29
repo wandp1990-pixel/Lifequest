@@ -24,10 +24,11 @@ type AbilityRow = { name: string; base_value: number; unit: string; category: st
 type PassiveRow = { name: string; description: string }
 
 function pickGrade(grades: GradeRow[]): GradeRow {
-  const total = grades.reduce((s, g) => s + g.weight, 0)
+  const total = grades.reduce((s, g) => s + Math.max(0, g.weight), 0)
+  if (total <= 0) return grades[Math.floor(Math.random() * grades.length)]
   let r = Math.random() * total
   for (const g of grades) {
-    r -= g.weight
+    r -= Math.max(0, g.weight)
     if (r <= 0) return g
   }
   return grades[grades.length - 1]
@@ -84,9 +85,13 @@ export async function PATCH(req: NextRequest) {
   try {
     await initDb()
     const { action, itemId } = await req.json()
+    if (typeof itemId !== "number" || !Number.isFinite(itemId)) {
+      return NextResponse.json({ error: "itemId 필요" }, { status: 400 })
+    }
     if (action === "equip") await equipItem(itemId)
     else if (action === "unequip") await unequipItem(itemId)
     else if (action === "delete") await deleteEquipment(itemId)
+    else return NextResponse.json({ error: "알 수 없는 action" }, { status: 400 })
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

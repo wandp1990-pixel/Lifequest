@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
-  initDb, getTodoItems, addTodoItem, completeTodoItem, deleteTodoItem,
+  initDb, getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem,
   updateTodoExp, updateTodoName, addActivityLog, incrementTaskCount,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
@@ -9,6 +9,7 @@ import { judgeActivity } from "@/lib/ai"
 export async function GET() {
   try {
     await initDb()
+    await cleanupCompletedTodos()
     return NextResponse.json(await getTodoItems())
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

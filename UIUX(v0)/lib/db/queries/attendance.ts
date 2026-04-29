@@ -55,10 +55,14 @@ export async function checkAttendance(): Promise<{
   })
   if (existing.rows.length > 0) return { alreadyChecked: true, streak: 0, bonusTickets: 0 }
 
-  await db.execute({
-    sql: "INSERT INTO attendance_log (checked_date, created_at) VALUES (?, ?)",
+  // UNIQUE(checked_date) 제약과 함께 race condition 방어
+  const insertRes = await db.execute({
+    sql: "INSERT OR IGNORE INTO attendance_log (checked_date, created_at) VALUES (?, ?)",
     args: [today, now()],
   })
+  if ((insertRes.rowsAffected ?? 0) === 0) {
+    return { alreadyChecked: true, streak: 0, bonusTickets: 0 }
+  }
 
   const streak = await computeStreak(db)
 

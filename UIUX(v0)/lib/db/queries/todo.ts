@@ -1,12 +1,16 @@
 import { getClient, now, todayKST } from "../client"
 
-export async function getTodoItems() {
+export async function cleanupCompletedTodos() {
   const db = getClient()
   const today = todayKST()
   await db.execute({
     sql: "DELETE FROM todo_item WHERE is_completed=1 AND DATE(completed_at) < ?",
     args: [today],
   })
+}
+
+export async function getTodoItems() {
+  const db = getClient()
   const res = await db.execute("SELECT * FROM todo_item ORDER BY is_completed ASC, id DESC")
   return res.rows
 }

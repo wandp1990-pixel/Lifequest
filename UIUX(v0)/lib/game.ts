@@ -1,5 +1,4 @@
 import * as db from "./db"
-import { buildPlayerCombatStats } from "./battle"
 
 export function requiredExp(level: number, cfg: Record<string, string>): number {
   const base = parseFloat(cfg.base_exp ?? "100")
@@ -51,23 +50,10 @@ export async function gainExp(expAmount: number) {
 
   const { maxHp, maxMp } = recalcHpMp({ ...char, level }, bcfg)
 
-  let currentHp: number
-  let currentMp: number
-  if (leveledUp) {
-    // 장비 보너스 포함한 effective max_hp/mp로 완전 회복
-    const [equipment, allSkills] = await Promise.all([
-      db.getEquipment(), db.getSkillsWithInvestment(),
-    ])
-    const equippedOptions = (equipment as { is_equipped: number; options: string }[])
-      .filter((e) => e.is_equipped === 1)
-      .map((e) => e.options)
-    const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)
-    currentHp = Math.round(cs.max_hp)
-    currentMp = Math.round(cs.max_mp)
-  } else {
-    currentHp = Math.min(char.current_hp, maxHp)
-    currentMp = Math.min(char.current_mp, maxMp)
-  }
+  // DB의 max_hp/max_mp는 항상 base+stat 기준(장비 보너스 미포함). current도 동일 기준으로 캡.
+  // 장비 보너스를 포함한 effective max는 /api/character GET에서 별도 계산.
+  const currentHp = leveledUp ? maxHp : Math.min(char.current_hp, maxHp)
+  const currentMp = leveledUp ? maxMp : Math.min(char.current_mp, maxMp)
 
   await db.updateCharacter({
     level,
