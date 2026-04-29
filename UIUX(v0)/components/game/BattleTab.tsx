@@ -411,15 +411,9 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
             <>
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
                 <div className="text-amber-600 font-bold text-base mb-3">🏆 승리!</div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground text-sm">✨ 경험치</span>
-                    <span className="text-blue-500 font-bold text-sm">+{exp_gained} EXP{leveled_up ? "  🎉 레벨 업!" : ""}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground text-sm">🎫 뽑기권</span>
-                    <span className="text-amber-500 font-black text-xl">+{ticket_reward}장</span>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground text-sm">🎫 뽑기권</span>
+                  <span className="text-amber-500 font-black text-xl">+{ticket_reward}장</span>
                 </div>
               </div>
               <button
