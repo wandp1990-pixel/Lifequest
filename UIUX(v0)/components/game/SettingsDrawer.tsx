@@ -330,6 +330,15 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           })
         )
       )
+      // vit_to_max_hp / int_to_max_mp 변경이 character.max_hp/max_mp에 반영되도록 재계산
+      if (char) {
+        await fetch("/api/character", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vit: char.vit }),
+        })
+        onCharUpdated()
+      }
       await fetchBattleConfig()
     } finally {
       setBattleConfigSaving(false)
