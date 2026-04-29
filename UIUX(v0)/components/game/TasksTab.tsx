@@ -502,7 +502,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       </div>
 
       {adding === "routine" && (
-        <div className="mx-4 mb-2 flex gap-1.5">
+        <div className="mx-4 mt-2 mb-2 flex gap-1.5">
           <input
             autoFocus
             type="text"
@@ -793,7 +793,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       </div>
 
       {adding === "daily" && (
-        <div className="mx-4 mb-2 flex gap-1.5">
+        <div className="mx-4 mt-2 mb-2 flex gap-1.5">
           <input
             autoFocus
             type="text"
@@ -929,7 +929,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       </div>
 
       {adding === "todo" && (
-        <div className="mx-4 mb-2 flex gap-1.5">
+        <div className="mx-4 mt-2 mb-2 flex gap-1.5">
           <input
             autoFocus
             type="text"
