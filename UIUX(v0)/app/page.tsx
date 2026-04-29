@@ -41,14 +41,24 @@ type CharacterData = {
   dex: number
   int_stat: number
   luk: number
+  last_regen_at?: string | null
   effective?: {
     patk: number; matk: number; pdef: number; mdef: number
-    dex: number; luk: number; max_hp: number; max_mp: number
+    dex: number; luk: number; vit: number; int: number
+    max_hp: number; max_mp: number
     crit_rate: number; accuracy_bonus: number; evasion_bonus: number
     double_attack: boolean; life_steal: boolean; def_ignore: boolean; reflect: boolean
   }
   item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
   max_cleared_grade?: string | null
+}
+
+function calcRegen(current: number, max: number, stat: number, lastRegenAt: string | null | undefined): number {
+  if (!lastRegenAt || current >= max) return Math.min(current, max)
+  const lastMs = new Date(lastRegenAt.replace(" ", "T") + "+09:00").getTime()
+  const elapsedMin = (Date.now() - lastMs) / 60000
+  const regenPerMin = Math.floor(max * 0.10) + Math.floor(stat / 10)
+  return Math.min(max, Math.round(current + elapsedMin * regenPerMin))
 }
 
 export default function GamePage() {
@@ -58,6 +68,7 @@ export default function GamePage() {
   const [dailyCompleted, setDailyCompleted] = useState(0)
   const [questTotal, setQuestTotal] = useState(10)
   const [showSettings, setShowSettings] = useState(false)
+  const [tick, setTick] = useState(0)
   const questRewardedRef = useRef(false)
 
   const fetchChar = useCallback(async () => {
@@ -81,6 +92,11 @@ export default function GamePage() {
     fetchChar()
     fetchQuestTotal()
   }, [fetchChar, fetchQuestTotal])
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60000)
+    return () => clearInterval(id)
+  }, [])
 
   const handleExpGained = useCallback(() => {
     fetchChar()
@@ -122,15 +138,26 @@ export default function GamePage() {
           <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
           <CharacterPanel
             name={char?.name ?? "모험가"}
-            hp={char?.current_hp ?? 0}
+            hp={char ? calcRegen(
+              char.current_hp,
+              char.effective?.max_hp ?? char.max_hp,
+              char.effective?.vit ?? char.vit,
+              char.last_regen_at
+            ) : 0}
             maxHp={char?.effective?.max_hp ?? char?.max_hp ?? 100}
-            mp={char?.current_mp ?? 0}
+            mp={char ? calcRegen(
+              char.current_mp,
+              char.effective?.max_mp ?? char.max_mp,
+              char.effective?.int ?? char.int_stat,
+              char.last_regen_at
+            ) : 0}
             maxMp={char?.effective?.max_mp ?? char?.max_mp ?? 50}
             level={char?.level ?? 1}
             drawTickets={char?.draw_tickets ?? 0}
             statPoints={char?.stat_points ?? 0}
             totalExp={char?.total_exp ?? 0}
             nextExp={char?.next_exp ?? 100}
+            tick={tick}
           />
           {activeTab !== "home" && activeTab !== "skills" && activeTab !== "battle" && (
             <QuestBanner

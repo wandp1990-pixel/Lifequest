@@ -282,6 +282,11 @@ export async function initDb() {
     try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
   })
 
+  await runMigration("hp_regen_v1", async () => {
+    try { await db.execute("ALTER TABLE character ADD COLUMN last_regen_at TEXT") } catch {}
+    await db.execute({ sql: "UPDATE character SET last_regen_at=? WHERE id=1", args: [now()] })
+  })
+
   await runMigration("daily_quest_config_v1", async () => {
     const t = now()
     const keys: [string, string, string][] = [

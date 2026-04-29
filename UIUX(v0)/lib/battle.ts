@@ -112,6 +112,8 @@ export type BattleResult = {
   first_strike: "플레이어" | "몬스터"
   player_max_hp: number
   player_max_mp: number
+  player_final_hp: number
+  player_final_mp: number
   monster_max_hp: number
   player_stats: {
     patk: number; matk: number; pdef: number; mdef: number
@@ -658,8 +660,10 @@ export function runBattle(
     turns:  logs.length,
     ticket_reward: winner === "플레이어" ? monster.ticket_reward : 0,
     first_strike:  first,
-    player_max_hp: Math.round(playerCombat.max_hp),
-    player_max_mp: Math.round(playerCombat.max_mp),
+    player_max_hp:   Math.round(playerCombat.max_hp),
+    player_max_mp:   Math.round(playerCombat.max_mp),
+    player_final_hp: Math.max(0, Math.round(playerHp)),
+    player_final_mp: Math.max(0, Math.round(playerMp)),
     monster_max_hp: monster.stats.HP,
     player_stats: {
       patk:   Math.round(playerCombat.patk),

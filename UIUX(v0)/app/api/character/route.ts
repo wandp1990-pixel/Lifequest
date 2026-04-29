@@ -23,6 +23,9 @@ export async function GET() {
     const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, allSkills)
     const itemStatBonuses = parseEquippedStatBonuses(equippedOptions)
 
+    const finalVit = char.vit + itemStatBonuses.vit
+    const finalInt = char.int_stat + itemStatBonuses.int_stat
+
     return NextResponse.json({
       ...char,
       next_exp: nextExp,
@@ -33,6 +36,8 @@ export async function GET() {
         mdef:          Math.round(cs.mdef),
         dex:           Math.round(cs.dex),
         luk:           Math.round(cs.luk),
+        vit:           Math.round(finalVit),
+        int:           Math.round(finalInt),
         max_hp:        Math.round(cs.max_hp),
         max_mp:        Math.round(cs.max_mp),
         crit_rate:     Math.round(cs.bonus_crit_rate * 1000) / 10,

@@ -3,6 +3,7 @@ import {
   initDb, getCharacter, getEquipment, getGameConfig, getBattleConfig,
   updateCharacter, addBattleLog, getSkillsWithInvestment,
 } from "@/lib/db"
+import { now } from "@/lib/db/client"
 import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, type Monster } from "@/lib/battle"
 
 export async function POST(req: NextRequest) {
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
     const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
     const result       = runBattle(playerCombat, monster, battleCfg, activeSkills)
 
+    const regenAt = now()
     if (result.winner === "플레이어") {
       const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
       const prevIdx    = char.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
@@ -34,15 +36,16 @@ export async function POST(req: NextRequest) {
       await updateCharacter({
         draw_tickets:      char.draw_tickets + result.ticket_reward,
         clear_count:       (char.clear_count ?? 0) + 1,
-        current_hp:        result.player_max_hp,
-        current_mp:        result.player_max_mp,
+        current_hp:        result.player_final_hp,
+        current_mp:        result.player_final_mp,
+        last_regen_at:     regenAt,
         max_cleared_grade: newMaxGrade,
       })
     } else {
-      // 패배해도 HP/MP 전량 회복
       await updateCharacter({
-        current_hp: result.player_max_hp,
-        current_mp: result.player_max_mp,
+        current_hp:    result.player_final_hp,
+        current_mp:    result.player_final_mp,
+        last_regen_at: regenAt,
       })
     }
 
