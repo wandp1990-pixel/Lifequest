@@ -386,33 +386,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         })}
       </div>
 
-      {/* 결과 배너 (애니메이션 끝난 뒤만 표시) */}
-      {animDone && (winner === "플레이어" ? (
-        <div className="mx-4 mt-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <div className="text-amber-600 font-bold text-base mb-2">🏆 승리!</div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-sm">🎫 뽑기권</span>
-            <span className="text-amber-500 font-black text-xl">+{ticket_reward}장</span>
-          </div>
-        </div>
-      ) : winner === "몬스터" ? (
-        <div className="mx-4 mt-3 bg-red-50 border border-red-200 rounded-2xl p-4">
-          <div className="text-red-500 font-bold text-base">💀 패배</div>
-          <div className="text-muted-foreground text-sm mt-1">HP가 회복됩니다. 다시 도전!</div>
-        </div>
-      ) : (
-        <div className="mx-4 mt-3 bg-orange-50 border border-orange-200 rounded-2xl p-4">
-          <div className="text-orange-500 font-bold text-base">⏰ 시간 초과</div>
-          <div className="text-muted-foreground text-sm mt-1">전투가 끝나지 않았습니다.</div>
-        </div>
-      ))}
-
-      {!animDone && (
-        <div className="mx-4 mt-3 bg-muted border border-border rounded-2xl p-4 text-center">
-          <div className="text-muted-foreground font-bold text-sm">⚔️ 전투 중... ({visibleTurns}/{logs.length})</div>
-        </div>
-      )}
-
       {/* 전투 로그 */}
       <div className="mx-4 mt-3 border border-border rounded-2xl overflow-hidden">
         <p className="text-[10px] font-bold text-muted-foreground px-3 py-2 bg-muted border-b border-border">
@@ -424,25 +397,64 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           ))}
           <div ref={logEndRef} />
         </div>
+        {!animDone && (
+          <div className="px-3 py-2 bg-muted border-t border-border text-center">
+            <span className="text-[11px] text-muted-foreground font-bold">⚔️ 전투 중... ({visibleTurns}/{logs.length})</span>
+          </div>
+        )}
       </div>
 
-      {/* 액션 버튼 */}
+      {/* 결과 + 액션 버튼 (애니메이션 끝난 뒤만 표시) */}
       {animDone && (
-        <div className="px-4 pt-3 pb-4">
+        <div className="px-4 pt-3 pb-4 flex flex-col gap-2">
           {winner === "플레이어" ? (
-            <button
-              onClick={newBattle}
-              className="w-full py-4 rounded-2xl font-bold text-white bg-amber-500 active:scale-95 transition-all shadow-sm"
-            >
-              ✅ 확인
-            </button>
+            <>
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <div className="text-amber-600 font-bold text-base mb-3">🏆 승리!</div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-sm">✨ 경험치</span>
+                    <span className="text-blue-500 font-bold text-sm">+{exp_gained} EXP{leveled_up ? "  🎉 레벨 업!" : ""}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-sm">🎫 뽑기권</span>
+                    <span className="text-amber-500 font-black text-xl">+{ticket_reward}장</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={newBattle}
+                className="w-full py-4 rounded-2xl font-bold text-white bg-amber-500 active:scale-95 transition-all shadow-sm"
+              >
+                ✅ 확인
+              </button>
+            </>
+          ) : winner === "몬스터" ? (
+            <>
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                <div className="text-red-500 font-bold text-base mb-1">💀 패배</div>
+                <div className="text-muted-foreground text-sm">HP가 회복됩니다. 다시 도전!</div>
+              </div>
+              <button
+                onClick={() => doFight(keepMonster ?? undefined)}
+                className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
+              >
+                🔄 재도전
+              </button>
+            </>
           ) : (
-            <button
-              onClick={() => doFight(keepMonster ?? undefined)}
-              className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
-            >
-              🔄 재도전
-            </button>
+            <>
+              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+                <div className="text-orange-500 font-bold text-base mb-1">⏰ 시간 초과</div>
+                <div className="text-muted-foreground text-sm">전투가 끝나지 않았습니다.</div>
+              </div>
+              <button
+                onClick={() => doFight(keepMonster ?? undefined)}
+                className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
+              >
+                🔄 재도전
+              </button>
+            </>
           )}
         </div>
       )}
