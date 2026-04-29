@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Save, ChevronDown, ChevronRight, RotateCcw, FileText } from "lucide-react"
+import { X, Save, ChevronDown, ChevronRight, RotateCcw, FileText, Zap } from "lucide-react"
 
 interface CharacterData {
   name?: string
@@ -38,6 +38,19 @@ interface BattleConfigRow {
   step: number
 }
 
+interface SkillRow {
+  id: string
+  name: string
+  type: string
+  max_skp: number
+  unlock_level: number
+  base_effect_value: number
+  effect_coeff: number
+  mp_cost: number
+  description: string
+  invested: number
+}
+
 interface SettingsDrawerProps {
   char: CharacterData | null
   onCharUpdated: () => void
@@ -68,7 +81,12 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const [charEdits, setCharEdits] = useState<Record<string, string>>({})
   const [nameEdit, setNameEdit] = useState<string>("")
   const [charSaving, setCharSaving] = useState(false)
-  const [showChar, setShowChar] = useState(true)
+  const [showChar, setShowChar] = useState(false)
+
+  const [skills, setSkills] = useState<SkillRow[]>([])
+  const [skillEdits, setSkillEdits] = useState<Record<string, number>>({})
+  const [skillSaving, setSkillSaving] = useState(false)
+  const [showSkills, setShowSkills] = useState(false)
 
   const [configs, setConfigs] = useState<ConfigRow[]>([])
   const [configEdits, setConfigEdits] = useState<Record<string, string>>({})
@@ -100,6 +118,34 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
     setNameEdit(char.name ?? "전사")
   }, [char])
 
+  const fetchSkills = useCallback(async () => {
+    const res = await fetch("/api/skills")
+    if (res.ok) {
+      const data = await res.json()
+      setSkills(data.skills)
+      const map: Record<string, number> = {}
+      data.skills.forEach((s: SkillRow) => { map[s.id] = s.invested })
+      setSkillEdits(map)
+    }
+  }, [])
+
+  const saveSkills = async () => {
+    setSkillSaving(true)
+    try {
+      const res = await fetch("/api/skills", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ investments: skillEdits }),
+      })
+      if (res.ok) {
+        await fetchSkills()
+        onCharUpdated()
+      }
+    } finally {
+      setSkillSaving(false)
+    }
+  }
+
   const fetchConfig = useCallback(async () => {
     const res = await fetch("/api/config")
     if (res.ok) {
@@ -125,10 +171,11 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   useEffect(() => {
     fetchConfig()
     fetchBattleConfig()
+    fetchSkills()
     fetch("/api/prompt").then((r) => r.ok && r.json()).then((d) => {
       if (d) { setPromptContent(d.content ?? ""); setPromptInput(d.content ?? "") }
     })
-  }, [fetchConfig, fetchBattleConfig])
+  }, [fetchConfig, fetchBattleConfig, fetchSkills])
 
   const saveChar = async () => {
     setCharSaving(true)
@@ -313,6 +360,92 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                 <Save className="w-4 h-4" />
                 {charSaving ? "저장 중..." : "일괄 저장"}
               </button>
+            </div>
+          )}
+
+          {/* 스킬 편집 */}
+          <button
+            onClick={() => setShowSkills(!showSkills)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
+          >
+            <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Zap className="w-4 h-4 text-yellow-400" />
+              스킬 편집
+            </span>
+            {showSkills ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {showSkills && (
+            <div className="px-4 pt-3 pb-4">
+              {skills.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">불러오는 중...</p>
+              ) : (
+                <>
+                  <div className="mb-3 flex items-center justify-between bg-yellow-50 rounded-xl px-3 py-2">
+                    <span className="text-xs text-yellow-800 font-bold">잔여 스킬 포인트</span>
+                    <span className="text-sm font-bold text-yellow-600">
+                      {(char?.skill_points ?? 0) - Object.entries(skillEdits).reduce((acc, [id, pts]) => {
+                        const orig = skills.find((s) => s.id === id)?.invested ?? 0
+                        return acc + (pts - orig)
+                      }, 0)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {skills.map((skill) => {
+                      const current = skillEdits[skill.id] ?? skill.invested
+                      const origInvested = skill.invested
+                      const totalDelta = Object.entries(skillEdits).reduce((acc, [id, pts]) => {
+                        const orig = skills.find((s) => s.id === id)?.invested ?? 0
+                        return acc + (pts - orig)
+                      }, 0)
+                      const remaining = (char?.skill_points ?? 0) - totalDelta
+                      const canAdd = remaining > 0 && current < skill.max_skp
+                      return (
+                        <div key={skill.id} className="bg-muted rounded-xl px-3 py-2.5">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-foreground">{skill.name}</span>
+                                <span className="text-[9px] px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-bold">{skill.type}</span>
+                                <span className="text-[9px] text-muted-foreground">Lv.{skill.unlock_level}</span>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{skill.description}</p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => setSkillEdits((p) => ({ ...p, [skill.id]: Math.max(0, current - 1) }))}
+                                disabled={current <= 0}
+                                className="w-6 h-6 flex items-center justify-center bg-background border border-border rounded-lg text-sm font-bold disabled:opacity-30 active:scale-95"
+                              >−</button>
+                              <span className="text-xs font-bold text-foreground w-10 text-center">{current}/{skill.max_skp}</span>
+                              <button
+                                onClick={() => setSkillEdits((p) => ({ ...p, [skill.id]: current + 1 }))}
+                                disabled={!canAdd}
+                                className="w-6 h-6 flex items-center justify-center bg-background border border-border rounded-lg text-sm font-bold disabled:opacity-30 active:scale-95"
+                              >+</button>
+                            </div>
+                          </div>
+                          {skill.max_skp > 0 && (
+                            <div className="w-full h-1 bg-background rounded-full mt-1.5">
+                              <div
+                                className="h-1 bg-yellow-400 rounded-full transition-all"
+                                style={{ width: `${(current / skill.max_skp) * 100}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <button
+                    onClick={saveSkills}
+                    disabled={skillSaving}
+                    className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+                  >
+                    <Save className="w-4 h-4" />
+                    {skillSaving ? "저장 중..." : "일괄 저장"}
+                  </button>
+                </>
+              )}
             </div>
           )}
 
