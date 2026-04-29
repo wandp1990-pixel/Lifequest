@@ -533,7 +533,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         const expanded = expandedRoutineIds.has(r.id)
         const isAddingItem = addingItemFor === r.id
         return (
-          <div key={r.id} className="mx-4 mb-2 bg-background border border-teal-100 rounded-2xl overflow-hidden">
+          <div key={r.id} className="mx-4 mt-2 bg-background border border-teal-100 rounded-2xl overflow-hidden">
             {editingRoutineNameId === r.id ? (
               <div className="flex items-center gap-1.5 px-4 py-3">
                 <input
