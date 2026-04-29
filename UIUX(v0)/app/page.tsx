@@ -135,7 +135,7 @@ export default function GamePage() {
         style={{ minHeight: "100dvh", maxHeight: "100dvh" }}
       >
         <div className="flex-shrink-0 bg-background">
-          <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} />
+          <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} onRefresh={fetchChar} />
           <CharacterPanel
             name={char?.name ?? "모험가"}
             hp={char ? calcRegen(
