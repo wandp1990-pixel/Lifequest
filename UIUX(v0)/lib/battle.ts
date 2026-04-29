@@ -205,13 +205,16 @@ export function generateMonster(
   gameCfg: Record<string, string>
 ): Monster {
   const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
+  const GRADE_UNLOCK_AT: Record<string, number> = { C: 0, B: 1, A: 5, S: 15, SR: 30, SSR: 60, UR: 100 }
   type GradeEntry = { grade: string; prob: number; coeff: number; tickets: number }
-  const gradePool: GradeEntry[] = GRADE_KEYS.map((g) => ({
-    grade: g,
-    prob:    parseFloat(gameCfg[`monster_grade_${g}_prob`]    ?? "0"),
-    coeff:   parseFloat(gameCfg[`monster_grade_${g}_mult`]    ?? "1"),
-    tickets: parseInt(gameCfg[`monster_grade_${g}_tickets`]   ?? "1"),
-  }))
+  const gradePool: GradeEntry[] = GRADE_KEYS
+    .filter((g) => clearCount >= (GRADE_UNLOCK_AT[g] ?? 0))
+    .map((g) => ({
+      grade: g,
+      prob:    parseFloat(gameCfg[`monster_grade_${g}_prob`]    ?? "0"),
+      coeff:   parseFloat(gameCfg[`monster_grade_${g}_mult`]    ?? "1"),
+      tickets: parseInt(gameCfg[`monster_grade_${g}_tickets`]   ?? "1"),
+    }))
   const picked = weightedPick(gradePool, (g) => g.prob)
 
   type RaceEntry = { name: string } & RaceMeta
