@@ -48,6 +48,7 @@ type CharacterData = {
     double_attack: boolean; life_steal: boolean; def_ignore: boolean; reflect: boolean
   }
   item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
+  max_cleared_grade?: string | null
 }
 
 export default function GamePage() {

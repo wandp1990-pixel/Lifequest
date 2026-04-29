@@ -66,6 +66,7 @@ type CharData = {
   luk: number
   draw_tickets: number
   clear_count?: number
+  max_cleared_grade?: string | null
 }
 
 interface BattleTabProps {
@@ -221,6 +222,19 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const level      = char?.level ?? 1
   const coeff      = ((1 + clearCount * 0.03) * (1 + Math.max(0, level - 1) * 0.04)).toFixed(2)
 
+  const GRADE_KEYS  = ["C", "B", "A", "S", "SR", "SSR", "UR"]
+  const GRADE_META: Record<string, { name: string; color: string }> = {
+    C: { name: "잡몹",     color: "#808080" },
+    B: { name: "정예",     color: "#2E8B57" },
+    A: { name: "희귀",     color: "#1E90FF" },
+    S: { name: "네임드",   color: "#DC143C" },
+    SR:  { name: "필드보스", color: "#8A2BE2" },
+    SSR: { name: "재앙",   color: "#DAA520" },
+    UR:  { name: "종말",   color: "#FF8C00" },
+  }
+  const maxClearedIdx   = char?.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
+  const unlockedGrades  = GRADE_KEYS.slice(0, maxClearedIdx + 2)
+
   // ── Lobby / Loading ──────────────────────────────────────────────────────────
   if (phase !== "result") {
     return (
@@ -243,8 +257,16 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
               </div>
             ))}
           </div>
-          <div className="mt-2 text-right text-[10px] text-muted-foreground">
-            몬스터 강도 ×{coeff}
+          <div className="mt-2 flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground">해금 등급</span>
+              {unlockedGrades.map((g) => (
+                <span key={g} className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ color: GRADE_META[g].color, background: GRADE_META[g].color + "22" }}>
+                  {g}
+                </span>
+              ))}
+            </div>
+            <span className="text-[10px] text-muted-foreground">몬스터 강도 ×{coeff}</span>
           </div>
         </div>
 
