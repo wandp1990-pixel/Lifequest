@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { X, Save, ChevronDown, ChevronRight, RotateCcw, FileText, Zap } from "lucide-react"
+import { X, Save, ChevronDown, ChevronRight, RotateCcw, FileText, Zap, Database, Plus, Trash2 } from "lucide-react"
 
 interface CharacterData {
   name?: string
@@ -49,6 +49,31 @@ interface SkillRow {
   mp_cost: number
   description: string
   invested: number
+}
+
+interface SkillDbRow {
+  id: string
+  name: string
+  type: string
+  max_skp: number
+  unlock_level: number
+  base_effect_value: number
+  effect_coeff: number
+  base_trigger_param: number
+  trigger_param_coeff: number
+  mp_cost: number
+  mp_cost_coeff: number
+  effect_code: string
+  trigger_condition: string
+  description: string
+  is_active: number
+}
+
+const EMPTY_SKILL_DB: Omit<SkillDbRow, "id"> = {
+  name: "", type: "active", max_skp: 20, unlock_level: 1,
+  base_effect_value: 0, effect_coeff: 0, base_trigger_param: 0,
+  trigger_param_coeff: 0, mp_cost: 0, mp_cost_coeff: 0,
+  effect_code: "", trigger_condition: "", description: "", is_active: 1,
 }
 
 interface SettingsDrawerProps {
@@ -104,6 +129,16 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const [savingPrompt, setSavingPrompt] = useState(false)
   const [promptSaved, setPromptSaved] = useState(false)
 
+  const [skillDb, setSkillDb] = useState<SkillDbRow[]>([])
+  const [skillDbEdits, setSkillDbEdits] = useState<Record<string, SkillDbRow>>({})
+  const [skillDbExpanded, setSkillDbExpanded] = useState<Record<string, boolean>>({})
+  const [skillDbSaving, setSkillDbSaving] = useState<string | null>(null)
+  const [showSkillDb, setShowSkillDb] = useState(false)
+  const [showAddSkill, setShowAddSkill] = useState(false)
+  const [newSkill, setNewSkill] = useState<{ id: string } & Omit<SkillDbRow, "id">>({ id: "", ...EMPTY_SKILL_DB })
+  const [addingSkill, setAddingSkill] = useState(false)
+  const [deletingSkill, setDeletingSkill] = useState<string | null>(null)
+
   const [showReset, setShowReset] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -146,6 +181,77 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
     }
   }
 
+  const fetchSkillDb = useCallback(async () => {
+    const res = await fetch("/api/skill-db")
+    if (res.ok) {
+      const data = await res.json()
+      setSkillDb(data.skills)
+      const map: Record<string, SkillDbRow> = {}
+      data.skills.forEach((s: SkillDbRow) => { map[s.id] = { ...s } })
+      setSkillDbEdits(map)
+    }
+  }, [])
+
+  const saveSkillDbRow = async (id: string) => {
+    setSkillDbSaving(id)
+    try {
+      const row = skillDbEdits[id]
+      const res = await fetch("/api/skill-db", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(row),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSkillDb(data.skills)
+        const map: Record<string, SkillDbRow> = {}
+        data.skills.forEach((s: SkillDbRow) => { map[s.id] = { ...s } })
+        setSkillDbEdits(map)
+      }
+    } finally {
+      setSkillDbSaving(null)
+    }
+  }
+
+  const addSkillDb = async () => {
+    if (!newSkill.id.trim() || !newSkill.name.trim()) return
+    setAddingSkill(true)
+    try {
+      const res = await fetch("/api/skill-db", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSkill),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setSkillDb(data.skills)
+        const map: Record<string, SkillDbRow> = {}
+        data.skills.forEach((s: SkillDbRow) => { map[s.id] = { ...s } })
+        setSkillDbEdits(map)
+        setNewSkill({ id: "", ...EMPTY_SKILL_DB })
+        setShowAddSkill(false)
+      }
+    } finally {
+      setAddingSkill(false)
+    }
+  }
+
+  const removeSkillDb = async (id: string) => {
+    setDeletingSkill(id)
+    try {
+      const res = await fetch(`/api/skill-db?id=${encodeURIComponent(id)}`, { method: "DELETE" })
+      if (res.ok) {
+        const data = await res.json()
+        setSkillDb(data.skills)
+        const map: Record<string, SkillDbRow> = {}
+        data.skills.forEach((s: SkillDbRow) => { map[s.id] = { ...s } })
+        setSkillDbEdits(map)
+      }
+    } finally {
+      setDeletingSkill(null)
+    }
+  }
+
   const fetchConfig = useCallback(async () => {
     const res = await fetch("/api/config")
     if (res.ok) {
@@ -172,10 +278,11 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
     fetchConfig()
     fetchBattleConfig()
     fetchSkills()
+    fetchSkillDb()
     fetch("/api/prompt").then((r) => r.ok && r.json()).then((d) => {
       if (d) { setPromptContent(d.content ?? ""); setPromptInput(d.content ?? "") }
     })
-  }, [fetchConfig, fetchBattleConfig, fetchSkills])
+  }, [fetchConfig, fetchBattleConfig, fetchSkills, fetchSkillDb])
 
   const saveChar = async () => {
     setCharSaving(true)
@@ -445,6 +552,162 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                     {skillSaving ? "저장 중..." : "일괄 저장"}
                   </button>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* 스킬 DB 에디터 */}
+          <button
+            onClick={() => setShowSkillDb(!showSkillDb)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
+          >
+            <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <Database className="w-4 h-4 text-emerald-400" />
+              스킬 DB 에디터
+            </span>
+            {showSkillDb ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {showSkillDb && (
+            <div className="px-4 pt-3 pb-4">
+              {skillDb.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">불러오는 중...</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {skillDb.map((skill) => {
+                    const edit = skillDbEdits[skill.id] ?? skill
+                    const expanded = skillDbExpanded[skill.id] ?? false
+                    const isDirty = JSON.stringify(edit) !== JSON.stringify(skill)
+                    return (
+                      <div key={skill.id} className={`rounded-xl border ${edit.is_active ? "border-emerald-200 bg-emerald-50" : "border-border bg-muted"}`}>
+                        {/* 헤더 */}
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <button
+                            onClick={() => setSkillDbExpanded((p) => ({ ...p, [skill.id]: !expanded }))}
+                            className="flex-1 flex items-center gap-2 min-w-0 text-left"
+                          >
+                            {expanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />}
+                            <span className="text-xs font-bold text-foreground truncate">{edit.name || skill.id}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-bold flex-shrink-0">{edit.type}</span>
+                            <span className="text-[9px] text-muted-foreground flex-shrink-0">Lv.{edit.unlock_level}</span>
+                            {!edit.is_active && <span className="text-[9px] px-1.5 py-0.5 bg-red-100 text-red-500 rounded-full font-bold flex-shrink-0">비활성</span>}
+                          </button>
+                          {isDirty && (
+                            <button
+                              onClick={() => saveSkillDbRow(skill.id)}
+                              disabled={skillDbSaving === skill.id}
+                              className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-bold disabled:opacity-50 active:scale-95"
+                            >
+                              <Save className="w-3 h-3" />
+                              {skillDbSaving === skill.id ? "..." : "저장"}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => removeSkillDb(skill.id)}
+                            disabled={deletingSkill === skill.id}
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-lg bg-red-50 text-red-400 active:scale-95 disabled:opacity-40"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                        {/* 펼쳐진 편집 폼 */}
+                        {expanded && (
+                          <div className="border-t border-border px-3 py-3 flex flex-col gap-2">
+                            {([
+                              ["name", "이름", "text"],
+                              ["type", "타입", "text"],
+                              ["unlock_level", "해금 레벨", "number"],
+                              ["max_skp", "최대 SKP", "number"],
+                              ["base_effect_value", "기본 효과값", "number"],
+                              ["effect_coeff", "효과 계수", "number"],
+                              ["base_trigger_param", "기본 발동값", "number"],
+                              ["trigger_param_coeff", "발동 계수", "number"],
+                              ["mp_cost", "MP 비용", "number"],
+                              ["mp_cost_coeff", "MP 비용 계수", "number"],
+                              ["effect_code", "효과 코드", "text"],
+                              ["trigger_condition", "발동 조건", "text"],
+                              ["description", "설명", "text"],
+                            ] as [keyof SkillDbRow, string, string][]).map(([field, label, type]) => (
+                              <div key={field} className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] text-muted-foreground flex-shrink-0">{label}</span>
+                                <input
+                                  type={type}
+                                  value={String(edit[field] ?? "")}
+                                  onChange={(e) => setSkillDbEdits((p) => ({
+                                    ...p,
+                                    [skill.id]: { ...p[skill.id], [field]: type === "number" ? Number(e.target.value) : e.target.value },
+                                  }))}
+                                  className="flex-1 min-w-0 text-right text-[10px] font-bold bg-background border border-border rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-emerald-300"
+                                />
+                              </div>
+                            ))}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] text-muted-foreground">활성화</span>
+                              <button
+                                onClick={() => setSkillDbEdits((p) => ({
+                                  ...p,
+                                  [skill.id]: { ...p[skill.id], is_active: p[skill.id].is_active ? 0 : 1 },
+                                }))}
+                                className={`px-3 py-1 rounded-lg text-[10px] font-bold ${edit.is_active ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground border border-border"}`}
+                              >
+                                {edit.is_active ? "ON" : "OFF"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* 새 스킬 추가 */}
+              <button
+                onClick={() => setShowAddSkill(!showAddSkill)}
+                className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-emerald-300 text-emerald-600 rounded-xl text-xs font-bold active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                새 스킬 추가
+              </button>
+              {showAddSkill && (
+                <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 flex flex-col gap-2">
+                  {([
+                    ["id", "ID (고유값)", "text"],
+                    ["name", "이름", "text"],
+                    ["type", "타입", "text"],
+                    ["unlock_level", "해금 레벨", "number"],
+                    ["max_skp", "최대 SKP", "number"],
+                    ["base_effect_value", "기본 효과값", "number"],
+                    ["effect_coeff", "효과 계수", "number"],
+                    ["base_trigger_param", "기본 발동값", "number"],
+                    ["trigger_param_coeff", "발동 계수", "number"],
+                    ["mp_cost", "MP 비용", "number"],
+                    ["mp_cost_coeff", "MP 비용 계수", "number"],
+                    ["effect_code", "효과 코드", "text"],
+                    ["trigger_condition", "발동 조건", "text"],
+                    ["description", "설명", "text"],
+                  ] as [string, string, string][]).map(([field, label, type]) => (
+                    <div key={field} className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] text-muted-foreground flex-shrink-0">{label}</span>
+                      <input
+                        type={type}
+                        value={String((newSkill as Record<string, unknown>)[field] ?? "")}
+                        onChange={(e) => setNewSkill((p) => ({
+                          ...p,
+                          [field]: type === "number" ? Number(e.target.value) : e.target.value,
+                        }))}
+                        className="flex-1 min-w-0 text-right text-[10px] font-bold bg-background border border-border rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-emerald-300"
+                      />
+                    </div>
+                  ))}
+                  <button
+                    onClick={addSkillDb}
+                    disabled={addingSkill || !newSkill.id.trim() || !newSkill.name.trim()}
+                    className="mt-1 w-full flex items-center justify-center gap-2 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold disabled:opacity-40 active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {addingSkill ? "추가 중..." : "추가"}
+                  </button>
+                </div>
               )}
             </div>
           )}
