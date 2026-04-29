@@ -142,6 +142,8 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const [showReset, setShowReset] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
+  const [confirmPartialReset, setConfirmPartialReset] = useState(false)
+  const [partialResetting, setPartialResetting] = useState(false)
 
   useEffect(() => {
     if (!char) return
@@ -361,13 +363,32 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
         body: JSON.stringify(RESET_VALUES),
       })
       if (res.ok) {
-        await fetch("/api/character", { method: "DELETE" })
+        await fetch("/api/character?mode=full", { method: "DELETE" })
         setConfirmReset(false)
         onClose()
         window.location.reload()
       }
     } finally {
       setResetting(false)
+    }
+  }
+
+  const resetCharacterPartial = async () => {
+    setPartialResetting(true)
+    try {
+      const res = await fetch("/api/character", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(RESET_VALUES),
+      })
+      if (res.ok) {
+        await fetch("/api/character?mode=partial", { method: "DELETE" })
+        setConfirmPartialReset(false)
+        onClose()
+        window.location.reload()
+      }
+    } finally {
+      setPartialResetting(false)
     }
   }
 
@@ -836,33 +857,70 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
             {showReset ? <ChevronDown className="w-4 h-4 text-red-300" /> : <ChevronRight className="w-4 h-4 text-red-300" />}
           </button>
           {showReset && (
-            <div className="px-4 pt-3 pb-4">
-              <p className="text-xs text-muted-foreground mb-3">레벨·스탯·EXP가 모두 초기화됩니다. 복구할 수 없습니다.</p>
-              {!confirmReset ? (
-                <button
-                  onClick={() => setConfirmReset(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-500 border border-red-200 rounded-xl text-sm font-bold active:scale-95"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  초기화
-                </button>
-              ) : (
-                <div className="flex gap-2">
+            <div className="px-4 pt-3 pb-4 flex flex-col gap-3">
+
+              {/* 소프트 초기화 */}
+              <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-3">
+                <p className="text-xs font-bold text-orange-700 mb-0.5">소프트 초기화</p>
+                <p className="text-[10px] text-orange-500 mb-3">레벨·스탯·기록·장비·스킬을 초기화합니다.<br/>할일·습관·루틴 항목은 유지됩니다.</p>
+                {!confirmPartialReset ? (
                   <button
-                    onClick={() => setConfirmReset(false)}
-                    className="flex-1 py-2.5 bg-muted text-muted-foreground rounded-xl text-sm font-bold active:scale-95"
+                    onClick={() => setConfirmPartialReset(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-orange-100 text-orange-600 border border-orange-200 rounded-xl text-sm font-bold active:scale-95"
                   >
-                    취소
+                    <RotateCcw className="w-4 h-4" />
+                    소프트 초기화
                   </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmPartialReset(false)}
+                      className="flex-1 py-2 bg-muted text-muted-foreground rounded-xl text-sm font-bold active:scale-95"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={resetCharacterPartial}
+                      disabled={partialResetting}
+                      className="flex-1 py-2 bg-orange-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+                    >
+                      {partialResetting ? "초기화 중..." : "확인"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 완전 초기화 */}
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-3">
+                <p className="text-xs font-bold text-red-600 mb-0.5">완전 초기화</p>
+                <p className="text-[10px] text-red-400 mb-3">모든 데이터를 초기화합니다.<br/>할일·습관·루틴 항목도 삭제됩니다. 복구 불가.</p>
+                {!confirmReset ? (
                   <button
-                    onClick={resetCharacter}
-                    disabled={resetting}
-                    className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+                    onClick={() => setConfirmReset(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2 bg-red-100 text-red-500 border border-red-200 rounded-xl text-sm font-bold active:scale-95"
                   >
-                    {resetting ? "초기화 중..." : "확인"}
+                    <RotateCcw className="w-4 h-4" />
+                    완전 초기화
                   </button>
-                </div>
-              )}
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmReset(false)}
+                      className="flex-1 py-2 bg-muted text-muted-foreground rounded-xl text-sm font-bold active:scale-95"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={resetCharacter}
+                      disabled={resetting}
+                      className="flex-1 py-2 bg-red-500 text-white rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95"
+                    >
+                      {resetting ? "초기화 중..." : "확인"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 

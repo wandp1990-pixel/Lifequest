@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initDb, getCharacter, getGameConfig, updateCharacter, getBattleConfig, getClient } from "@/lib/db"
 import { requiredExp, recalcHpMp } from "@/lib/game"
+import { ensureChecklistItems } from "@/lib/db/seed"
 
 export async function GET() {
   try {
@@ -18,16 +19,31 @@ export async function GET() {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   try {
     await initDb()
     const db = getClient()
+    const mode = new URL(req.url).searchParams.get("mode") ?? "full"
+
     await db.execute("DELETE FROM activity_log")
     await db.execute("DELETE FROM checklist_log")
     await db.execute("DELETE FROM equipment")
     await db.execute("DELETE FROM routine_log")
     await db.execute("DELETE FROM routine_bonus_log")
-    await db.execute("DELETE FROM todo_item")
+    await db.execute("DELETE FROM skill_log")
+    await db.execute("DELETE FROM battle_log")
+    await db.execute("DELETE FROM attendance_log")
+
+    if (mode === "full") {
+      await db.execute("DELETE FROM todo_item")
+      await db.execute("DELETE FROM checklist_item")
+      await db.execute("DELETE FROM routine_item")
+      await db.execute("DELETE FROM routine")
+      await ensureChecklistItems(db)
+    } else {
+      await db.execute("UPDATE checklist_item SET streak=0, best_streak=0")
+    }
+
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
