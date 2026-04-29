@@ -83,6 +83,8 @@ export type CombatStats = {
   life_steal_ratio: number
   defense_ignore_ratio: number
   reflect_ratio: number
+  bonus_accuracy: number
+  bonus_evasion: number
 }
 
 export type TurnLog = {
@@ -275,6 +277,7 @@ export function buildPlayerCombatStats(
   let eStr = 0, eInt = 0, eVit = 0
   let bonusCritRate = 0, bonusCritDmg = 0
   let doubleAtkChance = 0, lifeStealRatio = 0, defIgnoreRatio = 0, reflectRatio = 0
+  let bonusAccuracy = 0, bonusEvasion = 0
 
   for (const raw of equippedOptions) {
     let lines: string[] = []
@@ -318,6 +321,8 @@ export function buildPlayerCombatStats(
       else if (k === "MP증가")                      eMp   += v
       else if (k === "치명타확률")                  bonusCritRate += v / 100
       else if (k === "치명타피해")                  bonusCritDmg  += v
+      else if (k === "명중률")                      bonusAccuracy += v / 100
+      else if (k === "회피율")                      bonusEvasion  += v / 100
     }
   }
 
@@ -350,6 +355,40 @@ export function buildPlayerCombatStats(
     life_steal_ratio:     lifeStealRatio,
     defense_ignore_ratio: defIgnoreRatio,
     reflect_ratio:        reflectRatio,
+    bonus_accuracy:       bonusAccuracy,
+    bonus_evasion:        bonusEvasion,
+  }
+}
+
+export function parseEquippedStatBonuses(
+  equippedOptions: string[]
+): { str: number; vit: number; dex: number; int_stat: number; luk: number } {
+  const b = { str: 0, vit: 0, dex: 0, int_stat: 0, luk: 0 }
+  for (const raw of equippedOptions) {
+    let lines: string[] = []
+    try {
+      const parsed = JSON.parse(raw ?? "[]")
+      if (Array.isArray(parsed)) lines = parsed as string[]
+    } catch {}
+    for (const line of lines) {
+      if (typeof line !== "string" || line.startsWith("[")) continue
+      const isPct = line.endsWith("%")
+      const noUnit = isPct ? line.slice(0, -1) : line
+      const plusIdx = noUnit.lastIndexOf(" +")
+      if (plusIdx < 0) continue
+      const k = noUnit.slice(0, plusIdx).trim()
+      const v = parseFloat(noUnit.slice(plusIdx + 2))
+      if (isNaN(v)) continue
+      if      (k === "STR(힘)")    b.str      += v
+      else if (k === "VIT(체력)")  b.vit      += v
+      else if (k === "DEX(민첩)")  b.dex      += v
+      else if (k === "INT(지능)")  b.int_stat += v
+      else if (k === "LUK(운)")    b.luk      += v
+    }
+  }
+  return {
+    str: Math.round(b.str), vit: Math.round(b.vit),
+    dex: Math.round(b.dex), int_stat: Math.round(b.int_stat), luk: Math.round(b.luk),
   }
 }
 
@@ -367,6 +406,7 @@ type Combatant = {
   bonus_crit_rate: number; bonus_crit_dmg: number
   double_attack_chance: number; life_steal_ratio: number
   defense_ignore_ratio: number; reflect_ratio: number
+  bonus_accuracy: number; bonus_evasion: number
 }
 
 const SKILL_MP_COST = 10
@@ -376,8 +416,8 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   const baseAcc    = parseFloat(cfg.base_accuracy    ?? "0.9")
   const accPerDex  = parseFloat(cfg.accuracy_per_dex ?? "0.005")
   const evPerDex   = parseFloat(cfg.evasion_per_dex  ?? "0.003")
-  const hitRate    = clamp(baseAcc + (atk.dex - def.dex) * accPerDex, 0.05, 0.99)
-  const evRate     = clamp((def.dex - atk.dex) * evPerDex, 0, 0.9)
+  const hitRate    = clamp(baseAcc + (atk.dex - def.dex) * accPerDex + atk.bonus_accuracy, 0.05, 0.99)
+  const evRate     = clamp((def.dex - atk.dex) * evPerDex + def.bonus_evasion, 0, 0.9)
 
   if (Math.random() > hitRate) return { hit: false as const, reason: "accuracy_fail" as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
   if (Math.random() < evRate)  return { hit: false as const, reason: "evaded"        as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
@@ -442,6 +482,7 @@ export function runBattle(
     bonus_crit_rate: 0, bonus_crit_dmg: 0,
     double_attack_chance: 0, life_steal_ratio: 0,
     defense_ignore_ratio: 0, reflect_ratio: 0,
+    bonus_accuracy: 0, bonus_evasion: 0,
   }
   const plyCombat: Combatant = playerCombat
 

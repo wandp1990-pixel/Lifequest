@@ -41,6 +41,13 @@ type CharacterData = {
   dex: number
   int_stat: number
   luk: number
+  effective?: {
+    patk: number; matk: number; pdef: number; mdef: number
+    dex: number; luk: number; max_hp: number; max_mp: number
+    crit_rate: number; accuracy_bonus: number; evasion_bonus: number
+    double_attack: boolean; life_steal: boolean; def_ignore: boolean; reflect: boolean
+  }
+  item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
 }
 
 export default function GamePage() {
@@ -84,7 +91,7 @@ export default function GamePage() {
       <>
         {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} />}
         {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} />}
-        {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} />}
+        {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} itemStatBonuses={char?.item_stat_bonuses} effectiveStats={char?.effective} />}
         {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />}
         <div className={activeTab === "battle" ? "block" : "hidden"}>
           <BattleTab char={char} onExpGained={handleExpGained} />

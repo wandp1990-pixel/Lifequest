@@ -42,6 +42,25 @@ function effectLabel(skill: Skill) {
   return `${val.toFixed(1)}${unit}`
 }
 
+// ─── 전투 스탯 요약 헬퍼 ─────────────────────────────────────────────────────
+
+function CombatStatRow({ label, value, color }: { label: string; value: number | string; color: string }) {
+  return (
+    <div className="flex items-center justify-between gap-1 min-w-0">
+      <span className="text-[10px] text-muted-foreground truncate">{label}</span>
+      <span className={`text-[11px] font-bold shrink-0 ${color}`}>{value}</span>
+    </div>
+  )
+}
+
+function PassiveBadge({ label }: { label: string }) {
+  return (
+    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-700/50">
+      ✦ {label}
+    </span>
+  )
+}
+
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 interface CharacterTabProps {
@@ -50,6 +69,13 @@ interface CharacterTabProps {
     stat_points: number; skill_points: number; level: number
   } | null
   onCharUpdated: () => void
+  itemStatBonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
+  effectiveStats?: {
+    patk: number; matk: number; pdef: number; mdef: number
+    dex: number; luk: number; max_hp: number; max_mp: number
+    crit_rate: number; accuracy_bonus: number; evasion_bonus: number
+    double_attack: boolean; life_steal: boolean; def_ignore: boolean; reflect: boolean
+  }
 }
 
 // ─── 스킬 카드 ───────────────────────────────────────────────────────────────
@@ -156,7 +182,7 @@ function SkillCard({
 
 // ─── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
-export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps) {
+export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, effectiveStats }: CharacterTabProps) {
   const [view, setView] = useState<"stat" | "skill">("stat")
 
   // 스탯
@@ -325,21 +351,29 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
             {STATS.map(({ key, label, desc, icon: Icon, color, bar, bg, border }) => {
               const base = baseStats[key]
               const added = statDelta[key]
+              const itemBonus = itemStatBonuses?.[key] ?? 0
               const total = base + added
+              const hasItemBonus = itemBonus > 0
+              const isHighlighted = added > 0 || hasItemBonus
               return (
-                <div key={key} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${added > 0 ? `${bg} ${border}` : "bg-background border-border"}`}>
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${added > 0 ? `${bg}` : "bg-muted"}`}>
-                    <Icon className={`w-5 h-5 ${added > 0 ? color : "text-muted-foreground"}`} />
+                <div key={key} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isHighlighted ? `${bg} ${border}` : "bg-background border-border"}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isHighlighted ? `${bg}` : "bg-muted"}`}>
+                    <Icon className={`w-5 h-5 ${isHighlighted ? color : "text-muted-foreground"}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className={`text-xs font-bold ${added > 0 ? color : "text-muted-foreground"}`}>{label}</span>
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className={`text-xs font-bold ${isHighlighted ? color : "text-muted-foreground"}`}>{label}</span>
                       <span className="text-xs text-muted-foreground">{desc}</span>
+                      {hasItemBonus && (
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
+                          🗡+{itemBonus} → {total + itemBonus}
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${bar}`}
-                        style={{ width: `${Math.min(100, (total / 100) * 100)}%` }}
+                        style={{ width: `${Math.min(100, ((total + itemBonus) / 100) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -352,7 +386,7 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
                       <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     </button>
                     <div className="w-10 text-center">
-                      <span className={`text-base font-extrabold ${added > 0 ? color : "text-foreground"}`}>{total}</span>
+                      <span className={`text-base font-extrabold ${isHighlighted ? color : "text-foreground"}`}>{total}</span>
                       {added > 0 && (
                         <span className={`block text-[10px] font-bold ${color}`}>+{added}</span>
                       )}
@@ -370,6 +404,40 @@ export default function CharacterTab({ char, onCharUpdated }: CharacterTabProps)
                 </div>
               )
             })}
+
+            {/* 전투 스탯 요약 */}
+            {effectiveStats && (
+              <div className="mt-1 rounded-xl border border-border bg-muted/30 px-4 py-3">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5">⚔ 전투 스탯</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  <CombatStatRow label="물리 공격력" value={effectiveStats.patk} color="text-red-500" />
+                  <CombatStatRow label="마법 공격력" value={effectiveStats.matk} color="text-violet-500" />
+                  <CombatStatRow label="물리 방어력" value={effectiveStats.pdef} color="text-emerald-500" />
+                  <CombatStatRow label="마법 방어력" value={effectiveStats.mdef} color="text-sky-500" />
+                  <CombatStatRow label="최대 HP" value={effectiveStats.max_hp} color="text-red-400" />
+                  <CombatStatRow label="최대 MP" value={effectiveStats.max_mp} color="text-blue-400" />
+                  <CombatStatRow label="DEX" value={effectiveStats.dex} color="text-cyan-500" />
+                  <CombatStatRow label="LUK" value={effectiveStats.luk} color="text-amber-500" />
+                  {effectiveStats.crit_rate > 0 && (
+                    <CombatStatRow label="치명타율" value={`+${effectiveStats.crit_rate}%`} color="text-orange-500" />
+                  )}
+                  {effectiveStats.accuracy_bonus > 0 && (
+                    <CombatStatRow label="명중 보너스" value={`+${effectiveStats.accuracy_bonus}%`} color="text-teal-500" />
+                  )}
+                  {effectiveStats.evasion_bonus > 0 && (
+                    <CombatStatRow label="회피 보너스" value={`+${effectiveStats.evasion_bonus}%`} color="text-lime-500" />
+                  )}
+                </div>
+                {(effectiveStats.double_attack || effectiveStats.life_steal || effectiveStats.def_ignore || effectiveStats.reflect) && (
+                  <div className="flex flex-wrap gap-1.5 mt-2.5">
+                    {effectiveStats.double_attack && <PassiveBadge label="더블어택" />}
+                    {effectiveStats.life_steal    && <PassiveBadge label="생명흡수" />}
+                    {effectiveStats.def_ignore    && <PassiveBadge label="방어무시" />}
+                    {effectiveStats.reflect       && <PassiveBadge label="반사" />}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 저장 버튼 */}

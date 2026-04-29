@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { initDb, getCharacter, getGameConfig, updateCharacter, getBattleConfig, getClient } from "@/lib/db"
+import { initDb, getCharacter, getGameConfig, updateCharacter, getBattleConfig, getClient, getEquipment, getSkillsWithInvestment } from "@/lib/db"
 import { requiredExp, recalcHpMp } from "@/lib/game"
+import { buildPlayerCombatStats, parseEquippedStatBonuses } from "@/lib/battle"
 import { ensureChecklistItems } from "@/lib/db/seed"
 
 export async function GET() {
@@ -10,9 +11,40 @@ export async function GET() {
     if (!char) {
       return NextResponse.json({ error: "캐릭터 데이터 없음" }, { status: 404 })
     }
-    const cfg = await getGameConfig()
+    const [cfg, bcfg, equipment, allSkills] = await Promise.all([
+      getGameConfig(), getBattleConfig(), getEquipment(), getSkillsWithInvestment(),
+    ])
     const nextExp = requiredExp(char.level, cfg)
-    return NextResponse.json({ ...char, next_exp: nextExp })
+
+    const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+      .filter((e) => e.is_equipped === 1)
+      .map((e) => e.options)
+
+    const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, allSkills)
+    const itemStatBonuses = parseEquippedStatBonuses(equippedOptions)
+
+    return NextResponse.json({
+      ...char,
+      next_exp: nextExp,
+      effective: {
+        patk:          Math.round(cs.patk),
+        matk:          Math.round(cs.matk),
+        pdef:          Math.round(cs.pdef),
+        mdef:          Math.round(cs.mdef),
+        dex:           Math.round(cs.dex),
+        luk:           Math.round(cs.luk),
+        max_hp:        Math.round(cs.max_hp),
+        max_mp:        Math.round(cs.max_mp),
+        crit_rate:     Math.round(cs.bonus_crit_rate * 1000) / 10,
+        accuracy_bonus: Math.round(cs.bonus_accuracy * 1000) / 10,
+        evasion_bonus:  Math.round(cs.bonus_evasion * 1000) / 10,
+        double_attack: cs.double_attack_chance > 0,
+        life_steal:    cs.life_steal_ratio > 0,
+        def_ignore:    cs.defense_ignore_ratio > 0,
+        reflect:       cs.reflect_ratio > 0,
+      },
+      item_stat_bonuses: itemStatBonuses,
+    })
   } catch (e) {
     console.error("[character]", e)
     return NextResponse.json({ error: String(e) }, { status: 500 })
