@@ -225,6 +225,7 @@ export async function initDb() {
   try { await db.execute("ALTER TABLE character ADD COLUMN task_count INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN name TEXT DEFAULT '전사'") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN attendance_streak INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN max_cleared_grade TEXT DEFAULT NULL") } catch {}
   try { await db.execute("UPDATE character SET name='전사' WHERE id=1 AND (name IS NULL OR name='')") } catch {}
   try {
     await db.execute(

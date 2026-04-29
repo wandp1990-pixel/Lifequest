@@ -23,15 +23,20 @@ export async function POST(req: NextRequest) {
 
     const activeSkills = getActiveSkills(allSkills)
     const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, allSkills)
-    const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg)
+    const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
     const result       = runBattle(playerCombat, monster, battleCfg, activeSkills)
 
     if (result.winner === "플레이어") {
+      const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
+      const prevIdx    = char.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
+      const curIdx     = GRADE_KEYS.indexOf(monster.grade_code)
+      const newMaxGrade = curIdx > prevIdx ? monster.grade_code : (char.max_cleared_grade ?? null)
       await updateCharacter({
-        draw_tickets: char.draw_tickets + result.ticket_reward,
-        clear_count:  (char.clear_count ?? 0) + 1,
-        current_hp:   result.player_max_hp,
-        current_mp:   result.player_max_mp,
+        draw_tickets:      char.draw_tickets + result.ticket_reward,
+        clear_count:       (char.clear_count ?? 0) + 1,
+        current_hp:        result.player_max_hp,
+        current_mp:        result.player_max_mp,
+        max_cleared_grade: newMaxGrade,
       })
     } else {
       // 패배해도 HP/MP 전량 회복

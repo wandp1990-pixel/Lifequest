@@ -20,4 +20,5 @@ export type Character = {
   current_mp: number
   max_mp: number
   attendance_streak: number
+  max_cleared_grade: string | null
 }

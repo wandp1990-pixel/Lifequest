@@ -202,13 +202,15 @@ function weightedPick<T>(pool: T[], weight: (t: T) => number): T {
 export function generateMonster(
   clearCount: number,
   playerLevel: number,
-  gameCfg: Record<string, string>
+  gameCfg: Record<string, string>,
+  maxClearedGrade: string | null = null
 ): Monster {
   const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
-  const GRADE_UNLOCK_AT: Record<string, number> = { C: 0, B: 1, A: 5, S: 15, SR: 30, SSR: 60, UR: 100 }
+  // 클리어한 최고 등급의 다음 등급까지 해금 (null이면 C만)
+  const maxClearedIdx = maxClearedGrade ? GRADE_KEYS.indexOf(maxClearedGrade) : -1
   type GradeEntry = { grade: string; prob: number; coeff: number; tickets: number }
   const gradePool: GradeEntry[] = GRADE_KEYS
-    .filter((g) => clearCount >= (GRADE_UNLOCK_AT[g] ?? 0))
+    .filter((_, i) => i <= maxClearedIdx + 1)
     .map((g) => ({
       grade: g,
       prob:    parseFloat(gameCfg[`monster_grade_${g}_prob`]    ?? "0"),
