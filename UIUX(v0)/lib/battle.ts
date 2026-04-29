@@ -429,8 +429,8 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   if (Math.random() > hitRate) return { hit: false as const, reason: "accuracy_fail" as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
   if (Math.random() < evRate)  return { hit: false as const, reason: "evaded"        as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
 
-  // 방어무시: 장비 패시브 + 전역 설정 합산
-  const ignoreRatio = atk.defense_ignore_ratio + parseFloat(cfg.defense_ignore_ratio ?? "0.0")
+  // 방어무시: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
+  const ignoreRatio = atk.defense_ignore_ratio
   const dmgMin      = parseFloat(cfg.damage_random_min ?? "0.9")
   const dmgMax      = parseFloat(cfg.damage_random_max ?? "1.1")
   const dmgRand     = dmgMin + Math.random() * (dmgMax - dmgMin)
@@ -454,13 +454,13 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
     base *= mult
   }
 
-  // 더블어택: 장비 패시브 + 전역 설정 합산
-  const doubleChance = atk.double_attack_chance + parseFloat(cfg.double_attack_chance ?? "0.0")
+  // 더블어택: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
+  const doubleChance = atk.double_attack_chance
   const isDouble     = Math.random() < doubleChance
   const total        = base * (isDouble ? 2 : 1)
 
-  // 생명흡수: 장비 패시브 + 전역 설정 합산
-  const lifeStealRate = atk.life_steal_ratio + parseFloat(cfg.life_steal_ratio ?? "0.0")
+  // 생명흡수: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
+  const lifeStealRate = atk.life_steal_ratio
 
   return {
     hit: true as const,
