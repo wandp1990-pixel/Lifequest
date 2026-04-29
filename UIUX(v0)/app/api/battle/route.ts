@@ -27,6 +27,15 @@ export async function POST(req: NextRequest) {
     const monster      = body.monster ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
     const result       = runBattle(playerCombat, monster, battleCfg, activeSkills)
 
+    // 전투 후 HP/MP 처리 모드 (full / none / half)
+    const restoreMode = (battleCfg.restore_hp_after_battle ?? "full").toLowerCase()
+    const finalHp = restoreMode === "full" ? Math.round(playerCombat.max_hp)
+                  : restoreMode === "half" ? Math.min(Math.round(playerCombat.max_hp), result.player_final_hp + Math.round(playerCombat.max_hp / 2))
+                  : result.player_final_hp
+    const finalMp = restoreMode === "full" ? Math.round(playerCombat.max_mp)
+                  : restoreMode === "half" ? Math.min(Math.round(playerCombat.max_mp), result.player_final_mp + Math.round(playerCombat.max_mp / 2))
+                  : result.player_final_mp
+
     const regenAt = now()
     if (result.winner === "플레이어") {
       const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
@@ -36,15 +45,15 @@ export async function POST(req: NextRequest) {
       await updateCharacter({
         draw_tickets:      char.draw_tickets + result.ticket_reward,
         clear_count:       (char.clear_count ?? 0) + 1,
-        current_hp:        result.player_final_hp,
-        current_mp:        result.player_final_mp,
+        current_hp:        finalHp,
+        current_mp:        finalMp,
         last_regen_at:     regenAt,
         max_cleared_grade: newMaxGrade,
       })
     } else {
       await updateCharacter({
-        current_hp:    result.player_final_hp,
-        current_mp:    result.player_final_mp,
+        current_hp:    finalHp,
+        current_mp:    finalMp,
         last_regen_at: regenAt,
       })
     }

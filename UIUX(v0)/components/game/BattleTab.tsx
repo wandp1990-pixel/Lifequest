@@ -67,6 +67,12 @@ type CharData = {
   draw_tickets: number
   clear_count?: number
   max_cleared_grade?: string | null
+  effective?: {
+    patk: number; matk: number; pdef: number; mdef: number
+    dex: number; luk: number; vit: number; int: number
+    max_hp: number; max_mp: number
+  }
+  item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
 }
 
 interface BattleTabProps {
@@ -74,14 +80,26 @@ interface BattleTabProps {
   onExpGained: () => void
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+type BattleScales = {
+  strToPatk: number
+  vitToHp: number
+  intToMatk: number
+  clearScale: number
+  levelScale: number
+}
 
-function monsterBaseStats(m: Monster) {
+const DEFAULT_SCALES: BattleScales = {
+  strToPatk: 4.0, vitToHp: 20.0, intToMatk: 2.0,
+  clearScale: 0.01, levelScale: 0.01,
+}
+
+// 몬스터의 raw 전투 스탯을 STR/VIT/INT 단위로 역변환 (battle config 기준)
+function monsterBaseStats(m: Monster, scales: BattleScales) {
   return {
-    str: Math.round(m.stats.patk / 2.0),
-    vit: Math.round(m.stats.HP   / 10.0),
+    str: scales.strToPatk > 0 ? Math.round(m.stats.patk / scales.strToPatk) : m.stats.patk,
+    vit: scales.vitToHp   > 0 ? Math.round(m.stats.HP   / scales.vitToHp)   : m.stats.HP,
     dex: m.stats.dex,
-    int: Math.round(m.stats.matk / 2.0),
+    int: scales.intToMatk > 0 ? Math.round(m.stats.matk / scales.intToMatk) : m.stats.matk,
     luk: m.stats.luk,
   }
 }
@@ -155,6 +173,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [visibleTurns, setVisibleTurns] = useState(0)
   const [keepMonster, setKeepMonster] = useState<Monster | null>(null)
   const [savedMonster, setSavedMonster] = useState<Monster | null>(null)
+  const [scales, setScales] = useState<BattleScales>(DEFAULT_SCALES)
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -162,6 +181,36 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
       const raw = localStorage.getItem(MONSTER_STORAGE_KEY)
       if (raw) setSavedMonster(JSON.parse(raw))
     } catch {}
+  }, [])
+
+  // battle_config + game_config에서 변환 비율/계수 로드 (하드코딩 방지)
+  useEffect(() => {
+    let cancelled = false
+    async function loadScales() {
+      try {
+        const [bcRes, gcRes] = await Promise.all([
+          fetch("/api/battle-config"),
+          fetch("/api/config"),
+        ])
+        const next: BattleScales = { ...DEFAULT_SCALES }
+        if (bcRes.ok) {
+          const rows: { config_key: string; config_value: string }[] = await bcRes.json()
+          const byKey = Object.fromEntries(rows.map((r) => [r.config_key, r.config_value]))
+          next.strToPatk = parseFloat(byKey.str_to_patk    ?? String(DEFAULT_SCALES.strToPatk))
+          next.vitToHp   = parseFloat(byKey.vit_to_max_hp  ?? String(DEFAULT_SCALES.vitToHp))
+          next.intToMatk = parseFloat(byKey.int_to_matk    ?? String(DEFAULT_SCALES.intToMatk))
+        }
+        if (gcRes.ok) {
+          const rows: { config_key: string; config_value: string }[] = await gcRes.json()
+          const byKey = Object.fromEntries(rows.map((r) => [r.config_key, r.config_value]))
+          next.clearScale = parseFloat(byKey.monster_clear_scale ?? String(DEFAULT_SCALES.clearScale))
+          next.levelScale = parseFloat(byKey.monster_level_scale ?? String(DEFAULT_SCALES.levelScale))
+        }
+        if (!cancelled) setScales(next)
+      } catch {}
+    }
+    loadScales()
+    return () => { cancelled = true }
   }, [])
 
   // 0.5초/턴 애니메이션
@@ -220,7 +269,15 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
 
   const clearCount = char?.clear_count ?? 0
   const level      = char?.level ?? 1
-  const coeff      = ((1 + clearCount * 0.03) * (1 + Math.max(0, level - 1) * 0.04)).toFixed(2)
+  const coeff      = ((1 + clearCount * scales.clearScale) * (1 + Math.max(0, level - 1) * scales.levelScale)).toFixed(2)
+
+  // 장비 보너스 포함된 effective 스탯 (item_stat_bonuses는 BaseStat 옵션의 합산값)
+  const bonus  = char?.item_stat_bonuses
+  const effStr = (char?.str      ?? 0) + (bonus?.str      ?? 0)
+  const effVit = (char?.vit      ?? 0) + (bonus?.vit      ?? 0)
+  const effDex = (char?.dex      ?? 0) + (bonus?.dex      ?? 0)
+  const effInt = (char?.int_stat ?? 0) + (bonus?.int_stat ?? 0)
+  const effLuk = (char?.luk      ?? 0) + (bonus?.luk      ?? 0)
 
   const GRADE_KEYS  = ["C", "B", "A", "S", "SR", "SSR", "UR"]
   const GRADE_META: Record<string, { name: string; color: string }> = {
@@ -244,18 +301,24 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           <p className="text-[10px] text-muted-foreground font-bold mb-2">캐릭터 스탯</p>
           <div className="grid grid-cols-5 gap-1.5">
             {([
-              ["💪", "STR", char?.str],
-              ["🛡️", "VIT", char?.vit],
-              ["🏃", "DEX", char?.dex],
-              ["🧠", "INT", char?.int_stat],
-              ["🍀", "LUK", char?.luk],
-            ] as [string, string, number | undefined][]).map(([icon, label, val]) => (
-              <div key={label} className="text-center bg-muted rounded-xl py-2 border border-border">
-                <div className="text-[10px] mb-0.5">{icon}</div>
-                <div className="text-[9px] text-muted-foreground mb-0.5">{label}</div>
-                <div className="text-sm font-bold text-foreground">{val ?? 0}</div>
-              </div>
-            ))}
+              ["💪", "STR", effStr, char?.str ?? 0],
+              ["🛡️", "VIT", effVit, char?.vit ?? 0],
+              ["🏃", "DEX", effDex, char?.dex ?? 0],
+              ["🧠", "INT", effInt, char?.int_stat ?? 0],
+              ["🍀", "LUK", effLuk, char?.luk ?? 0],
+            ] as [string, string, number, number][]).map(([icon, label, eff, base]) => {
+              const bonus = eff - base
+              return (
+                <div key={label} className="text-center bg-muted rounded-xl py-2 border border-border">
+                  <div className="text-[10px] mb-0.5">{icon}</div>
+                  <div className="text-[9px] text-muted-foreground mb-0.5">{label}</div>
+                  <div className="text-sm font-bold text-foreground">
+                    {eff}
+                    {bonus > 0 && <span className="text-[9px] text-emerald-500 ml-0.5">+{bonus}</span>}
+                  </div>
+                </div>
+              )
+            })}
           </div>
           <div className="mt-2 flex items-center justify-between">
             <div className="flex items-center gap-1">
@@ -325,7 +388,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const mFinal      = lastLog?.monster_hp ?? monster_max_hp
   const animDone    = visibleTurns >= logs.length
 
-  const monStats = monsterBaseStats(monster)
+  const monStats = monsterBaseStats(monster, scales)
 
   return (
     <div className="flex flex-col gap-0">
@@ -363,11 +426,11 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
       <div className="px-4 py-3 bg-background border-b border-border">
         <p className="text-[10px] text-muted-foreground font-bold mb-2">스탯 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
         {([
-          ["💪", "힘",   char?.str      ?? 0, monStats.str],
-          ["🛡️", "체력", char?.vit      ?? 0, monStats.vit],
-          ["🏃", "민첩", char?.dex      ?? 0, monStats.dex],
-          ["🧠", "지능", char?.int_stat ?? 0, monStats.int],
-          ["🍀", "운",   char?.luk      ?? 0, monStats.luk],
+          ["💪", "힘",   effStr, monStats.str],
+          ["🛡️", "체력", effVit, monStats.vit],
+          ["🏃", "민첩", effDex, monStats.dex],
+          ["🧠", "지능", effInt, monStats.int],
+          ["🍀", "운",   effLuk, monStats.luk],
         ] as [string, string, number, number][]).map(([icon, label, pv, mv]) => {
           const total = pv + mv
           const pPct  = total > 0 ? Math.round((pv / total) * 100) : 50

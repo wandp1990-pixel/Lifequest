@@ -401,10 +401,13 @@ export function parseEquippedStatBonuses(
 
 // ─── Battle engine ────────────────────────────────────────────────────────────
 
-function calcDmg(atk: number, def_: number, ignoreRatio: number): number {
+function calcDmg(atk: number, def_: number, ignoreRatio: number, minRatio: number): number {
+  if (atk <= 0) return 0
   const effDef = Math.max(0, def_ * (1 - ignoreRatio))
   const denom  = atk + effDef
-  return denom > 0 ? (atk * atk) / denom : 0
+  const raw    = denom > 0 ? (atk * atk) / denom : atk
+  // 방어 ≫ 공격일 때 최소 데미지 보장 (무한 턴 방지)
+  return Math.max(atk * minRatio, raw)
 }
 
 type Combatant = {
@@ -415,9 +418,6 @@ type Combatant = {
   defense_ignore_ratio: number; reflect_ratio: number
   bonus_accuracy: number; bonus_evasion: number
 }
-
-const SKILL_MP_COST = 10
-const SKILL_DAMAGE_BONUS = 1.4
 
 function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kind: "normal" | "skill") {
   const baseAcc    = parseFloat(cfg.base_accuracy    ?? "0.9")
@@ -434,12 +434,14 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   const dmgMin      = parseFloat(cfg.damage_random_min ?? "0.9")
   const dmgMax      = parseFloat(cfg.damage_random_max ?? "1.1")
   const dmgRand     = dmgMin + Math.random() * (dmgMax - dmgMin)
+  const minRatio    = parseFloat(cfg.min_damage_ratio_by_defense ?? "0.1")
+  const skillMult   = parseFloat(cfg.active_skill_damage_mult    ?? "1.4")
 
   let base: number
   if (kind === "skill") {
-    base = calcDmg(atk.matk, def.mdef, ignoreRatio) * dmgRand * SKILL_DAMAGE_BONUS
+    base = calcDmg(atk.matk, def.mdef, ignoreRatio, minRatio) * dmgRand * skillMult
   } else {
-    base = calcDmg(atk.patk, def.pdef, ignoreRatio) * dmgRand
+    base = calcDmg(atk.patk, def.pdef, ignoreRatio, minRatio) * dmgRand
   }
 
   const critPerLuk    = parseFloat(cfg.crit_rate_per_luk              ?? "0.005")
@@ -457,7 +459,9 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   // 더블어택: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
   const doubleChance = atk.double_attack_chance
   const isDouble     = Math.random() < doubleChance
-  const total        = base * (isDouble ? 2 : 1)
+  const doubleMode   = (cfg.total_damage_mode ?? "add").toLowerCase()
+  const doubleMult   = !isDouble ? 1 : doubleMode === "multiply" ? 1.5 : 2
+  const total        = base * doubleMult
 
   // 생명흡수: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
   const lifeStealRate = atk.life_steal_ratio
@@ -497,10 +501,22 @@ export function runBattle(
   let playerMp  = playerCombat.max_mp
   let monsterHp = monster.stats.HP
 
-  const first: "플레이어" | "몬스터" =
-    playerCombat.dex > monCombat.dex ? "플레이어"
-    : monCombat.dex > playerCombat.dex ? "몬스터"
-    : Math.random() < 0.5 ? "플레이어" : "몬스터"
+  const skillMpCost = parseFloat(battleCfg.active_skill_mp_cost ?? "10")
+
+  const firstMode = (battleCfg.first_strike_mode ?? "dex").toLowerCase()
+  let first: "플레이어" | "몬스터"
+  if (firstMode === "player") {
+    first = "플레이어"
+  } else if (firstMode === "monster") {
+    first = "몬스터"
+  } else if (firstMode === "random") {
+    first = Math.random() < 0.5 ? "플레이어" : "몬스터"
+  } else {
+    // dex 비교 (기본값)
+    first = playerCombat.dex > monCombat.dex ? "플레이어"
+          : monCombat.dex > playerCombat.dex ? "몬스터"
+          : Math.random() < 0.5 ? "플레이어" : "몬스터"
+  }
 
   // ── 액티브 스킬 상태 추적 ──
   const skillUsed = new Set<string>()  // 1회성 스킬 사용 여부
@@ -558,9 +574,9 @@ export function runBattle(
       }
 
       // 공격 종류 결정
-      const canSkill = atk.matk > 0 && playerMp >= SKILL_MP_COST
+      const canSkill = atk.matk > 0 && playerMp >= skillMpCost
       if (canSkill && Math.random() < 0.5) {
-        kind = "skill"; mpCost = SKILL_MP_COST
+        kind = "skill"; mpCost = skillMpCost
       }
     } else {
       if (atk.matk > 0 && Math.random() < 0.4) kind = "skill"

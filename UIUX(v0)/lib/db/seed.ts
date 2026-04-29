@@ -139,15 +139,14 @@ export async function ensureBattleConfig(db: Client) {
     ["vit_to_max_hp", "20.0", "VIT당 최대 HP 보너스", 0.0, 50.0, 1.0],
     ["int_to_matk", "2.0", "INT당 마법 공격력 보너스", 0.0, 10.0, 0.5],
     ["int_to_max_mp", "5.0", "INT당 최대 MP 보너스", 0.0, 30.0, 1.0],
-    ["double_attack_chance", "0.0", "더블 어택 발동 확률", 0.0, 1.0, 0.01],
-    ["life_steal_ratio", "0.0", "생명 흡수 비율", 0.0, 1.0, 0.01],
-    ["defense_ignore_ratio", "0.0", "방어 무시 비율", 0.0, 1.0, 0.01],
     ["damage_random_min", "0.9", "데미지 난수 최솟값", 0.5, 1.0, 0.05],
     ["damage_random_max", "1.1", "데미지 난수 최댓값", 1.0, 2.0, 0.05],
     ["min_damage_ratio_by_defense", "0.1", "방어력 최소 데미지 비율", 0.0, 0.5, 0.05],
-    ["total_damage_mode", "add", "총 데미지 방식", 0.0, 0.0, 0.0],
-    ["first_strike_mode", "dex", "선공 결정 방식", 0.0, 0.0, 0.0],
-    ["restore_hp_after_battle", "full", "전투 후 HP/MP 원복 방식", 0.0, 0.0, 0.0],
+    ["total_damage_mode", "add", "더블어택 데미지 합산 방식 (add: 2배 합산, multiply: 1.5배)", 0.0, 0.0, 0.0],
+    ["first_strike_mode", "dex", "선공 결정 방식 (dex: 민첩 비교, random: 무작위, player: 항상 플레이어)", 0.0, 0.0, 0.0],
+    ["restore_hp_after_battle", "full", "전투 후 HP/MP 처리 (full: 완전 회복, none: 종료시점 유지, half: 절반 회복)", 0.0, 0.0, 0.0],
+    ["active_skill_mp_cost", "10", "랜덤 스킬 공격 MP 소모량", 0.0, 100.0, 1.0],
+    ["active_skill_damage_mult", "1.4", "랜덤 스킬 공격 데미지 배율", 1.0, 5.0, 0.1],
   ]
   for (const [key, val, label, mn, mx, step] of data) {
     await db.execute({

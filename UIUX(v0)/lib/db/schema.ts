@@ -302,6 +302,29 @@ export async function initDb() {
     }
   })
 
+  await runMigration("dead_battle_cfg_v1", async () => {
+    // 장비 패시브로 처리되는 글로벌 cfg 키 제거 (몬스터에 의도치 않게 적용되는 문제)
+    await db.execute(
+      "DELETE FROM battle_config WHERE config_key IN ('defense_ignore_ratio','double_attack_chance','life_steal_ratio')"
+    )
+    // 스킬 공격 상수를 cfg화
+    const t = now()
+    await db.execute({
+      sql: "INSERT OR IGNORE INTO battle_config (config_key, config_value, label, min_val, max_val, step, updated_at) VALUES (?,?,?,?,?,?,?)",
+      args: ["active_skill_mp_cost", "10", "랜덤 스킬 공격 MP 소모량", 0.0, 100.0, 1.0, t],
+    })
+    await db.execute({
+      sql: "INSERT OR IGNORE INTO battle_config (config_key, config_value, label, min_val, max_val, step, updated_at) VALUES (?,?,?,?,?,?,?)",
+      args: ["active_skill_damage_mult", "1.4", "랜덤 스킬 공격 데미지 배율", 1.0, 5.0, 0.1, t],
+    })
+    // 미구현 키 라벨 갱신 (옵션 설명 명시)
+    await db.batch([
+      "UPDATE battle_config SET label='더블어택 데미지 합산 방식 (add/multiply)' WHERE config_key='total_damage_mode'",
+      "UPDATE battle_config SET label='선공 결정 방식 (dex/random/player)' WHERE config_key='first_strike_mode'",
+      "UPDATE battle_config SET label='전투 후 HP/MP 처리 (full/none/half)' WHERE config_key='restore_hp_after_battle'",
+    ], "write")
+  })
+
   await runMigration("labels_v1", async () => {
     await db.batch([
       "UPDATE battle_config SET label='기본 명중률'           WHERE config_key='base_accuracy'",
