@@ -112,9 +112,9 @@ export default function GamePage() {
           <CharacterPanel
             name={char?.name ?? "모험가"}
             hp={char?.current_hp ?? 0}
-            maxHp={char?.max_hp ?? 100}
+            maxHp={char?.effective?.max_hp ?? char?.max_hp ?? 100}
             mp={char?.current_mp ?? 0}
-            maxMp={char?.max_mp ?? 50}
+            maxMp={char?.effective?.max_mp ?? char?.max_mp ?? 50}
             level={char?.level ?? 1}
             drawTickets={char?.draw_tickets ?? 0}
             statPoints={char?.stat_points ?? 0}

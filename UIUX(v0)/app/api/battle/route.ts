@@ -30,14 +30,14 @@ export async function POST(req: NextRequest) {
       await updateCharacter({
         draw_tickets: char.draw_tickets + result.ticket_reward,
         clear_count:  (char.clear_count ?? 0) + 1,
-        current_hp:   char.max_hp,
-        current_mp:   char.max_mp,
+        current_hp:   result.player_max_hp,
+        current_mp:   result.player_max_mp,
       })
     } else {
       // 패배해도 HP/MP 전량 회복
       await updateCharacter({
-        current_hp: char.max_hp,
-        current_mp: char.max_mp,
+        current_hp: result.player_max_hp,
+        current_mp: result.player_max_mp,
       })
     }
 
