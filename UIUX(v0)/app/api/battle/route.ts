@@ -28,11 +28,15 @@ export async function POST(req: NextRequest) {
     const maxUnlockedIdx = char.max_cleared_grade ? GRADE_KEYS_ORDER.indexOf(char.max_cleared_grade) + 1 : 0
     const providedGradeIdx = body.monster ? GRADE_KEYS_ORDER.indexOf(body.monster.grade_code) : -1
     const useProvided = body.monster && providedGradeIdx >= 0 && providedGradeIdx <= maxUnlockedIdx
-    const monster      = useProvided ? body.monster! : generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
-    const result       = runBattle(playerCombat, monster, battleCfg, activeSkills)
+    const monster = useProvided ? body.monster! : generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
 
     // 전투 후 HP/MP 처리 모드 (full / none / half)
     const restoreMode = (battleCfg.restore_hp_after_battle ?? "full").toLowerCase()
+    // none/half 모드에서는 현재 HP/MP를 전투 시작값으로 사용
+    const startHp = restoreMode === "full" ? undefined : Math.min(char.current_hp, Math.round(playerCombat.max_hp))
+    const startMp = restoreMode === "full" ? undefined : Math.min(char.current_mp, Math.round(playerCombat.max_mp))
+    const result = runBattle(playerCombat, monster, battleCfg, activeSkills, 30, startHp, startMp)
+
     const finalHp = restoreMode === "full" ? Math.round(playerCombat.max_hp)
                   : restoreMode === "half" ? Math.min(Math.round(playerCombat.max_hp), result.player_final_hp + Math.round(playerCombat.max_hp / 2))
                   : result.player_final_hp

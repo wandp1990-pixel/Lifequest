@@ -483,7 +483,9 @@ export function runBattle(
   monster: Monster,
   battleCfg: Record<string, string>,
   activeSkills: SkillData[] = [],
-  maxTurns = 30
+  maxTurns = 30,
+  startHp?: number,
+  startMp?: number,
 ): BattleResult {
   const monCombat: Combatant = {
     patk: monster.stats.patk, matk: monster.stats.matk,
@@ -497,8 +499,8 @@ export function runBattle(
   }
   const plyCombat: Combatant = playerCombat
 
-  let playerHp  = playerCombat.max_hp
-  let playerMp  = playerCombat.max_mp
+  let playerHp  = startHp !== undefined ? Math.min(startHp, playerCombat.max_hp) : playerCombat.max_hp
+  let playerMp  = startMp !== undefined ? Math.min(startMp, playerCombat.max_mp) : playerCombat.max_mp
   let monsterHp = monster.stats.HP
 
   const skillMpCost = parseFloat(battleCfg.active_skill_mp_cost ?? "10")
