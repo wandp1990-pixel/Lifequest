@@ -1,8 +1,8 @@
-import { getClient, now } from "../client"
+import { getClient, now, todayKST } from "../client"
 
 export async function getTodoItems() {
   const db = getClient()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayKST()
   await db.execute({
     sql: "DELETE FROM todo_item WHERE is_completed=1 AND DATE(completed_at) < ?",
     args: [today],

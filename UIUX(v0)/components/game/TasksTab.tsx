@@ -123,6 +123,17 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     fetchAll()
   }, [fetchAll])
 
+  // KST 자정 넘어가면 완료된 할 일 제거를 위해 재조회
+  useEffect(() => {
+    const kstNow = () => new Date(Date.now() + 9 * 60 * 60 * 1000)
+    const msUntilMidnight = () => {
+      const n = kstNow()
+      return (24 * 60 * 60 * 1000) - (n.getUTCHours() * 3600 + n.getUTCMinutes() * 60 + n.getUTCSeconds()) * 1000 - n.getUTCMilliseconds()
+    }
+    const timer = setTimeout(() => { fetchAll() }, msUntilMidnight())
+    return () => clearTimeout(timer)
+  }, [fetchAll])
+
   useEffect(() => {
     const routineTotal = routines.reduce((sum, r) => sum + r.items.length, 0)
     const routineDone = routines.reduce(
