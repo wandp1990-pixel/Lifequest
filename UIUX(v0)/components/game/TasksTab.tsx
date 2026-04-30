@@ -38,9 +38,10 @@ interface TasksTabProps {
   onExpGained?: () => void
   onCountChange?: (count: number) => void
   onDailyCompletedChange?: (count: number) => void
+  refreshTick?: number
 }
 
-export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedChange }: TasksTabProps) {
+export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedChange, refreshTick }: TasksTabProps) {
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
@@ -122,7 +123,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
 
   useEffect(() => {
     fetchAll()
-  }, [fetchAll])
+  }, [fetchAll, refreshTick])
 
   // KST 자정 넘어가면 완료된 할 일 제거를 위해 재조회
   useEffect(() => {

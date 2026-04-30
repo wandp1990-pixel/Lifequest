@@ -12,9 +12,10 @@ interface ActivityLog {
 
 interface HomeTabProps {
   onExpGained: () => void
+  refreshTick?: number
 }
 
-export default function HomeTab({ onExpGained }: HomeTabProps) {
+export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const [actText, setActText] = useState("")
   const [actSubmitting, setActSubmitting] = useState(false)
   const [actLogs, setActLogs] = useState<ActivityLog[]>([])
@@ -43,7 +44,7 @@ export default function HomeTab({ onExpGained }: HomeTabProps) {
   useEffect(() => {
     fetchActLogs()
     fetchAttendance()
-  }, [fetchActLogs, fetchAttendance])
+  }, [fetchActLogs, fetchAttendance, refreshTick])
 
   const handleAttendance = async () => {
     if (attended || attendLoading) return

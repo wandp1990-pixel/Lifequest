@@ -69,6 +69,7 @@ export default function GamePage() {
   const [questTotal, setQuestTotal] = useState(10)
   const [showSettings, setShowSettings] = useState(false)
   const [tick, setTick] = useState(0)
+  const [refreshTick, setRefreshTick] = useState(0)
   const questRewardedRef = useRef(false)
 
   const fetchChar = useCallback(async () => {
@@ -116,10 +117,10 @@ export default function GamePage() {
   const renderTabContent = () => {
     return (
       <>
-        {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} />}
-        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} />}
+        {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} />}
+        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} />}
         {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} itemStatBonuses={char?.item_stat_bonuses} effectiveStats={char?.effective} />}
-        {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} />}
+        {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} refreshTick={refreshTick} />}
         <div className={activeTab === "battle" ? "block" : "hidden"}>
           <BattleTab char={char} onExpGained={handleExpGained} />
         </div>
@@ -135,7 +136,7 @@ export default function GamePage() {
         style={{ minHeight: "100dvh", maxHeight: "100dvh" }}
       >
         <div className="flex-shrink-0 bg-background">
-          <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} onRefresh={fetchChar} />
+          <TopHeader title={TAB_TITLES[activeTab]} onMenuClick={() => setShowSettings(true)} onRefresh={() => { fetchChar(); setRefreshTick((t) => t + 1) }} />
           <CharacterPanel
             name={char?.name ?? "모험가"}
             hp={char ? calcRegen(

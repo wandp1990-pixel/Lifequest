@@ -24,6 +24,7 @@ interface GachaResult {
 interface ItemsTabProps {
   drawTickets: number
   onTicketsChanged?: () => void
+  refreshTick?: number
 }
 
 const GRADE_COLOR: Record<string, string> = {
@@ -82,7 +83,7 @@ function OptionLine({ opt }: { opt: string }) {
   return <p className="text-[10px] text-muted-foreground leading-tight">{opt}</p>
 }
 
-export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProps) {
+export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }: ItemsTabProps) {
   const [equipment, setEquipment] = useState<EquipmentItem[]>([])
   const [rolling, setRolling] = useState(false)
   const [lastResult, setLastResult] = useState<{ item: GachaResult; autoEquipped: boolean } | null>(null)
@@ -98,7 +99,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged }: ItemsTabProp
     setLoading(false)
   }
 
-  useEffect(() => { fetchInventory() }, [])
+  useEffect(() => { fetchInventory() }, [refreshTick])
 
   const patchInventory = async (body: object) => {
     await fetch("/api/inventory", {
