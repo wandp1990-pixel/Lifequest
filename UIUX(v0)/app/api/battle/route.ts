@@ -4,7 +4,8 @@ import {
   updateCharacter, addBattleLog, getSkillsWithInvestment,
 } from "@/lib/db"
 import { now } from "@/lib/db/client"
-import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, type Monster } from "@/lib/battle"
+import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, parseEquippedStatBonuses, type Monster } from "@/lib/battle"
+import { calcRegen } from "@/lib/regen"
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,9 +33,17 @@ export async function POST(req: NextRequest) {
 
     // 전투 후 HP/MP 처리 모드 (full / none / half)
     const restoreMode = (battleCfg.restore_hp_after_battle ?? "full").toLowerCase()
-    // none/half 모드에서는 현재 HP/MP를 전투 시작값으로 사용
-    const startHp = restoreMode === "full" ? undefined : Math.min(char.current_hp, Math.round(playerCombat.max_hp))
-    const startMp = restoreMode === "full" ? undefined : Math.min(char.current_mp, Math.round(playerCombat.max_mp))
+
+    // last_regen_at 기준 자연 회복 적용 (화면에 표시되는 regen된 HP와 일치시키기 위함)
+    const effMaxHp = Math.round(playerCombat.max_hp)
+    const effMaxMp = Math.round(playerCombat.max_mp)
+    const itemBonus = parseEquippedStatBonuses(equippedOptions)
+    const regenedHp = calcRegen(char.current_hp, effMaxHp, char.vit + itemBonus.vit, char.last_regen_at)
+    const regenedMp = calcRegen(char.current_mp, effMaxMp, char.int_stat + itemBonus.int_stat, char.last_regen_at)
+
+    // none/half 모드에서는 regen 적용한 HP/MP를 전투 시작값으로 사용
+    const startHp = restoreMode === "full" ? undefined : regenedHp
+    const startMp = restoreMode === "full" ? undefined : regenedMp
     const result = runBattle(playerCombat, monster, battleCfg, activeSkills, 30, startHp, startMp)
 
     const finalHp = restoreMode === "full" ? Math.round(playerCombat.max_hp)

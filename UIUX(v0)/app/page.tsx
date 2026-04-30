@@ -11,6 +11,7 @@ import BattleTab from "@/components/game/BattleTab"
 import CharacterTab from "@/components/game/CharacterTab"
 import BottomNav from "@/components/game/BottomNav"
 import SettingsDrawer from "@/components/game/SettingsDrawer"
+import { calcRegen } from "@/lib/regen"
 
 type TabType = "home" | "tasks" | "battle" | "items" | "skills"
 
@@ -51,14 +52,6 @@ type CharacterData = {
   }
   item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
   max_cleared_grade?: string | null
-}
-
-function calcRegen(current: number, max: number, stat: number, lastRegenAt: string | null | undefined): number {
-  if (!lastRegenAt || current >= max) return Math.min(current, max)
-  const lastMs = new Date(lastRegenAt.replace(" ", "T") + "+09:00").getTime()
-  const elapsedMin = (Date.now() - lastMs) / 60000
-  const regenPerMin = Math.floor(max * 0.10) + Math.floor(stat / 10)
-  return Math.min(max, Math.round(current + elapsedMin * regenPerMin))
 }
 
 export default function GamePage() {
