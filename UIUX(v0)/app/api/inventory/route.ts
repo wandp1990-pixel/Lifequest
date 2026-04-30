@@ -122,6 +122,10 @@ export async function POST(req: NextRequest) {
     await initDb()
     const { count = 1 } = await req.json()
 
+    if (!Number.isInteger(count) || count < 1 || count > 100) {
+      return NextResponse.json({ error: "count는 1 이상 100 이하의 정수여야 합니다" }, { status: 400 })
+    }
+
     const char = await getCharacter()
     if (char.draw_tickets < count) {
       return NextResponse.json({ error: "뽑기권이 부족합니다" }, { status: 400 })

@@ -19,17 +19,32 @@ export async function PUT(req: NextRequest) {
     await initDb()
     const { investments } = await req.json() as { investments: Record<string, number> }
 
+    for (const val of Object.values(investments)) {
+      if (!Number.isInteger(val) || val < 0) {
+        return NextResponse.json({ error: "투자 값은 0 이상의 정수여야 합니다" }, { status: 400 })
+      }
+    }
+
     const [char, currentSkills] = await Promise.all([
       getCharacter(),
       getSkillsWithInvestment(),
     ])
 
-    const currentMap = Object.fromEntries(currentSkills.map((s) => [s.id, s.invested]))
+    const currentMap = Object.fromEntries(currentSkills.map((s) => [s.id, s]))
 
-    // 투자 포인트 변화량 계산
     let skpDelta = 0
     for (const [id, newPts] of Object.entries(investments)) {
-      skpDelta += newPts - (currentMap[id] ?? 0)
+      const skill = currentMap[id]
+      if (!skill) {
+        return NextResponse.json({ error: `알 수 없는 스킬: ${id}` }, { status: 400 })
+      }
+      if (newPts > skill.max_skp) {
+        return NextResponse.json({ error: `${skill.name} 최대 투자 포인트(${skill.max_skp}) 초과` }, { status: 400 })
+      }
+      if (newPts > skill.invested && char.level < skill.unlock_level) {
+        return NextResponse.json({ error: `${skill.name} 해금 레벨(${skill.unlock_level}) 미달` }, { status: 400 })
+      }
+      skpDelta += newPts - skill.invested
     }
 
     const available = char.skill_points

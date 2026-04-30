@@ -1,4 +1,5 @@
 import * as db from "./db"
+import { getClient, now } from "./db/client"
 import { buildPlayerCombatStats } from "./battle"
 
 export function requiredExp(level: number, cfg: Record<string, string>): number {
@@ -24,65 +25,78 @@ export function recalcHpMp(
 }
 
 export async function gainExp(expAmount: number) {
-  const [char, cfg, bcfg, equipment, allSkills] = await Promise.all([
-    db.getCharacter(),
+  const [cfg, bcfg, equipment, allSkills] = await Promise.all([
     db.getGameConfig(),
     db.getBattleConfig(),
     db.getEquipment(),
     db.getSkillsWithInvestment(),
   ])
 
-  const oldLevel = char.level
-  let totalExp = char.total_exp + expAmount
-  let level = oldLevel
-  let statPts = char.stat_points
-  let skillPts = char.skill_points
-  let tickets = char.draw_tickets
+  const client = getClient()
+  const tx = await client.transaction("write")
+  try {
+    const charRes = await tx.execute("SELECT * FROM character WHERE id = 1")
+    const char = charRes.rows[0] as unknown as db.Character
 
-  const statPerLv = parseInt(cfg.stat_points_per_level ?? "3")
-  const skillPerLv = parseInt(cfg.skill_points_per_level ?? "2")
-  const ticketPerLv = parseInt(cfg.draw_tickets_per_level ?? "1")
+    const oldLevel = char.level
+    let totalExp = char.total_exp + expAmount
+    let level = oldLevel
+    let statPts = char.stat_points
+    let skillPts = char.skill_points
+    let tickets = char.draw_tickets
 
-  let leveledUp = false
-  while (totalExp >= requiredExp(level, cfg)) {
-    totalExp -= requiredExp(level, cfg)
-    level++
-    statPts += statPerLv
-    skillPts += skillPerLv
-    tickets += ticketPerLv
-    leveledUp = true
-  }
+    const statPerLv = parseInt(cfg.stat_points_per_level ?? "3")
+    const skillPerLv = parseInt(cfg.skill_points_per_level ?? "2")
+    const ticketPerLv = parseInt(cfg.draw_tickets_per_level ?? "1")
 
-  const { maxHp, maxMp } = recalcHpMp({ ...char, level }, bcfg)
+    let leveledUp = false
+    while (totalExp >= requiredExp(level, cfg)) {
+      totalExp -= requiredExp(level, cfg)
+      level++
+      statPts += statPerLv
+      skillPts += skillPerLv
+      tickets += ticketPerLv
+      leveledUp = true
+    }
 
-  const updates: Parameters<typeof db.updateCharacter>[0] = {
-    level,
-    total_exp: totalExp,
-    stat_points: statPts,
-    skill_points: skillPts,
-    draw_tickets: tickets,
-    max_hp: maxHp,
-    max_mp: maxMp,
-  }
-  if (leveledUp) {
-    const equippedOptions = (equipment as { is_equipped: number; options: string }[])
-      .filter((e) => e.is_equipped === 1)
-      .map((e) => e.options)
-    const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)
-    updates.current_hp = Math.round(cs.max_hp)
-    updates.current_mp = Math.round(cs.max_mp)
-  }
+    const { maxHp, maxMp } = recalcHpMp({ ...char, level }, bcfg)
 
-  await db.updateCharacter(updates)
+    const updates: Record<string, unknown> = {
+      level,
+      total_exp: totalExp,
+      stat_points: statPts,
+      skill_points: skillPts,
+      draw_tickets: tickets,
+      max_hp: maxHp,
+      max_mp: maxMp,
+      updated_at: now(),
+    }
+    if (leveledUp) {
+      const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+        .filter((e) => e.is_equipped === 1)
+        .map((e) => e.options)
+      const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)
+      updates.current_hp = Math.round(cs.max_hp)
+      updates.current_mp = Math.round(cs.max_mp)
+    }
 
-  return {
-    leveledUp,
-    oldLevel,
-    newLevel: level,
-    rewards: {
-      statPoints: statPts - char.stat_points,
-      skillPoints: skillPts - char.skill_points,
-      drawTickets: tickets - char.draw_tickets,
-    },
+    const sets = Object.keys(updates).map((k) => `${k} = ?`).join(", ")
+    const vals = [...Object.values(updates), 1]
+    await tx.execute({ sql: `UPDATE character SET ${sets} WHERE id = ?`, args: vals })
+    await tx.commit()
+
+    return {
+      leveledUp,
+      oldLevel,
+      newLevel: level,
+      rewards: {
+        statPoints: statPts - char.stat_points,
+        skillPoints: skillPts - char.skill_points,
+        drawTickets: tickets - char.draw_tickets,
+      },
+    }
+  } catch (e) {
+    await tx.rollback()
+    throw e
   }
 }
