@@ -902,7 +902,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                  <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                     {item.name}
                   </p>
                   {!done && (
@@ -914,53 +914,48 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                       <Pencil className="w-3 h-3" />
                     </button>
                   )}
+                  <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
+                    {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
+                  </span>
+                  {!done && (
+                    <button
+                      onClick={() => { setNotifyEditId({ type: "daily", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
+                      className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
+                        item.notify_time
+                          ? "text-amber-600 bg-amber-50 border-amber-200"
+                          : "text-muted-foreground bg-muted border-border"
+                      }`}
+                    >
+                      {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
+                    </button>
+                  )}
                 </div>
               )}
-              {!isEditingName && (
-                notifyEditId?.type === "daily" && notifyEditId?.id === item.id ? (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Bell className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                    <input
-                      autoFocus
-                      type="time"
-                      value={notifyEditVal}
-                      onChange={(e) => setNotifyEditVal(e.target.value)}
-                      className="text-xs bg-background border border-amber-200 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
-                    />
-                    <button
-                      onClick={() => saveNotifyTime("daily", item.id, notifyEditVal || null)}
-                      className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg active:scale-95"
-                    >
-                      저장
+              {!isEditingName && notifyEditId?.type === "daily" && notifyEditId?.id === item.id && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Bell className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                  <input
+                    autoFocus
+                    type="time"
+                    value={notifyEditVal}
+                    onChange={(e) => setNotifyEditVal(e.target.value)}
+                    className="text-xs bg-background border border-amber-200 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                  <button
+                    onClick={() => saveNotifyTime("daily", item.id, notifyEditVal || null)}
+                    className="text-xs font-bold text-amber-600 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-lg active:scale-95"
+                  >
+                    저장
+                  </button>
+                  {item.notify_time && (
+                    <button onClick={() => saveNotifyTime("daily", item.id, null)} className="text-xs text-muted-foreground active:scale-95">
+                      제거
                     </button>
-                    {item.notify_time && (
-                      <button onClick={() => saveNotifyTime("daily", item.id, null)} className="text-xs text-muted-foreground active:scale-95">
-                        제거
-                      </button>
-                    )}
-                    <button onClick={() => setNotifyEditId(null)} className="text-muted-foreground">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className={`inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
-                      {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
-                    </span>
-                    {!done && (
-                      <button
-                        onClick={() => { setNotifyEditId({ type: "daily", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
-                          item.notify_time
-                            ? "text-amber-600 bg-amber-50 border-amber-200"
-                            : "text-muted-foreground bg-muted border-border"
-                        }`}
-                      >
-                        {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
-                      </button>
-                    )}
-                  </div>
-                )
+                  )}
+                  <button onClick={() => setNotifyEditId(null)} className="text-muted-foreground">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1082,7 +1077,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                  <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                     {item.name}
                   </p>
                   {!done && (
@@ -1094,46 +1089,45 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                       <Pencil className="w-3 h-3" />
                     </button>
                   )}
+                  {!done && (
+                    <button
+                      onClick={() => { setNotifyEditId({ type: "todo", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
+                      className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
+                        item.notify_time
+                          ? "text-violet-600 bg-violet-50 border-violet-200"
+                          : "text-muted-foreground bg-muted border-border"
+                      }`}
+                    >
+                      {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
+                    </button>
+                  )}
                 </div>
               )}
-              {!isEditingName && !done && (
-                notifyEditId?.type === "todo" && notifyEditId?.id === item.id ? (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <Bell className="w-3 h-3 text-violet-400 flex-shrink-0" />
-                    <input
-                      autoFocus
-                      type="time"
-                      value={notifyEditVal}
-                      onChange={(e) => setNotifyEditVal(e.target.value)}
-                      className="text-xs bg-background border border-violet-200 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
-                    />
-                    <button
-                      onClick={() => saveNotifyTime("todo", item.id, notifyEditVal || null)}
-                      className="text-xs font-bold text-violet-600 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-lg active:scale-95"
-                    >
-                      저장
-                    </button>
-                    {item.notify_time && (
-                      <button onClick={() => saveNotifyTime("todo", item.id, null)} className="text-xs text-muted-foreground active:scale-95">
-                        제거
-                      </button>
-                    )}
-                    <button onClick={() => setNotifyEditId(null)} className="text-muted-foreground">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : (
+              {!isEditingName && notifyEditId?.type === "todo" && notifyEditId?.id === item.id && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Bell className="w-3 h-3 text-violet-400 flex-shrink-0" />
+                  <input
+                    autoFocus
+                    type="time"
+                    value={notifyEditVal}
+                    onChange={(e) => setNotifyEditVal(e.target.value)}
+                    className="text-xs bg-background border border-violet-200 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
+                  />
                   <button
-                    onClick={() => { setNotifyEditId({ type: "todo", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
-                    className={`mt-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
-                      item.notify_time
-                        ? "text-violet-600 bg-violet-50 border-violet-200"
-                        : "text-muted-foreground bg-muted border-border"
-                    }`}
+                    onClick={() => saveNotifyTime("todo", item.id, notifyEditVal || null)}
+                    className="text-xs font-bold text-violet-600 bg-violet-100 border border-violet-200 px-2 py-0.5 rounded-lg active:scale-95"
                   >
-                    {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
+                    저장
                   </button>
-                )
+                  {item.notify_time && (
+                    <button onClick={() => saveNotifyTime("todo", item.id, null)} className="text-xs text-muted-foreground active:scale-95">
+                      제거
+                    </button>
+                  )}
+                  <button onClick={() => setNotifyEditId(null)} className="text-muted-foreground">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               )}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
