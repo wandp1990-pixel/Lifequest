@@ -174,6 +174,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [keepMonster, setKeepMonster] = useState<Monster | null>(null)
   const [savedMonster, setSavedMonster] = useState<Monster | null>(null)
   const [scales, setScales] = useState<BattleScales>(DEFAULT_SCALES)
+  const [restoreMode, setRestoreMode] = useState<"full" | "none" | "half">("full")
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -207,6 +208,8 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           next.strToPatk = parseFloat(byKey.str_to_patk    ?? String(DEFAULT_SCALES.strToPatk))
           next.vitToHp   = parseFloat(byKey.vit_to_max_hp  ?? String(DEFAULT_SCALES.vitToHp))
           next.intToMatk = parseFloat(byKey.int_to_matk    ?? String(DEFAULT_SCALES.intToMatk))
+          const rm = (byKey.restore_hp_after_battle ?? "full").toLowerCase()
+          if (!cancelled && (rm === "full" || rm === "none" || rm === "half")) setRestoreMode(rm)
         }
         if (gcRes.ok) {
           const rows: { config_key: string; config_value: string }[] = await gcRes.json()
@@ -279,13 +282,16 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const level      = char?.level ?? 1
   const coeff      = ((1 + clearCount * scales.clearScale) * (1 + Math.max(0, level - 1) * scales.levelScale)).toFixed(2)
 
-  // 장비 보너스 포함된 effective 스탯 (item_stat_bonuses는 BaseStat 옵션의 합산값)
+  // 장비 + 패시브 스킬 보너스 포함된 effective 스탯
+  // dex/luk은 char.effective에 패시브 flat 보너스 반영됨 (DEX_FLAT/LUK_FLAT)
+  // str/vit/int는 패시브 flat 보너스가 없으므로 char + item_stat_bonuses 합산
   const bonus  = char?.item_stat_bonuses
+  const eff    = char?.effective
   const effStr = (char?.str      ?? 0) + (bonus?.str      ?? 0)
   const effVit = (char?.vit      ?? 0) + (bonus?.vit      ?? 0)
-  const effDex = (char?.dex      ?? 0) + (bonus?.dex      ?? 0)
+  const effDex = eff?.dex ?? ((char?.dex      ?? 0) + (bonus?.dex      ?? 0))
   const effInt = (char?.int_stat ?? 0) + (bonus?.int_stat ?? 0)
-  const effLuk = (char?.luk      ?? 0) + (bonus?.luk      ?? 0)
+  const effLuk = eff?.luk ?? ((char?.luk      ?? 0) + (bonus?.luk      ?? 0))
 
   const GRADE_KEYS  = ["C", "B", "A", "S", "SR", "SSR", "UR"]
   const GRADE_META: Record<string, { name: string; color: string }> = {
@@ -498,7 +504,13 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
             <>
               <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
                 <div className="text-red-500 font-bold text-base mb-1">💀 패배</div>
-                <div className="text-muted-foreground text-sm">HP가 회복됩니다. 다시 도전!</div>
+                <div className="text-muted-foreground text-sm">
+                  {restoreMode === "full"
+                    ? "HP가 회복됩니다. 다시 도전!"
+                    : restoreMode === "half"
+                    ? "HP가 절반 회복됩니다. 다시 도전!"
+                    : "HP가 회복되지 않습니다. 신중하게 도전!"}
+                </div>
               </div>
               <button
                 onClick={() => doFight(keepMonster ?? undefined)}

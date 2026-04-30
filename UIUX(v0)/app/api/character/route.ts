@@ -109,15 +109,26 @@ export async function PUT(req: NextRequest) {
     }
     if (Object.keys(fields).length > 0) {
       const char = await getCharacter()
-      const bcfg = await getBattleConfig()
+      const [bcfg, equipment, allSkills] = await Promise.all([
+        getBattleConfig(), getEquipment(), getSkillsWithInvestment(),
+      ])
       const merged = { ...char, ...fields } as typeof char
       const { maxHp, maxMp } = recalcHpMp(merged, bcfg)
+
+      // 장비/패시브 스킬 포함한 effective max로 current_hp 캡 (장비로 부풀린 HP 보존)
+      const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+        .filter((e) => e.is_equipped === 1)
+        .map((e) => e.options)
+      const cs = buildPlayerCombatStats(merged, equippedOptions, bcfg, allSkills)
+      const effMaxHp = Math.round(cs.max_hp)
+      const effMaxMp = Math.round(cs.max_mp)
+
       await updateCharacter({
         ...fields,
         max_hp: maxHp,
         max_mp: maxMp,
-        current_hp: Math.min(merged.current_hp, maxHp),
-        current_mp: Math.min(merged.current_mp, maxMp),
+        current_hp: Math.min(merged.current_hp, effMaxHp),
+        current_mp: Math.min(merged.current_mp, effMaxMp),
       })
     }
     const char = await getCharacter()
