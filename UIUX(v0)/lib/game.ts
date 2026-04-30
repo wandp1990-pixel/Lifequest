@@ -50,12 +50,9 @@ export async function gainExp(expAmount: number) {
 
   const { maxHp, maxMp } = recalcHpMp({ ...char, level }, bcfg)
 
-  // DB의 max_hp/max_mp는 항상 base+stat 기준(장비 보너스 미포함). current도 동일 기준으로 캡.
-  // 장비 보너스를 포함한 effective max는 /api/character GET에서 별도 계산.
-  const currentHp = leveledUp ? maxHp : Math.min(char.current_hp, maxHp)
-  const currentMp = leveledUp ? maxMp : Math.min(char.current_mp, maxMp)
-
-  await db.updateCharacter({
+  // 레벨업 시에만 HP/MP 풀 회복. 레벨업 없는 EXP 획득 시엔 건드리지 않음
+  // (전투 full restore가 effective max로 저장되므로, gainExp가 base max로 깎으면 안 됨)
+  const updates: Parameters<typeof db.updateCharacter>[0] = {
     level,
     total_exp: totalExp,
     stat_points: statPts,
@@ -63,9 +60,13 @@ export async function gainExp(expAmount: number) {
     draw_tickets: tickets,
     max_hp: maxHp,
     max_mp: maxMp,
-    current_hp: currentHp,
-    current_mp: currentMp,
-  })
+  }
+  if (leveledUp) {
+    updates.current_hp = maxHp
+    updates.current_mp = maxMp
+  }
+
+  await db.updateCharacter(updates)
 
   return {
     leveledUp,
