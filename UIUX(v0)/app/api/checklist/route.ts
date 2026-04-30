@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getChecklistItems, addChecklistLog, getTodayCheckedItemIds,
   addChecklistItem, deleteChecklistItem, addActivityLog, incrementTaskCount,
-  updateChecklistStreak, updateChecklistItemName,
+  updateChecklistStreak, updateChecklistItemName, updateChecklistNotifyTime,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -56,7 +56,9 @@ export async function PUT(req: NextRequest) {
   try {
     await initDb()
     const body = await req.json()
-    if ("id" in body) {
+    if ("id" in body && "notify_time" in body) {
+      await updateChecklistNotifyTime(body.id, body.notify_time ?? null)
+    } else if ("id" in body) {
       if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
       await updateChecklistItemName(body.id, body.name.trim(), body.fixed_exp !== undefined ? Number(body.fixed_exp) : undefined)
     } else {

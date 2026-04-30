@@ -208,6 +208,13 @@ CREATE TABLE IF NOT EXISTS attendance_log (
     checked_date TEXT UNIQUE,
     created_at   TEXT
 );
+CREATE TABLE IF NOT EXISTS push_subscription (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    endpoint   TEXT UNIQUE,
+    p256dh     TEXT,
+    auth       TEXT,
+    created_at TEXT
+);
 CREATE TABLE IF NOT EXISTS migration_log (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     version    TEXT UNIQUE,
@@ -323,6 +330,11 @@ export async function initDb() {
       "UPDATE battle_config SET label='선공 결정 방식 (dex/random/player)' WHERE config_key='first_strike_mode'",
       "UPDATE battle_config SET label='전투 후 HP/MP 처리 (full/none/half)' WHERE config_key='restore_hp_after_battle'",
     ], "write")
+  })
+
+  await runMigration("push_notify_v1", async () => {
+    try { await db.execute("ALTER TABLE checklist_item ADD COLUMN notify_time TEXT") } catch {}
+    try { await db.execute("ALTER TABLE todo_item ADD COLUMN notify_time TEXT") } catch {}
   })
 
   await runMigration("labels_v1", async () => {

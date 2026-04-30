@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem,
-  updateTodoExp, updateTodoName, addActivityLog, incrementTaskCount,
+  updateTodoExp, updateTodoName, addActivityLog, incrementTaskCount, updateTodoNotifyTime,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 import { judgeActivity } from "@/lib/ai"
@@ -59,7 +59,9 @@ export async function PUT(req: NextRequest) {
     await initDb()
     const body = await req.json()
     const { id } = body
-    if ("name" in body) {
+    if ("notify_time" in body) {
+      await updateTodoNotifyTime(id, body.notify_time ?? null)
+    } else if ("name" in body) {
       if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
       await updateTodoName(id, body.name.trim(), body.suggested_exp !== undefined ? Number(body.suggested_exp) : undefined)
     } else {

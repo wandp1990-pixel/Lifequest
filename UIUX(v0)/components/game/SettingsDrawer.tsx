@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { X, Save, ChevronDown, ChevronRight, RotateCcw, FileText, Zap, Database, Plus, Trash2 } from "lucide-react"
+import PushSetup from "./PushSetup"
 
 interface CharacterData {
   name?: string
@@ -417,6 +418,11 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
         </div>
 
         <div className="flex-1 overflow-y-auto pb-6">
+
+          {/* 푸시 알림 설정 */}
+          <div className="px-4 py-1 border-b border-border">
+            <PushSetup />
+          </div>
 
           {/* AI 판정 프롬프트 */}
           <button
