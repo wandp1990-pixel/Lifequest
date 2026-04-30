@@ -40,6 +40,8 @@ type BattleResultData = {
   exp_gained: number
   leveled_up: boolean
   first_strike: string
+  player_start_hp: number
+  player_start_mp: number
   player_max_hp: number
   player_max_mp: number
   monster_max_hp: number
@@ -81,27 +83,12 @@ interface BattleTabProps {
 }
 
 type BattleScales = {
-  strToPatk: number
-  vitToHp: number
-  intToMatk: number
   clearScale: number
   levelScale: number
 }
 
 const DEFAULT_SCALES: BattleScales = {
-  strToPatk: 4.0, vitToHp: 20.0, intToMatk: 2.0,
-  clearScale: 0.01, levelScale: 0.01,
-}
-
-// 몬스터의 raw 전투 스탯을 STR/VIT/INT 단위로 역변환 (battle config 기준)
-function monsterBaseStats(m: Monster, scales: BattleScales) {
-  return {
-    str: scales.strToPatk > 0 ? Math.round(m.stats.patk / scales.strToPatk) : m.stats.patk,
-    vit: scales.vitToHp   > 0 ? Math.round(m.stats.HP   / scales.vitToHp)   : m.stats.HP,
-    dex: m.stats.dex,
-    int: scales.intToMatk > 0 ? Math.round(m.stats.matk / scales.intToMatk) : m.stats.matk,
-    luk: m.stats.luk,
-  }
+  clearScale: 0.03, levelScale: 0.04,
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -192,7 +179,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
     } catch {}
   }, [char?.max_cleared_grade])
 
-  // battle_config + game_config에서 변환 비율/계수 로드 (하드코딩 방지)
   useEffect(() => {
     let cancelled = false
     async function loadScales() {
@@ -205,9 +191,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         if (bcRes.ok) {
           const rows: { config_key: string; config_value: string }[] = await bcRes.json()
           const byKey = Object.fromEntries(rows.map((r) => [r.config_key, r.config_value]))
-          next.strToPatk = parseFloat(byKey.str_to_patk    ?? String(DEFAULT_SCALES.strToPatk))
-          next.vitToHp   = parseFloat(byKey.vit_to_max_hp  ?? String(DEFAULT_SCALES.vitToHp))
-          next.intToMatk = parseFloat(byKey.int_to_matk    ?? String(DEFAULT_SCALES.intToMatk))
           const rm = (byKey.restore_hp_after_battle ?? "full").toLowerCase()
           if (!cancelled && (rm === "full" || rm === "none" || rm === "half")) setRestoreMode(rm)
         }
@@ -397,12 +380,12 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
 
   const visibleLogs = logs.slice(0, visibleTurns)
   const lastLog     = visibleLogs[visibleLogs.length - 1]
-  const pFinal      = lastLog?.player_hp  ?? player_max_hp
-  const pMpFinal    = lastLog?.player_mp  ?? player_max_mp
+  const pFinal      = lastLog?.player_hp  ?? result.player_start_hp
+  const pMpFinal    = lastLog?.player_mp  ?? result.player_start_mp
   const mFinal      = lastLog?.monster_hp ?? monster_max_hp
   const animDone    = visibleTurns >= logs.length
 
-  const monStats = monsterBaseStats(monster, scales)
+  const playerEffStats = char?.effective
 
   return (
     <div className="flex flex-col gap-0">
@@ -436,15 +419,15 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         </div>
       </div>
 
-      {/* 스탯 비교 (STR/VIT/DEX/INT/LUK) */}
+      {/* 전투 능력치 비교 (PATK/HP/DEX/MATK/LUK) */}
       <div className="px-4 py-3 bg-background border-b border-border">
-        <p className="text-[10px] text-muted-foreground font-bold mb-2">스탯 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
+        <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 능력치 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
         {([
-          ["💪", "힘",   effStr, monStats.str],
-          ["🛡️", "체력", effVit, monStats.vit],
-          ["🏃", "민첩", effDex, monStats.dex],
-          ["🧠", "지능", effInt, monStats.int],
-          ["🍀", "운",   effLuk, monStats.luk],
+          ["⚔️", "PATK", playerEffStats?.patk   ?? result.player_stats.patk,   monster.stats.patk],
+          ["❤️", "HP",   player_max_hp,                                          monster_max_hp],
+          ["🏃", "DEX",  playerEffStats?.dex    ?? result.player_stats.dex,    monster.stats.dex],
+          ["🔮", "MATK", playerEffStats?.matk   ?? result.player_stats.matk,   monster.stats.matk],
+          ["🍀", "LUK",  playerEffStats?.luk    ?? result.player_stats.luk,    monster.stats.luk],
         ] as [string, string, number, number][]).map(([icon, label, pv, mv]) => {
           const total = pv + mv
           const pPct  = total > 0 ? Math.round((pv / total) * 100) : 50

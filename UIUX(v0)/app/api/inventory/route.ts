@@ -12,7 +12,10 @@ import {
   getItemSlots,
   getAbilityPool,
   getPassivePool,
+  getBattleConfig,
+  getSkillsWithInvestment,
 } from "@/lib/db"
+import { buildPlayerCombatStats } from "@/lib/battle"
 
 type GradeRow = {
   grade: string; name: string; weight: number
@@ -92,6 +95,22 @@ export async function PATCH(req: NextRequest) {
     else if (action === "unequip") await unequipItem(itemId)
     else if (action === "delete") await deleteEquipment(itemId)
     else return NextResponse.json({ error: "알 수 없는 action" }, { status: 400 })
+
+    const [char, bcfg, equipment, allSkills] = await Promise.all([
+      getCharacter(), getBattleConfig(), getEquipment(), getSkillsWithInvestment(),
+    ])
+    const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+      .filter((e) => e.is_equipped === 1)
+      .map((e) => e.options)
+    const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, allSkills)
+    const effMaxHp = Math.round(cs.max_hp)
+    const effMaxMp = Math.round(cs.max_mp)
+    if (char.current_hp > effMaxHp || char.current_mp > effMaxMp) {
+      await updateCharacter({
+        current_hp: Math.min(char.current_hp, effMaxHp),
+        current_mp: Math.min(char.current_mp, effMaxMp),
+      })
+    }
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

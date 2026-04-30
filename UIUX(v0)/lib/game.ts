@@ -1,4 +1,5 @@
 import * as db from "./db"
+import { buildPlayerCombatStats } from "./battle"
 
 export function requiredExp(level: number, cfg: Record<string, string>): number {
   const base = parseFloat(cfg.base_exp ?? "100")
@@ -23,9 +24,13 @@ export function recalcHpMp(
 }
 
 export async function gainExp(expAmount: number) {
-  const char = await db.getCharacter()
-  const cfg = await db.getGameConfig()
-  const bcfg = await db.getBattleConfig()
+  const [char, cfg, bcfg, equipment, allSkills] = await Promise.all([
+    db.getCharacter(),
+    db.getGameConfig(),
+    db.getBattleConfig(),
+    db.getEquipment(),
+    db.getSkillsWithInvestment(),
+  ])
 
   const oldLevel = char.level
   let totalExp = char.total_exp + expAmount
@@ -50,8 +55,6 @@ export async function gainExp(expAmount: number) {
 
   const { maxHp, maxMp } = recalcHpMp({ ...char, level }, bcfg)
 
-  // 레벨업 시에만 HP/MP 풀 회복. 레벨업 없는 EXP 획득 시엔 건드리지 않음
-  // (전투 full restore가 effective max로 저장되므로, gainExp가 base max로 깎으면 안 됨)
   const updates: Parameters<typeof db.updateCharacter>[0] = {
     level,
     total_exp: totalExp,
@@ -62,8 +65,12 @@ export async function gainExp(expAmount: number) {
     max_mp: maxMp,
   }
   if (leveledUp) {
-    updates.current_hp = maxHp
-    updates.current_mp = maxMp
+    const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+      .filter((e) => e.is_equipped === 1)
+      .map((e) => e.options)
+    const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)
+    updates.current_hp = Math.round(cs.max_hp)
+    updates.current_mp = Math.round(cs.max_mp)
   }
 
   await db.updateCharacter(updates)

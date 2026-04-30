@@ -110,6 +110,8 @@ export type BattleResult = {
   turns: number
   ticket_reward: number
   first_strike: "플레이어" | "몬스터"
+  player_start_hp: number
+  player_start_mp: number
   player_max_hp: number
   player_max_mp: number
   player_final_hp: number
@@ -501,6 +503,8 @@ export function runBattle(
 
   let playerHp  = startHp !== undefined ? Math.min(startHp, playerCombat.max_hp) : playerCombat.max_hp
   let playerMp  = startMp !== undefined ? Math.min(startMp, playerCombat.max_mp) : playerCombat.max_mp
+  const playerStartHp = playerHp
+  const playerStartMp = playerMp
   let monsterHp = monster.stats.HP
 
   const skillMpCost = parseFloat(battleCfg.active_skill_mp_cost ?? "10")
@@ -551,7 +555,7 @@ export function runBattle(
 
     let kind: "normal" | "skill" = "normal"
     let mpCost = 0
-    let activeSkillName: string | null = null
+    const activeSkillNames: string[] = []
 
     if (attLabel === "플레이어") {
       playerTurnCount++
@@ -586,25 +590,22 @@ export function runBattle(
 
     const res = attack(battleCfg, atk, def, kind)
     let dmg = res.total_damage
+    let lifeSteal = res.life_steal
 
-    // 플레이어 공격 시 액티브 스킬 보정
     if (attLabel === "플레이어" && res.hit) {
-      // 전투 시작 / 선공 획득 배율
       if (kind === "skill") dmg = Math.round(dmg * battleStartMatkBonus)
       else                  dmg = Math.round(dmg * battleStartPatkBonus)
 
-      // "매 3턴" 스킬
       for (const s of activeSkills) {
         if (s.trigger_condition !== "매 3턴") continue
         if (s.invested <= 0 || playerTurnCount % 3 !== 0) continue
         const val = s.base_effect_value + s.effect_coeff * s.invested
         if (s.effect_code === "MATK_PCT") {
           dmg = Math.round(dmg * (1 + val / 100))
-          activeSkillName = s.name
+          activeSkillNames.push(s.name)
         }
       }
 
-      // "치명타 시" 스킬
       if (res.critical) {
         for (const s of activeSkills) {
           if (s.trigger_condition !== "치명타 시") continue
@@ -612,12 +613,11 @@ export function runBattle(
           const val = s.base_effect_value + s.effect_coeff * s.invested
           if (s.effect_code === "MATK_PCT") {
             dmg = Math.round(dmg * (1 + val / 100))
-            activeSkillName = s.name
+            activeSkillNames.push(s.name)
           }
         }
       }
 
-      // "명중 시" 추가 타격
       for (const s of activeSkills) {
         if (s.trigger_condition !== "명중 시" || s.effect_code !== "EXTRA_HIT") continue
         if (s.invested <= 0) continue
@@ -625,7 +625,8 @@ export function runBattle(
         if (Math.random() < extraChance) {
           const extraRes = attack(battleCfg, atk, def, kind)
           dmg += extraRes.total_damage
-          activeSkillName = s.name
+          lifeSteal += extraRes.life_steal
+          activeSkillNames.push(s.name)
         }
         break
       }
@@ -633,23 +634,22 @@ export function runBattle(
 
     if (attLabel === "플레이어") {
       monsterHp = Math.max(0, monsterHp - dmg)
-      playerHp  = Math.min(playerHp + res.life_steal, playerCombat.max_hp)
+      playerHp  = Math.min(playerHp + lifeSteal, playerCombat.max_hp)
       playerMp  = Math.max(0, playerMp - mpCost)
     } else {
       playerHp  = Math.max(0, playerHp - dmg)
-      monsterHp = Math.min(monsterHp + res.life_steal, monCombat.max_hp)
+      monsterHp = Math.min(monsterHp + lifeSteal, monCombat.max_hp)
       if (plyCombat.reflect_ratio > 0 && dmg > 0) {
         monsterHp = Math.max(0, monsterHp - Math.round(dmg * plyCombat.reflect_ratio))
       }
 
-      // "사망 시" 기사회생
       if (playerHp <= 0) {
         for (const s of activeSkills) {
           if (s.trigger_condition !== "사망 시" || s.effect_code !== "SURVIVE") continue
           if (skillUsed.has(s.id) || s.invested <= 0) continue
           playerHp = 1
           skillUsed.add(s.id)
-          activeSkillName = s.name
+          activeSkillNames.push(s.name)
           break
         }
       }
@@ -663,9 +663,9 @@ export function runBattle(
     else { result = "hit" }
 
     logs.push({ turn, attacker: attLabel, attack_type: kind, result, damage: dmg,
-      crit: res.critical, double: res.double_attack, life_steal: res.life_steal,
+      crit: res.critical, double: res.double_attack, life_steal: lifeSteal,
       mp_cost: mpCost, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
-      active_skill: activeSkillName })
+      active_skill: activeSkillNames.length > 0 ? activeSkillNames.join(" + ") : null })
 
     if (monsterHp <= 0) { winner = "플레이어"; break }
     if (playerHp  <= 0) { winner = "몬스터";   break }
@@ -678,6 +678,8 @@ export function runBattle(
     turns:  logs.length,
     ticket_reward: winner === "플레이어" ? monster.ticket_reward : 0,
     first_strike:  first,
+    player_start_hp: Math.max(0, Math.round(playerStartHp)),
+    player_start_mp: Math.max(0, Math.round(playerStartMp)),
     player_max_hp:   Math.round(playerCombat.max_hp),
     player_max_mp:   Math.round(playerCombat.max_mp),
     player_final_hp: Math.max(0, Math.round(playerHp)),
