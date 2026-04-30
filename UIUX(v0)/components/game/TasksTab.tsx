@@ -536,7 +536,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addRoutine()}
             placeholder="루틴 이름 (예: 아침 루틴)"
-            className="flex-1 text-sm bg-teal-50 border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
+            className="flex-1 text-sm text-gray-900 bg-teal-50 border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
           />
           <button
             onClick={addRoutine}
@@ -568,7 +568,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   value={editingRoutineNameVal}
                   onChange={(e) => setEditingRoutineNameVal(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") saveRoutineName(r.id); if (e.key === "Escape") setEditingRoutineNameId(null) }}
-                  className="flex-1 min-w-0 text-sm bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
+                  className="flex-1 min-w-0 text-sm text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
                 />
                 <button
                   onClick={() => saveRoutineName(r.id)}
@@ -647,13 +647,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                               value={editingRoutineItemNameVal}
                               onChange={(e) => setEditingRoutineItemNameVal(e.target.value)}
                               onKeyDown={(e) => { if (e.key === "Enter") saveRoutineItemName(item.id); if (e.key === "Escape") setEditingRoutineItemNameId(null) }}
-                              className="flex-1 min-w-0 text-sm bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
+                              className="flex-1 min-w-0 text-sm text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
                             />
                             <input
                               type="number"
                               value={editingRoutineItemExpVal}
                               onChange={(e) => setEditingRoutineItemExpVal(Number(e.target.value))}
-                              className="w-14 text-xs text-center bg-teal-50 border border-teal-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                              className="w-14 text-xs text-center text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                               min={1}
                             />
                             <button
@@ -834,13 +834,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="습관 이름..."
-            className="flex-1 min-w-0 text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
+            className="flex-1 min-w-0 text-sm text-gray-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
           />
           <input
             type="number"
             value={newExp}
             onChange={(e) => setNewExp(Number(e.target.value))}
-            className="w-14 text-sm text-center bg-amber-50 border border-amber-200 rounded-xl px-1 py-2 outline-none"
+            className="w-14 text-sm text-center text-gray-900 bg-amber-50 border border-amber-200 rounded-xl px-1 py-2 outline-none"
             min={1}
           />
           <button
@@ -881,13 +881,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     value={editingDailyNameVal}
                     onChange={(e) => setEditingDailyNameVal(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") saveDailyName(item.id); if (e.key === "Escape") setEditingDailyNameId(null) }}
-                    className="flex-1 min-w-0 text-sm bg-amber-50 border border-amber-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
+                    className="flex-1 min-w-0 text-sm text-gray-900 bg-amber-50 border border-amber-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
                   />
                   <input
                     type="number"
                     value={editingDailyExpVal}
                     onChange={(e) => setEditingDailyExpVal(Number(e.target.value))}
-                    className="w-14 text-xs text-center bg-amber-50 border border-amber-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                    className="w-14 text-xs text-center text-gray-900 bg-amber-50 border border-amber-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                     min={1}
                   />
                   <button
@@ -1018,13 +1018,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="할 일 이름..."
-            className="flex-1 min-w-0 text-sm bg-violet-50 border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+            className="flex-1 min-w-0 text-sm text-gray-900 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
           />
           <input
             type="number"
             value={newExp}
             onChange={(e) => setNewExp(Number(e.target.value))}
-            className="w-14 text-sm text-center bg-violet-50 border border-violet-200 rounded-xl px-1 py-2 outline-none"
+            className="w-14 text-sm text-center text-gray-900 bg-violet-50 border border-violet-200 rounded-xl px-1 py-2 outline-none"
             min={0}
           />
           <button
@@ -1058,13 +1058,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     value={editingTodoNameVal}
                     onChange={(e) => setEditingTodoNameVal(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") saveTodoName(item.id); if (e.key === "Escape") setEditingTodoNameId(null) }}
-                    className="flex-1 min-w-0 text-sm bg-violet-50 border border-violet-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
+                    className="flex-1 min-w-0 text-sm text-gray-900 bg-violet-50 border border-violet-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
                   />
                   <input
                     type="number"
                     value={editingTodoExpVal}
                     onChange={(e) => setEditingTodoExpVal(Number(e.target.value))}
-                    className="w-14 text-xs text-center bg-violet-50 border border-violet-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                    className="w-14 text-xs text-center text-gray-900 bg-violet-50 border border-violet-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                     min={0}
                   />
                   <button
