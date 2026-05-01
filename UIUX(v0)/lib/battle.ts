@@ -567,12 +567,15 @@ export function runBattle(
           if (s.trigger_condition !== "HP 25% 이하" || s.effect_code !== "HP_HEAL") continue
           if (skillUsed.has(s.id)) continue
           if (s.invested <= 0) continue
+          const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+          if (playerMp - mpCost < actualMpCost) break
           const healPct = s.base_effect_value + s.effect_coeff * s.invested
           const healAmt = Math.round(playerCombat.max_hp * healPct / 100)
           playerHp = Math.min(playerHp + healAmt, playerCombat.max_hp)
+          mpCost += actualMpCost
           skillUsed.add(s.id)
           logs.push({ turn, attacker: "플레이어", attack_type: "skill", result: "hit",
-            damage: 0, crit: false, double: false, life_steal: healAmt, mp_cost: 0,
+            damage: 0, crit: false, double: false, life_steal: healAmt, mp_cost: actualMpCost,
             player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
             active_skill: s.name })
           break
@@ -580,9 +583,9 @@ export function runBattle(
       }
 
       // 공격 종류 결정
-      const canSkill = atk.matk > 0 && playerMp >= skillMpCost
+      const canSkill = atk.matk > 0 && playerMp - mpCost >= skillMpCost
       if (canSkill && Math.random() < 0.5) {
-        kind = "skill"; mpCost = skillMpCost
+        kind = "skill"; mpCost += skillMpCost
       }
     } else {
       if (atk.matk > 0 && Math.random() < 0.4) kind = "skill"
@@ -601,6 +604,9 @@ export function runBattle(
         if (s.invested <= 0 || playerTurnCount % 3 !== 0) continue
         const val = s.base_effect_value + s.effect_coeff * s.invested
         if (s.effect_code === "MATK_PCT") {
+          const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+          if (playerMp - mpCost < actualMpCost) continue
+          mpCost += actualMpCost
           dmg = Math.round(dmg * (1 + val / 100))
           activeSkillNames.push(s.name)
         }
@@ -612,6 +618,9 @@ export function runBattle(
           if (s.invested <= 0) continue
           const val = s.base_effect_value + s.effect_coeff * s.invested
           if (s.effect_code === "MATK_PCT") {
+            const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+            if (playerMp - mpCost < actualMpCost) continue
+            mpCost += actualMpCost
             dmg = Math.round(dmg * (1 + val / 100))
             activeSkillNames.push(s.name)
           }
@@ -621,11 +630,14 @@ export function runBattle(
       for (const s of activeSkills) {
         if (s.trigger_condition !== "명중 시" || s.effect_code !== "EXTRA_HIT") continue
         if (s.invested <= 0) continue
+        const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+        if (playerMp - mpCost < actualMpCost) break
         const extraChance = (s.base_effect_value + s.effect_coeff * s.invested) / 100
         if (Math.random() < extraChance) {
           const extraRes = attack(battleCfg, atk, def, kind)
           dmg += extraRes.total_damage
           lifeSteal += extraRes.life_steal
+          mpCost += actualMpCost
           activeSkillNames.push(s.name)
         }
         break
@@ -666,6 +678,37 @@ export function runBattle(
       crit: res.critical, double: res.double_attack, life_steal: lifeSteal,
       mp_cost: mpCost, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
       active_skill: activeSkillNames.length > 0 ? activeSkillNames.join(" + ") : null })
+
+    // "회피 시" 반격: 몬스터 공격을 회피했을 때 즉시 반격
+    if (attLabel === "몬스터" && !res.hit && res.reason === "evaded") {
+      for (const s of activeSkills) {
+        if (s.trigger_condition !== "회피 시" || s.effect_code !== "EXTRA_HIT") continue
+        if (s.invested <= 0) break
+        const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+        if (playerMp < actualMpCost) break
+        const extraChance = (s.base_effect_value + s.effect_coeff * s.invested) / 100
+        if (Math.random() < extraChance) {
+          const cRes = attack(battleCfg, plyCombat, monCombat, "normal")
+          const cDmg = cRes.hit ? Math.round(cRes.total_damage * battleStartPatkBonus) : 0
+          playerMp  = Math.max(0, playerMp - actualMpCost)
+          monsterHp = Math.max(0, monsterHp - cDmg)
+          playerHp  = Math.min(playerHp + cRes.life_steal, playerCombat.max_hp)
+          const cResult: TurnLog["result"] = !cRes.hit ? cRes.reason
+            : cRes.critical && cRes.double_attack ? "crit_double"
+            : cRes.critical ? "crit"
+            : cRes.double_attack ? "double" : "hit"
+          logs.push({
+            turn, attacker: "플레이어", attack_type: "normal",
+            result: cResult, damage: cDmg,
+            crit: cRes.critical, double: cRes.double_attack,
+            life_steal: cRes.life_steal, mp_cost: actualMpCost,
+            player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
+            active_skill: s.name,
+          })
+        }
+        break
+      }
+    }
 
     if (monsterHp <= 0) { winner = "플레이어"; break }
     if (playerHp  <= 0) { winner = "몬스터";   break }

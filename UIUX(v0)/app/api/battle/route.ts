@@ -30,6 +30,9 @@ export async function POST(req: NextRequest) {
     const providedGradeIdx = body.monster ? GRADE_KEYS_ORDER.indexOf(body.monster.grade_code) : -1
     const useProvided = body.monster && providedGradeIdx >= 0 && providedGradeIdx <= maxUnlockedIdx
     const monster = useProvided ? body.monster! : generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
+    if (useProvided) {
+      monster.ticket_reward = parseInt(gameCfg[`monster_grade_${monster.grade_code}_tickets`] ?? "1")
+    }
 
     // 전투 후 HP/MP 처리 모드 (full / none / half)
     const restoreMode = (battleCfg.restore_hp_after_battle ?? "full").toLowerCase()
