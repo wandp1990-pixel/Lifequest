@@ -412,6 +412,14 @@ function calcDmg(atk: number, def_: number, ignoreRatio: number, minRatio: numbe
   return Math.max(atk * minRatio, raw)
 }
 
+function getSkillValue(skill: SkillData): number {
+  return skill.base_effect_value + skill.effect_coeff * skill.invested
+}
+
+function getSkillMpCost(skill: SkillData): number {
+  return Math.round(skill.mp_cost + skill.mp_cost_coeff * skill.invested)
+}
+
 type Combatant = {
   patk: number; matk: number; pdef: number; mdef: number
   dex: number; luk: number; int: number; max_hp: number
@@ -437,11 +445,10 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   const dmgMax      = parseFloat(cfg.damage_random_max ?? "1.1")
   const dmgRand     = dmgMin + Math.random() * (dmgMax - dmgMin)
   const minRatio    = parseFloat(cfg.min_damage_ratio_by_defense ?? "0.1")
-  const skillMult   = parseFloat(cfg.active_skill_damage_mult    ?? "1.4")
 
   let base: number
   if (kind === "skill") {
-    base = calcDmg(atk.matk, def.mdef, ignoreRatio, minRatio) * dmgRand * skillMult
+    base = calcDmg(atk.matk, def.mdef, ignoreRatio, minRatio) * dmgRand
   } else {
     base = calcDmg(atk.patk, def.pdef, ignoreRatio, minRatio) * dmgRand
   }
@@ -477,6 +484,21 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   }
 }
 
+function calcMagicSkillDamage(
+  cfg: Record<string, string>,
+  atk: Combatant,
+  def: Combatant,
+  effectPct: number,
+): number {
+  const dmgMin   = parseFloat(cfg.damage_random_min ?? "0.9")
+  const dmgMax   = parseFloat(cfg.damage_random_max ?? "1.1")
+  const dmgRand  = dmgMin + Math.random() * (dmgMax - dmgMin)
+  const minRatio = parseFloat(cfg.min_damage_ratio_by_defense ?? "0.1")
+  const matkPortion = atk.matk * (effectPct / 100)
+  const raw = calcDmg(matkPortion, def.mdef, atk.defense_ignore_ratio, minRatio) * dmgRand
+  return Math.max(0, Math.round(raw))
+}
+
 // ─── Main battle simulation ────────────────────────────────────────────────────
 
 export function runBattle(
@@ -506,8 +528,6 @@ export function runBattle(
   const playerStartMp = playerMp
   let monsterHp = monster.stats.HP
 
-  const skillMpCost = parseFloat(battleCfg.active_skill_mp_cost ?? "10")
-
   const firstMode = (battleCfg.first_strike_mode ?? "dex").toLowerCase()
   let first: "플레이어" | "몬스터"
   if (firstMode === "player") {
@@ -527,24 +547,22 @@ export function runBattle(
   const skillUsed = new Set<string>()  // 1회성 스킬 사용 여부
   let playerTurnCount = 0
 
-  // "전투 시작" / "선공 획득" 스킬 → patk 보정값 미리 계산
+  // "전투 시작" / "선공 획득" 스킬 → 물리 공격 보정값 미리 계산
   let battleStartPatkBonus = 1.0
-  let battleStartMatkBonus = 1.0
   for (const s of activeSkills) {
     if (s.invested <= 0) continue
-    const val = s.base_effect_value + s.effect_coeff * s.invested
+    const val = getSkillValue(s)
     if (s.trigger_condition === "전투 시작") {
       if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
-      if (s.effect_code === "MATK_PCT") battleStartMatkBonus *= 1 + val / 100
     }
     if (s.trigger_condition === "선공 획득" && first === "플레이어") {
       if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
-      if (s.effect_code === "MATK_PCT") battleStartMatkBonus *= 1 + val / 100
     }
   }
 
   const logs: TurnLog[] = []
   let winner: "플레이어" | "몬스터" | "시간초과" | null = null
+  let completedTurns = 0
 
   for (let turn = 1; turn <= maxTurns; turn++) {
     const attLabel: "플레이어" | "몬스터" =
@@ -552,7 +570,7 @@ export function runBattle(
     const atk = attLabel === "플레이어" ? plyCombat : monCombat
     const def = attLabel === "플레이어" ? monCombat : plyCombat
 
-    let kind: "normal" | "skill" = "normal"
+    const kind: "normal" | "skill" = "normal"
     let mpCost = 0
     const activeSkillNames: string[] = []
 
@@ -566,12 +584,12 @@ export function runBattle(
           if (s.trigger_condition !== "HP 25% 이하" || s.effect_code !== "HP_HEAL") continue
           if (skillUsed.has(s.id)) continue
           if (s.invested <= 0) continue
-          const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
-          if (playerMp - mpCost < actualMpCost) break
-          const healPct = s.base_effect_value + s.effect_coeff * s.invested
-          const healAmt = Math.round(playerCombat.max_hp * healPct / 100)
-          playerHp = Math.min(playerHp + healAmt, playerCombat.max_hp)
-          mpCost += actualMpCost
+           const actualMpCost = getSkillMpCost(s)
+           if (playerMp - mpCost < actualMpCost) break
+           const healPct = getSkillValue(s)
+           const healAmt = Math.round(playerCombat.max_hp * healPct / 100)
+           playerHp = Math.min(playerHp + healAmt, playerCombat.max_hp)
+           mpCost += actualMpCost
           skillUsed.add(s.id)
           logs.push({ turn, attacker: "플레이어", attack_type: "skill", result: "hit",
             damage: 0, crit: false, double: false, life_steal: healAmt, mp_cost: actualMpCost,
@@ -581,13 +599,6 @@ export function runBattle(
         }
       }
 
-      // 공격 종류 결정
-      const canSkill = atk.matk > 0 && playerMp - mpCost >= skillMpCost
-      if (canSkill && Math.random() < 0.5) {
-        kind = "skill"; mpCost += skillMpCost
-      }
-    } else {
-      if (atk.matk > 0 && Math.random() < 0.4) kind = "skill"
     }
 
     const res = attack(battleCfg, atk, def, kind)
@@ -595,18 +606,17 @@ export function runBattle(
     let lifeSteal = res.life_steal
 
     if (attLabel === "플레이어" && res.hit) {
-      if (kind === "skill") dmg = Math.round(dmg * battleStartMatkBonus)
-      else                  dmg = Math.round(dmg * battleStartPatkBonus)
+      dmg = Math.round(dmg * battleStartPatkBonus)
 
       for (const s of activeSkills) {
         if (s.trigger_condition !== "매 3턴") continue
         if (s.invested <= 0 || playerTurnCount % 3 !== 0) continue
-        const val = s.base_effect_value + s.effect_coeff * s.invested
+        const val = getSkillValue(s)
         if (s.effect_code === "MATK_PCT") {
-          const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+          const actualMpCost = getSkillMpCost(s)
           if (playerMp - mpCost < actualMpCost) continue
           mpCost += actualMpCost
-          dmg = Math.round(dmg * (1 + val / 100))
+          dmg += calcMagicSkillDamage(battleCfg, plyCombat, monCombat, val)
           activeSkillNames.push(s.name)
         }
       }
@@ -615,12 +625,12 @@ export function runBattle(
         for (const s of activeSkills) {
           if (s.trigger_condition !== "치명타 시") continue
           if (s.invested <= 0) continue
-          const val = s.base_effect_value + s.effect_coeff * s.invested
+          const val = getSkillValue(s)
           if (s.effect_code === "MATK_PCT") {
-            const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+            const actualMpCost = getSkillMpCost(s)
             if (playerMp - mpCost < actualMpCost) continue
             mpCost += actualMpCost
-            dmg = Math.round(dmg * (1 + val / 100))
+            dmg += calcMagicSkillDamage(battleCfg, plyCombat, monCombat, val)
             activeSkillNames.push(s.name)
           }
         }
@@ -629,9 +639,9 @@ export function runBattle(
       for (const s of activeSkills) {
         if (s.trigger_condition !== "명중 시" || s.effect_code !== "EXTRA_HIT") continue
         if (s.invested <= 0) continue
-        const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+        const actualMpCost = getSkillMpCost(s)
         if (playerMp - mpCost < actualMpCost) break
-        const extraChance = (s.base_effect_value + s.effect_coeff * s.invested) / 100
+        const extraChance = getSkillValue(s) / 100
         if (Math.random() < extraChance) {
           const extraRes = attack(battleCfg, atk, def, kind)
           dmg += extraRes.total_damage
@@ -677,15 +687,16 @@ export function runBattle(
       crit: res.critical, double: res.double_attack, life_steal: lifeSteal,
       mp_cost: mpCost, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
       active_skill: activeSkillNames.length > 0 ? activeSkillNames.join(" + ") : null })
+    completedTurns = turn
 
     // "회피 시" 반격: 몬스터 공격을 회피했을 때 즉시 반격
     if (attLabel === "몬스터" && !res.hit && res.reason === "evaded") {
       for (const s of activeSkills) {
         if (s.trigger_condition !== "회피 시" || s.effect_code !== "EXTRA_HIT") continue
         if (s.invested <= 0) break
-        const actualMpCost = Math.round(s.mp_cost + s.mp_cost_coeff * s.invested)
+        const actualMpCost = getSkillMpCost(s)
         if (playerMp < actualMpCost) break
-        const extraChance = (s.base_effect_value + s.effect_coeff * s.invested) / 100
+        const extraChance = getSkillValue(s) / 100
         if (Math.random() < extraChance) {
           const cRes = attack(battleCfg, plyCombat, monCombat, "normal")
           const cDmg = cRes.hit ? Math.round(cRes.total_damage * battleStartPatkBonus) : 0
@@ -717,7 +728,7 @@ export function runBattle(
     monster,
     logs,
     winner: winner ?? "시간초과",
-    turns:  logs.length,
+    turns:  completedTurns,
     ticket_reward: winner === "플레이어" ? monster.ticket_reward : 0,
     first_strike:  first,
     player_start_hp: Math.max(0, Math.round(playerStartHp)),

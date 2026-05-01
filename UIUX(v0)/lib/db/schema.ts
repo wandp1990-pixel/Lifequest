@@ -376,4 +376,10 @@ export async function initDb() {
       "UPDATE skill_table SET base_effect_value=22, effect_coeff=4.0 WHERE id='ACTIVE_SPARK_01'",
     ], "write")
   })
+
+  await runMigration("battle_skill_mode_v1", async () => {
+    await db.execute(
+      "DELETE FROM battle_config WHERE config_key IN ('active_skill_mp_cost','active_skill_damage_mult')"
+    )
+  })
 }

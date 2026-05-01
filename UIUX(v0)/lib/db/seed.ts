@@ -145,8 +145,6 @@ export async function ensureBattleConfig(db: Client) {
     ["total_damage_mode", "add", "더블어택 데미지 합산 방식 (add: 2배 합산, multiply: 1.5배)", 0.0, 0.0, 0.0],
     ["first_strike_mode", "dex", "선공 결정 방식 (dex: 민첩 비교, random: 무작위, player: 항상 플레이어)", 0.0, 0.0, 0.0],
     ["restore_hp_after_battle", "full", "전투 후 HP/MP 처리 (full: 완전 회복, none: 종료시점 유지, half: 절반 회복)", 0.0, 0.0, 0.0],
-    ["active_skill_mp_cost", "10", "랜덤 스킬 공격 MP 소모량", 0.0, 100.0, 1.0],
-    ["active_skill_damage_mult", "1.4", "랜덤 스킬 공격 데미지 배율", 1.0, 5.0, 0.1],
   ]
   for (const [key, val, label, mn, mx, step] of data) {
     await db.execute({
