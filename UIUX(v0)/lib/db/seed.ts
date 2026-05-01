@@ -136,12 +136,12 @@ export async function ensureBattleConfig(db: Client) {
     ["crit_suppression_per_enemy_luk", "0.003", "적 LUK당 치명타 억제", 0.0, 0.05, 0.001],
     ["crit_multiplier_per_int", "0.0", "INT당 치명타 배율 추가", 0.0, 0.1, 0.005],
     ["str_to_patk", "4.0", "STR당 물리 공격력 보너스", 0.0, 10.0, 0.5],
-    ["vit_to_max_hp", "30.0", "VIT당 최대 HP 보너스", 0.0, 50.0, 1.0],
+    ["vit_to_max_hp", "20.0", "VIT당 최대 HP 보너스", 0.0, 50.0, 1.0],
     ["int_to_matk", "2.0", "INT당 마법 공격력 보너스", 0.0, 10.0, 0.5],
     ["int_to_max_mp", "5.0", "INT당 최대 MP 보너스", 0.0, 30.0, 1.0],
     ["damage_random_min", "0.9", "데미지 난수 최솟값", 0.5, 1.0, 0.05],
     ["damage_random_max", "1.1", "데미지 난수 최댓값", 1.0, 2.0, 0.05],
-    ["min_damage_ratio_by_defense", "0.05", "방어력 최소 데미지 비율", 0.0, 0.5, 0.05],
+    ["min_damage_ratio_by_defense", "0.1", "방어력 최소 데미지 비율", 0.0, 0.5, 0.05],
     ["total_damage_mode", "add", "더블어택 데미지 합산 방식 (add: 2배 합산, multiply: 1.5배)", 0.0, 0.0, 0.0],
     ["first_strike_mode", "dex", "선공 결정 방식 (dex: 민첩 비교, random: 무작위, player: 항상 플레이어)", 0.0, 0.0, 0.0],
     ["restore_hp_after_battle", "full", "전투 후 HP/MP 처리 (full: 완전 회복, none: 종료시점 유지, half: 절반 회복)", 0.0, 0.0, 0.0],
@@ -156,8 +156,8 @@ export async function ensureBattleConfig(db: Client) {
 
 async function seedItemGradeTable(db: Client) {
   const data = [
-    ["C", "일반", 1, "0", "0", "0", "1", 5, 15, 50.0],
-    ["B", "고급", 1, "1", "0", "0", "1~2", 15, 28, 25.0],
+    ["C", "일반", 1, "0", "0", "0", "1", 5, 10, 50.0],
+    ["B", "고급", 1, "0~1", "0", "0", "1~2", 15, 28, 25.0],
     ["A", "희귀", 1, "1", "0~1", "0", "2~3", 35, 60, 15.0],
     ["S", "영웅", 1, "1", "1", "0", "3", 75, 120, 6.0],
     ["SR", "전설", 1, "1", "1~2", "0", "3~4", 150, 250, 3.0],
@@ -177,8 +177,8 @@ async function seedItemSlotTable(db: Client) {
     ["weapon", "무기", "물리 공격력", JSON.stringify(["방어력", "물리방어력", "마법방어력", "마법 공격력"])],
     ["helmet", "투구", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["armor", "갑옷", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
-    ["pants", "바지", "HP증가", JSON.stringify(["물리 공격력", "마법 공격력"])],
-    ["belt", "벨트", "MP증가", JSON.stringify(["물리 공격력", "마법 공격력"])],
+    ["pants", "바지", "마법방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
+    ["belt", "벨트", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["glove", "장갑", "명중률", JSON.stringify(["마법 공격력", "방어력", "물리방어력", "마법방어력"])],
     ["shoe", "신발", "회피율", JSON.stringify(["물리 공격력", "마법 공격력", "방어력", "물리방어력", "마법방어력"])],
     ["necklace", "목걸이", "치명타확률", JSON.stringify(["치명타피해", "물리 공격력", "방어력", "물리방어력", "마법방어력"])],
@@ -205,9 +205,9 @@ async function seedItemAbilityPool(db: Client) {
     ["회피율", 1.0, "%", "회피 +1%", "Combat"],
     ["치명타확률", 1.0, "%", "치명 +1%", "Combat"],
     ["치명타피해", 5.0, "%", "피해 +5%", "Combat"],
-    ["방어력", 8.0, "Pt", "물리방어 +8", "Combat"],
+    ["방어력", 5.0, "Pt", "물리방어 +5", "Combat"],
     ["마법방어력", 4.0, "Pt", "마법방어 +4", "Combat"],
-    ["HP증가", 30.0, "HP", "최대HP +30", "Combat"],
+    ["HP증가", 50.0, "HP", "최대HP +50", "Combat"],
     ["MP증가", 30.0, "MP", "최대MP +30", "Combat"],
   ]
   for (const row of data) {
@@ -220,10 +220,10 @@ async function seedItemAbilityPool(db: Client) {
 
 async function seedItemPassivePool(db: Client) {
   const data = [
-    ["더블어택", "추가타격 +15% (중첩 최대 60%)"],
-    ["생명흡수", "흡수 +4% (중첩 최대 20%)"],
-    ["방어무시", "DEF 무시 +8% (중첩 최대 30%)"],
-    ["반사", "반사 +4% (중첩 최대 20%)"],
+    ["더블어택", "25% 확률 추가타격"],
+    ["생명흡수", "피해의 5% 회복"],
+    ["방어무시", "상대 DEF 10% 무시"],
+    ["반사", "받은 피해의 5% 반사"],
   ]
   for (const [name, desc] of data) {
     await db.execute({

@@ -298,13 +298,13 @@ export function buildPlayerCombatStats(
     for (const line of lines) {
       if (typeof line !== "string") continue
 
-      // 패시브: "[더블어택]" 형식 — 장비마다 누적, 슬롯 상한 적용
+      // 패시브: "[더블어택]" 형식
       if (line.startsWith("[") && line.endsWith("]")) {
         const name = line.slice(1, -1)
-        if      (name === "더블어택") doubleAtkChance = Math.min(doubleAtkChance + 0.15, 0.60)
-        else if (name === "생명흡수") lifeStealRatio  = Math.min(lifeStealRatio  + 0.04, 0.20)
-        else if (name === "방어무시") defIgnoreRatio  = Math.min(defIgnoreRatio  + 0.08, 0.30)
-        else if (name === "반사")     reflectRatio    = Math.min(reflectRatio    + 0.04, 0.20)
+        if (name === "더블어택")  doubleAtkChance = Math.max(doubleAtkChance, 0.25)
+        else if (name === "생명흡수") lifeStealRatio  = Math.max(lifeStealRatio,  0.05)
+        else if (name === "방어무시") defIgnoreRatio  = Math.max(defIgnoreRatio,  0.1)
+        else if (name === "반사")     reflectRatio    = Math.max(reflectRatio,    0.05)
         continue
       }
 
