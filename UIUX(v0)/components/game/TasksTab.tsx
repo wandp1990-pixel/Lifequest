@@ -566,13 +566,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-foreground">루틴</span>
-              {routines.length > 0 && (
-                <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-2 py-0.5 rounded-full border border-teal-100 dark:border-teal-700/50">
-                  {routines.length}개
-                </span>
-              )}
             </div>
-            <p className="text-[10px] text-teal-500 dark:text-teal-400 font-medium mt-0.5">순서가 있는 일정</p>
           </div>
         </div>
         <button
@@ -844,11 +838,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-foreground">습관</span>
-              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-700/50">
-                {dailyItems.filter(item => checkedDailyIds.has(item.id)).length} / {dailyItems.length}
-              </span>
             </div>
-            <p className="text-[10px] text-amber-500 dark:text-amber-400 font-medium mt-0.5">매일 반복하면 강해져요</p>
           </div>
         </div>
         <button
@@ -936,7 +926,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex flex-col gap-0.5 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
                       {item.name}
@@ -950,27 +940,23 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                         <Pencil className="w-3 h-3" />
                       </button>
                     )}
+                  </div>
+                  <div className="flex items-center gap-2">
                     <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
                       {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
                     </span>
                     {!done && (
                       <button
                         onClick={() => { setNotifyEditId({ type: "daily", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
-                        className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
-                          item.notify_time
-                            ? "text-amber-600 bg-amber-50 border-amber-200"
-                            : "text-muted-foreground bg-muted border-border"
+                        className={`flex-shrink-0 flex items-center gap-0.5 transition-colors active:scale-95 ${
+                          item.notify_time ? "text-amber-500" : "text-gray-300 hover:text-amber-400"
                         }`}
+                        aria-label="알림 설정"
                       >
-                        {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
+                        <Clock className="w-3.5 h-3.5" />
+                        {item.notify_time && <span className="text-[10px] font-bold">{item.notify_time}</span>}
                       </button>
                     )}
-                  </div>
-                  {/* 주간 점 표시 */}
-                  <div className="flex gap-1">
-                    {[1,2,3,4,5,6,7].map(d => (
-                      <div key={d} style={{ width: 6, height: 6, borderRadius: 3, flexShrink: 0, background: d <= Math.min(streak, 7) ? '#FFB87A' : '#E5E7EB' }} />
-                    ))}
                   </div>
                 </div>
               )}
@@ -1039,13 +1025,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-foreground">할 일</span>
-              {todoItems.filter((t) => !t.is_completed).length > 0 && (
-                <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/40 px-2 py-0.5 rounded-full border border-violet-100 dark:border-violet-700/50">
-                  {todoItems.filter((t) => !t.is_completed).length}개
-                </span>
-              )}
             </div>
-            <p className="text-[10px] text-violet-400 dark:text-violet-400 font-medium mt-0.5">한 번 끝내면 사라져요</p>
           </div>
         </div>
         <button
@@ -1129,29 +1109,31 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                    {item.name}
-                  </p>
-                  {!done && (
-                    <button
-                      onClick={() => { setEditingTodoNameId(item.id); setEditingTodoNameVal(item.name); setEditingTodoExpVal(item.suggested_exp ?? 0) }}
-                      className="text-gray-300 hover:text-violet-400 transition-colors flex-shrink-0 p-0.5"
-                      aria-label="이름 수정"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                  )}
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                      {item.name}
+                    </p>
+                    {!done && (
+                      <button
+                        onClick={() => { setEditingTodoNameId(item.id); setEditingTodoNameVal(item.name); setEditingTodoExpVal(item.suggested_exp ?? 0) }}
+                        className="text-gray-300 hover:text-violet-400 transition-colors flex-shrink-0 p-0.5"
+                        aria-label="이름 수정"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                   {!done && (
                     <button
                       onClick={() => { setNotifyEditId({ type: "todo", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
-                      className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
-                        item.notify_time
-                          ? "text-violet-600 bg-violet-50 border-violet-200"
-                          : "text-muted-foreground bg-muted border-border"
+                      className={`flex-shrink-0 flex items-center gap-0.5 self-start transition-colors active:scale-95 ${
+                        item.notify_time ? "text-violet-500" : "text-gray-300 hover:text-violet-400"
                       }`}
+                      aria-label="알림 설정"
                     >
-                      {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
+                      <Clock className="w-3.5 h-3.5" />
+                      {item.notify_time && <span className="text-[10px] font-bold">{item.notify_time}</span>}
                     </button>
                   )}
                 </div>
