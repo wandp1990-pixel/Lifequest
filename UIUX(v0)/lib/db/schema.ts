@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS character (
     max_hp       INTEGER  DEFAULT 110,
     current_mp   INTEGER  DEFAULT 55,
     max_mp       INTEGER  DEFAULT 55,
+    pending_battle_monster TEXT DEFAULT NULL,
     created_at   TEXT,
     updated_at   TEXT
 );
@@ -233,6 +234,7 @@ export async function initDb() {
   try { await db.execute("ALTER TABLE character ADD COLUMN name TEXT DEFAULT '전사'") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN attendance_streak INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN max_cleared_grade TEXT DEFAULT NULL") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN pending_battle_monster TEXT DEFAULT NULL") } catch {}
   try { await db.execute("UPDATE character SET name='전사' WHERE id=1 AND (name IS NULL OR name='')") } catch {}
   try {
     await db.execute(
@@ -381,5 +383,10 @@ export async function initDb() {
     await db.execute(
       "DELETE FROM battle_config WHERE config_key IN ('active_skill_mp_cost','active_skill_damage_mult')"
     )
+  })
+
+  await runMigration("pending_battle_monster_v1", async () => {
+    try { await db.execute("ALTER TABLE character ADD COLUMN pending_battle_monster TEXT DEFAULT NULL") } catch {}
+    await db.execute("UPDATE character SET pending_battle_monster = NULL WHERE pending_battle_monster = ''")
   })
 }

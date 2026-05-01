@@ -22,4 +22,5 @@ export type Character = {
   attendance_streak: number
   max_cleared_grade: string | null
   last_regen_at: string | null
+  pending_battle_monster: string | null
 }

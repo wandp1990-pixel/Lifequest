@@ -1,11 +1,41 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getCharacter, getEquipment, getGameConfig, getBattleConfig,
-  updateCharacter, addBattleLog, getSkillsWithInvestment,
+  getSkillsWithInvestment, getClient,
 } from "@/lib/db"
 import { now } from "@/lib/db/client"
 import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, parseEquippedStatBonuses, type Monster } from "@/lib/battle"
 import { calcRegen } from "@/lib/regen"
+
+function isMonsterStats(value: unknown): value is Monster["stats"] {
+  if (!value || typeof value !== "object") return false
+  const s = value as Record<string, unknown>
+  return ["HP", "patk", "matk", "pdef", "mdef", "dex", "luk"].every((k) => Number.isFinite(s[k]))
+}
+
+function isValidMonster(value: unknown): value is Monster {
+  if (!value || typeof value !== "object") return false
+  const m = value as Record<string, unknown>
+  return typeof m.full_name === "string"
+    && typeof m.grade_code === "string"
+    && typeof m.grade_name === "string"
+    && typeof m.race_name === "string"
+    && typeof m.race_emoji === "string"
+    && typeof m.color === "string"
+    && Number.isFinite(m.ticket_reward)
+    && Number.isFinite(m.total_coeff)
+    && isMonsterStats(m.stats)
+}
+
+function parsePendingMonster(raw: string | null | undefined): Monster | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    return isValidMonster(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,14 +55,18 @@ export async function POST(req: NextRequest) {
 
     const activeSkills = getActiveSkills(allSkills)
     const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, allSkills)
-    const GRADE_KEYS_ORDER = ["C", "B", "A", "S", "SR", "SSR", "UR"]
-    const maxUnlockedIdx = char.max_cleared_grade ? GRADE_KEYS_ORDER.indexOf(char.max_cleared_grade) + 1 : 0
-    const providedGradeIdx = body.monster ? GRADE_KEYS_ORDER.indexOf(body.monster.grade_code) : -1
-    const useProvided = body.monster && providedGradeIdx >= 0 && providedGradeIdx <= maxUnlockedIdx
-    const monster = useProvided ? body.monster! : generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
-    if (useProvided) {
-      monster.ticket_reward = parseInt(gameCfg[`monster_grade_${monster.grade_code}_tickets`] ?? "1")
-    }
+    const pendingMonster = parsePendingMonster(char.pending_battle_monster)
+
+    const gradeKeys = ["C", "B", "A", "S", "SR", "SSR", "UR"]
+    const maxUnlockedIdx = char.max_cleared_grade ? gradeKeys.indexOf(char.max_cleared_grade) + 1 : 0
+    const providedGradeIdx = body.monster ? gradeKeys.indexOf(body.monster.grade_code) : -1
+    const useProvided = isValidMonster(body.monster) && providedGradeIdx >= 0 && providedGradeIdx <= maxUnlockedIdx
+
+    // 저장된 재도전 몬스터가 있으면 항상 그 몬스터를 우선 사용한다.
+    const monster = pendingMonster
+      ?? (useProvided ? body.monster! : generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null))
+
+    monster.ticket_reward = parseInt(gameCfg[`monster_grade_${monster.grade_code}_tickets`] ?? "1")
 
     // 전투 후 HP/MP 처리 모드 (full / none / half)
     const restoreMode = (battleCfg.restore_hp_after_battle ?? "full").toLowerCase()
@@ -57,32 +91,64 @@ export async function POST(req: NextRequest) {
                   : result.player_final_mp
 
     const regenAt = now()
-    if (result.winner === "플레이어") {
-      const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
-      const prevIdx    = char.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
-      const curIdx     = GRADE_KEYS.indexOf(monster.grade_code)
-      const newMaxGrade = curIdx > prevIdx ? monster.grade_code : (char.max_cleared_grade ?? null)
-      await updateCharacter({
-        draw_tickets:      char.draw_tickets + result.ticket_reward,
-        clear_count:       (char.clear_count ?? 0) + 1,
-        current_hp:        finalHp,
-        current_mp:        finalMp,
-        last_regen_at:     regenAt,
-        max_cleared_grade: newMaxGrade,
-      })
-    } else {
-      await updateCharacter({
-        current_hp:    finalHp,
-        current_mp:    finalMp,
-        last_regen_at: regenAt,
-      })
-    }
+    const db = getClient()
+    const tx = await db.transaction("write")
+    try {
+      if (result.winner === "플레이어") {
+        const prevIdx = char.max_cleared_grade ? gradeKeys.indexOf(char.max_cleared_grade) : -1
+        const curIdx  = gradeKeys.indexOf(monster.grade_code)
+        const newMaxGrade = curIdx > prevIdx ? monster.grade_code : (char.max_cleared_grade ?? null)
+        await tx.execute({
+          sql: `UPDATE character
+                SET draw_tickets = ?, clear_count = ?, current_hp = ?, current_mp = ?,
+                    last_regen_at = ?, max_cleared_grade = ?, pending_battle_monster = NULL, updated_at = ?
+                WHERE id = 1`,
+          args: [
+            char.draw_tickets + result.ticket_reward,
+            (char.clear_count ?? 0) + 1,
+            finalHp,
+            finalMp,
+            regenAt,
+            newMaxGrade,
+            regenAt,
+          ],
+        })
+      } else {
+        await tx.execute({
+          sql: `UPDATE character
+                SET current_hp = ?, current_mp = ?, last_regen_at = ?,
+                    pending_battle_monster = ?, updated_at = ?
+                WHERE id = 1`,
+          args: [
+            finalHp,
+            finalMp,
+            regenAt,
+            JSON.stringify(monster),
+            regenAt,
+          ],
+        })
+      }
 
-    await addBattleLog(
-      monster.full_name, monster.grade_code,
-      result.winner, 0, result.ticket_reward,
-      result.logs as object[]
-    )
+      await tx.execute({
+        sql: "INSERT INTO battle_log (monster_name,monster_grade,result,exp_gained,draw_tickets,log_data,created_at) VALUES (?,?,?,?,?,?,?)",
+        args: [
+          monster.full_name,
+          monster.grade_code,
+          result.winner,
+          0,
+          result.ticket_reward,
+          JSON.stringify(result.logs as object[]),
+          regenAt,
+        ],
+      })
+      await tx.execute(
+        "DELETE FROM battle_log WHERE id NOT IN (SELECT id FROM battle_log ORDER BY id DESC LIMIT 10)"
+      )
+      await tx.commit()
+    } catch (e) {
+      await tx.rollback()
+      throw e
+    }
 
     const charFinal = await getCharacter()
 

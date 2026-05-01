@@ -69,6 +69,7 @@ type CharData = {
   draw_tickets: number
   clear_count?: number
   max_cleared_grade?: string | null
+  pending_battle_monster?: string | null
   effective?: {
     patk: number; matk: number; pdef: number; mdef: number
     dex: number; luk: number; vit: number; int: number
@@ -151,8 +152,6 @@ function TurnItem({ log, pMax, mMax }: { log: TurnLog; pMax: number; mMax: numbe
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-const MONSTER_STORAGE_KEY = "lq_last_monster"
-
 export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [phase, setPhase]   = useState<"lobby" | "loading" | "result">("lobby")
   const [result, setResult] = useState<BattleResultData | null>(null)
@@ -163,21 +162,36 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [scales, setScales] = useState<BattleScales>(DEFAULT_SCALES)
   const [restoreMode, setRestoreMode] = useState<"full" | "none" | "half">("full")
   const logEndRef = useRef<HTMLDivElement | null>(null)
+  const GRADE_KEYS  = ["C", "B", "A", "S", "SR", "SSR", "UR"]
+  const GRADE_META: Record<string, { name: string; color: string }> = {
+    C: { name: "잡몹",     color: "#808080" },
+    B: { name: "정예",     color: "#2E8B57" },
+    A: { name: "희귀",     color: "#1E90FF" },
+    S: { name: "네임드",   color: "#DC143C" },
+    SR:  { name: "필드보스", color: "#8A2BE2" },
+    SSR: { name: "재앙",   color: "#DAA520" },
+    UR:  { name: "종말",   color: "#FF8C00" },
+  }
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(MONSTER_STORAGE_KEY)
-      if (!raw) return
+      const raw = char?.pending_battle_monster
+      if (!raw) {
+        setSavedMonster(null)
+        return
+      }
       const m: Monster = JSON.parse(raw)
       const maxClearedIdx = char?.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
       const gradeIdx = GRADE_KEYS.indexOf(m.grade_code)
       if (gradeIdx >= 0 && gradeIdx <= maxClearedIdx + 1) {
         setSavedMonster(m)
       } else {
-        localStorage.removeItem(MONSTER_STORAGE_KEY)
+        setSavedMonster(null)
       }
-    } catch {}
-  }, [char?.max_cleared_grade])
+    } catch {
+      setSavedMonster(null)
+    }
+  }, [char?.pending_battle_monster, char?.max_cleared_grade])
 
   useEffect(() => {
     let cancelled = false
@@ -236,12 +250,9 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
       setResult(data)
       setKeepMonster(data.monster)
       if (data.winner === "플레이어") {
-        // 승리 시 즉시 초기화 — 새로고침해도 이미 이긴 몬스터 안 나옴
         setSavedMonster(null)
-        try { localStorage.removeItem(MONSTER_STORAGE_KEY) } catch {}
       } else {
         setSavedMonster(data.monster)
-        try { localStorage.setItem(MONSTER_STORAGE_KEY, JSON.stringify(data.monster)) } catch {}
       }
       setPhase("result")
       onExpGained() // 전투 후 DB에 full HP 저장됐으므로 캐릭터 패널 즉시 갱신
@@ -255,8 +266,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
     setPhase("lobby")
     setResult(null)
     setKeepMonster(null)
-    setSavedMonster(null)
-    try { localStorage.removeItem(MONSTER_STORAGE_KEY) } catch {}
     setVisibleTurns(0)
     onExpGained()
   }
@@ -276,16 +285,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const effInt = (char?.int_stat ?? 0) + (bonus?.int_stat ?? 0)
   const effLuk = eff?.luk ?? ((char?.luk      ?? 0) + (bonus?.luk      ?? 0))
 
-  const GRADE_KEYS  = ["C", "B", "A", "S", "SR", "SSR", "UR"]
-  const GRADE_META: Record<string, { name: string; color: string }> = {
-    C: { name: "잡몹",     color: "#808080" },
-    B: { name: "정예",     color: "#2E8B57" },
-    A: { name: "희귀",     color: "#1E90FF" },
-    S: { name: "네임드",   color: "#DC143C" },
-    SR:  { name: "필드보스", color: "#8A2BE2" },
-    SSR: { name: "재앙",   color: "#DAA520" },
-    UR:  { name: "종말",   color: "#FF8C00" },
-  }
   const maxClearedIdx   = char?.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
   const unlockedGrades  = GRADE_KEYS.slice(0, maxClearedIdx + 2)
 

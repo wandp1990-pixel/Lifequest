@@ -70,6 +70,7 @@ export async function DELETE(req: NextRequest) {
     await db.execute("DELETE FROM skill_log")
     await db.execute("DELETE FROM battle_log")
     await db.execute("DELETE FROM attendance_log")
+    await db.execute("UPDATE character SET pending_battle_monster = NULL WHERE id = 1")
 
     if (mode === "full") {
       await db.execute("DELETE FROM todo_item")
