@@ -511,12 +511,17 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       <div className="px-4 py-3 flex items-center justify-between bg-teal-50 dark:bg-teal-900/30 border-y border-teal-100 dark:border-teal-800/50">
         <div className="flex items-center gap-2">
           <span className="text-sm">🔁</span>
-          <span className="text-sm font-bold text-foreground">루틴</span>
-          {routines.length > 0 && (
-            <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-2 py-0.5 rounded-full border border-teal-100 dark:border-teal-700/50">
-              {routines.length}개
-            </span>
-          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">루틴</span>
+              {routines.length > 0 && (
+                <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/40 px-2 py-0.5 rounded-full border border-teal-100 dark:border-teal-700/50">
+                  {routines.length}개
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-teal-500 dark:text-teal-400 font-medium mt-0.5">순서가 있는 일정</p>
+          </div>
         </div>
         <button
           onClick={() => { setAdding(adding === "routine" ? null : "routine"); setNewName(""); setNewExp(10) }}
@@ -811,10 +816,15 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       <div className="px-4 py-3 flex items-center justify-between bg-amber-50 dark:bg-amber-900/30 border-y border-amber-100 dark:border-amber-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
-          <span className="text-sm font-bold text-foreground">습관</span>
-          <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-700/50">
-            {dailyItems.filter(item => checkedDailyIds.has(item.id)).length} / {dailyItems.length}
-          </span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">습관</span>
+              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-700/50">
+                {dailyItems.filter(item => checkedDailyIds.has(item.id)).length} / {dailyItems.length}
+              </span>
+            </div>
+            <p className="text-[10px] text-amber-500 dark:text-amber-400 font-medium mt-0.5">매일 반복하면 강해져요</p>
+          </div>
         </div>
         <button
           onClick={() => { setAdding(adding === "daily" ? null : "daily"); setNewName(""); setNewExp(10) }}
@@ -988,12 +998,17 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       <div className="px-4 py-3 flex items-center justify-between bg-violet-50 dark:bg-violet-900/30 border-y border-violet-100 dark:border-violet-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">📋</span>
-          <span className="text-sm font-bold text-foreground">할 일</span>
-          {todoItems.filter((t) => !t.is_completed).length > 0 && (
-            <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/40 px-2 py-0.5 rounded-full border border-violet-100 dark:border-violet-700/50">
-              {todoItems.filter((t) => !t.is_completed).length}개
-            </span>
-          )}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">할 일</span>
+              {todoItems.filter((t) => !t.is_completed).length > 0 && (
+                <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/40 px-2 py-0.5 rounded-full border border-violet-100 dark:border-violet-700/50">
+                  {todoItems.filter((t) => !t.is_completed).length}개
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-violet-400 dark:text-violet-400 font-medium mt-0.5">한 번 끝내면 사라져요</p>
+          </div>
         </div>
         <button
           onClick={() => { setAdding(adding === "todo" ? null : "todo"); setNewName(""); setNewExp(0) }}

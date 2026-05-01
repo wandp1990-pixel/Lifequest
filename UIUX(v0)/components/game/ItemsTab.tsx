@@ -28,19 +28,19 @@ interface ItemsTabProps {
 }
 
 const GRADE_COLOR: Record<string, string> = {
-  C: "#9E9E9E", B: "#4CAF50", A: "#4A90E2",
-  S: "#FF9500", SR: "#9B59B6", SSR: "#FFD700", UR: "#FF1493",
+  C: "#9CA3AF", B: "#4FBF8F", A: "#4FA8E8",
+  S: "#F5A524", SR: "#9B7BE8", SSR: "#FFD700", UR: "#FF1493",
 }
 const GRADE_LABEL: Record<string, string> = {
   C: "일반", B: "고급", A: "희귀", S: "영웅", SR: "전설", SSR: "고대", UR: "신화",
 }
 const GRADE_BG: Record<string, string> = {
-  C:   "rgba(158,158,158,0.08)",
-  B:   "rgba(76,175,80,0.08)",
-  A:   "rgba(74,144,226,0.08)",
-  S:   "rgba(255,149,0,0.08)",
-  SR:  "rgba(155,89,182,0.08)",
-  SSR: "rgba(255,215,0,0.08)",
+  C:   "#F3F4F6",
+  B:   "#E3F5EC",
+  A:   "#E1EFFB",
+  S:   "#FFF1D6",
+  SR:  "#ECE5FA",
+  SSR: "#FFFDE6",
   UR:  "rgba(255,20,147,0.08)",
 }
 
@@ -78,7 +78,7 @@ function GradeBadge({ grade }: { grade: string }) {
 
 function OptionLine({ opt }: { opt: string }) {
   if (opt.startsWith("[")) {
-    return <p className="text-[10px] font-medium leading-tight" style={{ color: "#9B59B6" }}>✦ {opt.slice(1, -1)}</p>
+    return <p className="text-[10px] font-medium leading-tight" style={{ color: "#9B7BE8" }}>✦ {opt.slice(1, -1)}</p>
   }
   return <p className="text-[10px] text-muted-foreground leading-tight">{opt}</p>
 }
@@ -284,7 +284,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
               <button
                 onClick={handleReplace}
                 className="flex-1 py-3 rounded-2xl text-white text-sm font-bold"
-                style={{ background: "#FF9500" }}
+                style={{ background: "#F5A524" }}
               >
                 교체 (기존 폐기)
               </button>
@@ -385,7 +385,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
                         onTicketsChanged?.()
                       }}
                       className="flex-1 text-[10px] font-bold py-1.5 rounded-lg text-white"
-                      style={{ background: "#FF9500" }}
+                      style={{ background: "#F5A524" }}
                     >
                       장착
                     </button>
