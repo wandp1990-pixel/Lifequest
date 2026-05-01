@@ -305,26 +305,34 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
               return (
                 <div
                   key={id}
-                  className="flex flex-col rounded-2xl p-2.5"
+                  className="flex flex-col rounded-2xl overflow-hidden"
                   style={{
-                    background: GRADE_BG[item.grade],
-                    border: `2px solid ${color}`,
-                    boxShadow: `0 0 8px ${color}30`,
+                    background: 'white',
+                    border: `1.5px solid ${color}`,
+                    boxShadow: `0 2px 6px ${color}20`,
                   }}
                 >
-                  {/* 헤더: 슬롯 아이콘 + 슬롯명 + 등급 배지 */}
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1">
+                  {/* 컬러 헤더 밴드: 슬롯명 + 등급 배지 */}
+                  <div style={{
+                    background: GRADE_BG[item.grade],
+                    borderBottom: `1px solid ${color}30`,
+                    padding: '5px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span className="text-sm leading-none">{icon}</span>
-                      <span className="text-[10px] font-bold text-muted-foreground">{label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#1C1B1F' }}>{label}</span>
                     </div>
                     <GradeBadge grade={item.grade} />
                   </div>
-                  {/* 아이템명 */}
-                  <p className="text-[11px] font-bold text-foreground leading-tight mb-1.5 line-clamp-2">{item.name}</p>
-                  {/* 옵션 (최대 3개) */}
-                  <div className="space-y-0.5">
-                    {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
+                  {/* 카드 바디 */}
+                  <div className="p-2.5 flex flex-col flex-1">
+                    <p className="text-[11px] font-bold text-foreground leading-tight mb-1.5 line-clamp-2">{item.name}</p>
+                    <div className="space-y-0.5">
+                      {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
+                    </div>
                   </div>
                 </div>
               )
@@ -358,19 +366,28 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
               return (
                 <div
                   key={item.id}
-                  className="flex flex-col rounded-2xl p-2.5"
+                  className="flex flex-col rounded-2xl overflow-hidden"
                   style={{
-                    background: GRADE_BG[item.grade],
-                    border: `2px solid ${color}50`,
+                    background: 'white',
+                    border: `1.5px solid ${color}70`,
                   }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1">
+                  {/* 컬러 헤더 밴드 */}
+                  <div style={{
+                    background: GRADE_BG[item.grade],
+                    borderBottom: `1px solid ${color}30`,
+                    padding: '5px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span className="text-sm leading-none">{slotInfo?.icon}</span>
-                      <span className="text-[10px] font-bold text-muted-foreground">{slotInfo?.label ?? item.slot}</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#1C1B1F' }}>{slotInfo?.label ?? item.slot}</span>
                     </div>
                     <GradeBadge grade={item.grade} />
                   </div>
+                  <div className="p-2.5 flex flex-col flex-1">
                   <p className="text-[11px] font-bold text-foreground leading-tight mb-1.5 line-clamp-2">{item.name}</p>
                   <div className="flex-1 space-y-0.5 mb-2">
                     {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
@@ -395,6 +412,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
                     >
                       삭제
                     </button>
+                  </div>
                   </div>
                 </div>
               )

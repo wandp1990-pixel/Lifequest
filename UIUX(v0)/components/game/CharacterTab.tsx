@@ -330,17 +330,22 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
 
           {/* 스탯 포인트 헤더 */}
           <div className="px-4 pb-3 shrink-0">
-            <div className="flex items-center justify-between bg-gradient-to-r from-amber-400 to-orange-400 rounded-2xl px-4 py-3 text-white shadow-sm">
-              <div>
-                <p className="text-xs opacity-80">배분 가능 스탯 포인트</p>
-                <p className="text-2xl font-extrabold leading-none mt-0.5">
-                  {remainingStatPts} <span className="text-sm font-medium opacity-70">SP</span>
-                </p>
+            <div className="flex items-center justify-between rounded-2xl px-4 py-3 border border-dashed border-amber-300 bg-amber-50">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-amber-500 text-sm">✦</span>
+                </div>
+                <div>
+                  <p className="text-xs text-amber-600 font-medium">배분 가능 스탯 포인트</p>
+                  <p className="text-xl font-extrabold leading-none mt-0.5 text-amber-500">
+                    {remainingStatPts} <span className="text-sm font-medium">SP</span>
+                  </p>
+                </div>
               </div>
               {totalStatSpent > 0 && (
                 <div className="text-right">
-                  <p className="text-xs opacity-80">이번에 배분</p>
-                  <p className="text-lg font-bold">+{totalStatSpent}</p>
+                  <p className="text-xs text-amber-500 opacity-80">이번에 배분</p>
+                  <p className="text-lg font-bold text-amber-600">+{totalStatSpent}</p>
                 </div>
               )}
             </div>

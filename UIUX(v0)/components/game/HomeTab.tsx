@@ -95,10 +95,10 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     <div className="flex flex-col gap-0 pb-6">
 
       {/* 출석체크 */}
-      <div className="mx-4 mt-4 rounded-2xl border border-border shadow-sm overflow-hidden">
-        <div className="px-4 pt-3 pb-2 bg-background flex items-center justify-between">
+      <div className="mx-4 mt-4 rounded-2xl overflow-hidden shadow-sm" style={{ border: '1px solid #FFE0BF', background: 'linear-gradient(135deg, #FFF8EE 0%, #FFEDD5 100%)' }}>
+        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-muted-foreground uppercase tracking-wide">🗓️ 오늘의 출석</p>
+            <p className="text-xs font-black uppercase tracking-wide" style={{ color: '#B5651D' }}>🗓️ 오늘의 출석</p>
             {attendToast && attendToast.bonusTickets > 0 ? (
               <p className="text-xs font-black text-violet-500 mt-0.5">
                 🎉 {streak === 0 ? "14" : "7"}일 연속! 뽑기권 +{attendToast.bonusTickets} 보너스!
@@ -127,7 +127,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
         </div>
 
         {/* 연속 출석 진행바 */}
-        <div className="px-4 pb-3 bg-background">
+        <div className="px-4 pb-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[11px] text-muted-foreground">
               연속 <span className="font-black text-violet-500">{streak}일</span>
@@ -154,7 +154,10 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
 
       <div className="mx-4 mt-3 rounded-2xl border border-border shadow-sm overflow-hidden">
         <div className="px-4 pt-3 pb-3 bg-background">
-          <p className="text-xs font-black text-muted-foreground uppercase tracking-wide mb-2">✍️ 오늘의 활동</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-wide">✍️ 오늘의 활동</p>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#EFEAFE', color: '#6E59F2' }}>🤖 AI 자동 채점</span>
+          </div>
 
           {actToast && (
             <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex flex-col gap-0.5">

@@ -84,6 +84,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   } | null>(null)
   const [notifyEditId, setNotifyEditId] = useState<{ type: "daily" | "todo"; id: number } | null>(null)
   const [notifyEditVal, setNotifyEditVal] = useState("")
+  const [taskFilter, setTaskFilter] = useState<"all" | "routine" | "habit" | "todo">("all")
 
   const saveNotifyTime = async (type: "daily" | "todo", id: number, time: string | null) => {
     const url = type === "daily" ? "/api/checklist" : "/api/todos"
@@ -507,7 +508,30 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         </div>
       )}
 
+      {/* 필터 칩 */}
+      <div className="px-4 pt-3 pb-1 flex gap-2">
+        {([
+          ["all",     "전체",  null],
+          ["routine", "루틴",  routines.length],
+          ["habit",   "습관",  dailyItems.length],
+          ["todo",    "할일",  todoItems.filter(t => !t.is_completed).length],
+        ] as [string, string, number | null][]).map(([k, label, count]) => (
+          <button
+            key={k}
+            onClick={() => setTaskFilter(k as typeof taskFilter)}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+              taskFilter === k
+                ? "bg-violet-500 text-white border-violet-500 shadow-sm"
+                : "bg-background text-muted-foreground border-border"
+            }`}
+          >
+            {label}{count !== null ? ` ${count}` : ""}
+          </button>
+        ))}
+      </div>
+
       {/* ── 루틴 섹션 ───────────────────────────────────── */}
+      <div style={{ display: taskFilter === "all" || taskFilter === "routine" ? "contents" : "none" }}>
       <div className="px-4 py-3 flex items-center justify-between bg-teal-50 dark:bg-teal-900/30 border-y border-teal-100 dark:border-teal-800/50">
         <div className="flex items-center gap-2">
           <span className="text-sm">🔁</span>
@@ -812,7 +836,10 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
+      </div>{/* end 루틴 섹션 filter wrapper */}
+
       {/* ── 습관 섹션 ─────────────────────────────────── */}
+      <div style={{ display: taskFilter === "all" || taskFilter === "habit" ? "contents" : "none" }}>
       <div className="px-4 py-3 flex items-center justify-between bg-amber-50 dark:bg-amber-900/30 border-y border-amber-100 dark:border-amber-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
@@ -994,7 +1021,10 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
+      </div>{/* end 습관 섹션 filter wrapper */}
+
       {/* ── 할 일 섹션 ──────────────────────────────────── */}
+      <div style={{ display: taskFilter === "all" || taskFilter === "todo" ? "contents" : "none" }}>
       <div className="px-4 py-3 flex items-center justify-between bg-violet-50 dark:bg-violet-900/30 border-y border-violet-100 dark:border-violet-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">📋</span>
@@ -1170,6 +1200,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           </div>
         )
       })}
+
+      </div>{/* end 할일 섹션 filter wrapper */}
 
       {/* ── 삭제 확인 바텀시트 ──────────────────────────── */}
       {confirmDelete && (
