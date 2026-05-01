@@ -154,7 +154,7 @@ export default function GamePage() {
             nextExp={char?.next_exp ?? 100}
             tick={tick}
           />
-          {activeTab !== "home" && activeTab !== "skills" && activeTab !== "battle" && (
+          {activeTab !== "home" && activeTab !== "skills" && activeTab !== "battle" && activeTab !== "tasks" && (
             <QuestBanner
               title="데일리 완료"
               progress={Math.min(dailyCompleted, questTotal)}
