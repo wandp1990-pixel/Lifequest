@@ -413,4 +413,8 @@ export async function initDb() {
     await db.execute("UPDATE item_grade_table SET stat_min=100,stat_max=170 WHERE grade='SSR'")
     await db.execute("UPDATE item_grade_table SET stat_min=170,stat_max=300 WHERE grade='UR'")
   })
+
+  await runMigration("equipment_reset_v1", async () => {
+    await db.execute("DELETE FROM equipment")
+  })
 }
