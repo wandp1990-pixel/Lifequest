@@ -23,9 +23,9 @@ export default function CharacterPanel({
   const expPct = nextExp > 0 ? Math.min((totalExp / nextExp) * 100, 100) : 0
 
   const bars = [
-    { label: 'HP', val: hp,       max: maxHp,  pct: hpPct,  color: '#F58FA8' },
-    { label: 'MP', val: mp,       max: maxMp,  pct: mpPct,  color: '#7FB3F5' },
-    { label: 'XP', val: totalExp, max: nextExp, pct: expPct, color: '#F5C879' },
+    { label: 'HP', current: hp,       max: maxHp,   pct: hpPct,  color: '#F58FA8' },
+    { label: 'MP', current: mp,       max: maxMp,   pct: mpPct,  color: '#7FB3F5' },
+    { label: 'XP', current: totalExp, max: nextExp, pct: expPct, color: '#F5C879' },
   ]
 
   return (
@@ -46,11 +46,13 @@ export default function CharacterPanel({
 
       {/* Row 2: HP / MP / XP thin pills */}
       <div className="flex gap-2 mb-2">
-        {bars.map(({ label, val, pct, color }) => (
+        {bars.map(({ label, current, max, pct, color }) => (
           <div key={label} className="flex-1 flex flex-col gap-0.5 min-w-0">
             <div className="flex items-center justify-between gap-1">
               <span className="text-[10px] font-bold leading-none" style={{ color }}>{label}</span>
-              <span className="text-[10px] font-bold text-muted-foreground leading-none tabular-nums">{val}</span>
+              <span className="text-[10px] font-bold text-muted-foreground leading-none tabular-nums whitespace-nowrap">
+                {current.toLocaleString()} / {max.toLocaleString()}
+              </span>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div
