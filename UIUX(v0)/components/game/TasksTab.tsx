@@ -620,8 +620,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           : rIdx === 0
         const progressPct = total > 0 ? (checked / total) * 100 : 0
         return (
-          <div key={r.id} className="mx-4 mt-2 bg-background rounded-2xl"
-            style={{ border: isActive ? '1.5px solid #8FD3B5' : '1px solid #CCEDE4', borderLeft: isActive ? '3px solid #5BA888' : undefined }}
+          <div key={r.id} className="mx-4 mt-2 bg-background rounded-2xl overflow-hidden"
+            style={{ border: isActive ? '1.5px solid #8FD3B5' : '1px solid #CCEDE4', boxShadow: isActive ? 'inset 3px 0 0 #5BA888' : undefined }}
           >
             {/* 헤더 */}
             {editingRoutineNameId === r.id ? (
@@ -794,7 +794,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     <button onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }} className="text-muted-foreground px-1"><X className="w-3.5 h-3.5" /></button>
                   </div>
                 ) : (
-                  <div className="bg-teal-50/30 rounded-b-2xl">
+                  <div className="bg-teal-50/30">
                     {editingDeadlineFor === r.id ? (
                       <div className="px-4 py-2 flex flex-wrap items-center gap-2">
                         <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
