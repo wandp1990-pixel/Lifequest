@@ -389,4 +389,27 @@ export async function initDb() {
     try { await db.execute("ALTER TABLE character ADD COLUMN pending_battle_monster TEXT DEFAULT NULL") } catch {}
     await db.execute("UPDATE character SET pending_battle_monster = NULL WHERE pending_battle_monster = ''")
   })
+
+  await runMigration("item_balance_v1", async () => {
+    // B등급 서브옵션 1개 보장 (기존 "0~1" → "1")
+    await db.execute("UPDATE item_grade_table SET sub_count='1' WHERE grade='B'")
+    // C등급 스탯 상한 상향 (C→B 점프 완화)
+    await db.execute("UPDATE item_grade_table SET stat_max=15 WHERE grade='C'")
+    // HP증가 base_value 하향 (VIT 아이템과 균형)
+    await db.execute("UPDATE item_ability_pool SET base_value=30, effect='최대HP +30' WHERE name='HP증가'")
+    // 방어력 base_value 상향 (방어 아이템 체감 개선)
+    await db.execute("UPDATE item_ability_pool SET base_value=8, effect='물리방어 +8' WHERE name='방어력'")
+    // VIT → 최대HP 배율 상향 (VIT 아이템 실효성 개선)
+    await db.execute("UPDATE battle_config SET config_value='30' WHERE config_key='vit_to_max_hp'")
+    // 최소 데미지 비율 하향 (고방어 빌드 실효성 개선)
+    await db.execute("UPDATE battle_config SET config_value='0.05' WHERE config_key='min_damage_ratio_by_defense'")
+    // 바지/벨트 슬롯 주옵션 변경 (방어 슬롯 분산)
+    await db.execute("UPDATE item_slot_table SET main_ability='HP증가' WHERE slot='pants'")
+    await db.execute("UPDATE item_slot_table SET main_ability='MP증가' WHERE slot='belt'")
+    // 패시브 설명 업데이트 (중첩 적용 반영)
+    await db.execute("UPDATE item_passive_pool SET description='추가타격 +15% (중첩 최대 60%)' WHERE name='더블어택'")
+    await db.execute("UPDATE item_passive_pool SET description='흡수 +4% (중첩 최대 20%)' WHERE name='생명흡수'")
+    await db.execute("UPDATE item_passive_pool SET description='DEF 무시 +8% (중첩 최대 30%)' WHERE name='방어무시'")
+    await db.execute("UPDATE item_passive_pool SET description='반사 +4% (중첩 최대 20%)' WHERE name='반사'")
+  })
 }
