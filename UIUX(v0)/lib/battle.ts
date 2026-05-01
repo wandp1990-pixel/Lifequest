@@ -301,10 +301,10 @@ export function buildPlayerCombatStats(
       // 패시브: "[더블어택]" 형식
       if (line.startsWith("[") && line.endsWith("]")) {
         const name = line.slice(1, -1)
-        if (name === "더블어택")  doubleAtkChance = Math.max(doubleAtkChance, 0.5)
+        if (name === "더블어택")  doubleAtkChance = Math.max(doubleAtkChance, 0.25)
         else if (name === "생명흡수") lifeStealRatio  = Math.max(lifeStealRatio,  0.05)
         else if (name === "방어무시") defIgnoreRatio  = Math.max(defIgnoreRatio,  0.1)
-        else if (name === "반사")     reflectRatio    = Math.max(reflectRatio,    0.1)
+        else if (name === "반사")     reflectRatio    = Math.max(reflectRatio,    0.05)
         continue
       }
 
@@ -449,12 +449,11 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
   const critPerLuk    = parseFloat(cfg.crit_rate_per_luk              ?? "0.005")
   const critSuppress  = parseFloat(cfg.crit_suppression_per_enemy_luk ?? "0.003")
   const baseCritMult  = parseFloat(cfg.base_crit_multiplier           ?? "1.5")
-  const critMultPerInt= parseFloat(cfg.crit_multiplier_per_int        ?? "0.01")
 
   const critRate = clamp(atk.luk * critPerLuk - def.luk * critSuppress + atk.bonus_crit_rate, 0, 0.75)
   const isCrit   = Math.random() < critRate
   if (isCrit) {
-    const mult = baseCritMult + atk.int * critMultPerInt + atk.bonus_crit_dmg / 100
+    const mult = baseCritMult + atk.bonus_crit_dmg / 100
     base *= mult
   }
 

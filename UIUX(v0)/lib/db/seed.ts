@@ -48,13 +48,13 @@ async function seedSkillTable(db: Client) {
   // [id, name, type, max_skp, unlock_level, base_effect_value, effect_coeff,
   //  mp_cost, mp_cost_coeff, effect_code, trigger_condition, description]
   const skills: [string, string, string, number, number, number, number, number, number, string, string, string][] = [
-    ["ACTIVE_RAGE_01",         "분노",        "active",  20, 3,   30, 6,    20, 1,    "PATK_PCT",  "전투 시작",    "물리 ATK 증가"],
-    ["ACTIVE_CHAIN_01",        "연속공격",    "active",  20, 5,   20, 2,    10, 0.5,  "EXTRA_HIT", "명중 시",      "추가 타격 발동"],
-    ["ACTIVE_FIRST_STRIKE_01", "선제 강타",   "active",  20, 9,   20, 4,    15, 0.75, "PATK_PCT",  "선공 획득",    "물리 ATK 증가"],
+    ["ACTIVE_RAGE_01",         "분노",        "active",  20, 3,   18, 3.5,  20, 1,    "PATK_PCT",  "전투 시작",    "물리 ATK 증가"],
+    ["ACTIVE_CHAIN_01",        "연속공격",    "active",  20, 5,   30, 2.5,  10, 0.5,  "EXTRA_HIT", "명중 시",      "추가 타격 발동"],
+    ["ACTIVE_FIRST_STRIKE_01", "선제 강타",   "active",  20, 9,   12, 2.5,  15, 0.75, "PATK_PCT",  "선공 획득",    "물리 ATK 증가"],
     ["ACTIVE_AFTERIMAGE_01",   "잔상",        "active",  20, 14,  10, 2.5,  8,  0.4,  "EXTRA_HIT", "회피 시",      "반격 추가 타격"],
     ["ACTIVE_REVERSAL_01",     "역전의 의지", "active",  20, 20,  5,  1.25, 20, 1,    "HP_HEAL",   "HP 25% 이하",  "HP 회복"],
-    ["ACTIVE_MANA_BURST_01",   "마나 폭발",   "active",  20, 25,  50, 7.5,  25, 1.25, "MATK_PCT",  "매 3턴",       "마법 ATK 증가"],
-    ["ACTIVE_SPARK_01",        "지식의 불꽃", "active",  20, 28,  10, 3.5,  10, 0.5,  "MATK_PCT",  "치명타 시",    "마법 ATK 증가"],
+    ["ACTIVE_MANA_BURST_01",   "마나 폭발",   "active",  20, 25,  30, 5,    25, 1.25, "MATK_PCT",  "매 3턴",       "마법 ATK 증가"],
+    ["ACTIVE_SPARK_01",        "지식의 불꽃", "active",  20, 28,  22, 4,    10, 0.5,  "MATK_PCT",  "치명타 시",    "마법 ATK 증가"],
     ["ACTIVE_SURVIVE_01",      "기사회생",    "active",  20, 30,  5,  2.25, 0,  0,    "SURVIVE",   "사망 시",      "사망 시 생존"],
     ["PASSIVE_PATK_01",        "전사의 기백", "passive", 20, 10,  2,  0.5,  0,  0,    "PATK_PCT",  "",             "물리 공격력 증가"],
     ["PASSIVE_HP_01",          "강철 피부",   "passive", 20, 20,  2,  0.5,  0,  0,    "HP_PCT",    "",             "최대 HP 증가"],
@@ -129,12 +129,12 @@ export async function ensureBattleConfig(db: Client) {
   const t = now()
   const data: [string, string, string, number, number, number][] = [
     ["base_accuracy", "0.9", "기본 명중률", 0.5, 1.0, 0.01],
-    ["accuracy_per_dex", "0.005", "DEX당 명중률 증가", 0.0, 0.05, 0.001],
-    ["evasion_per_dex", "0.003", "DEX당 회피율 증가", 0.0, 0.05, 0.001],
+    ["accuracy_per_dex", "0.003", "DEX당 명중률 증가", 0.0, 0.05, 0.001],
+    ["evasion_per_dex", "0.002", "DEX당 회피율 증가", 0.0, 0.05, 0.001],
     ["base_crit_multiplier", "2.0", "기본 치명타 배율", 1.0, 5.0, 0.1],
     ["crit_rate_per_luk", "0.005", "내 LUK당 치명타율", 0.0, 0.05, 0.001],
     ["crit_suppression_per_enemy_luk", "0.003", "적 LUK당 치명타 억제", 0.0, 0.05, 0.001],
-    ["crit_multiplier_per_int", "0.01", "INT당 치명타 배율 추가", 0.0, 0.1, 0.005],
+    ["crit_multiplier_per_int", "0.0", "INT당 치명타 배율 추가", 0.0, 0.1, 0.005],
     ["str_to_patk", "4.0", "STR당 물리 공격력 보너스", 0.0, 10.0, 0.5],
     ["vit_to_max_hp", "20.0", "VIT당 최대 HP 보너스", 0.0, 50.0, 1.0],
     ["int_to_matk", "2.0", "INT당 마법 공격력 보너스", 0.0, 10.0, 0.5],
@@ -222,10 +222,10 @@ async function seedItemAbilityPool(db: Client) {
 
 async function seedItemPassivePool(db: Client) {
   const data = [
-    ["더블어택", "50% 확률 추가타격"],
+    ["더블어택", "25% 확률 추가타격"],
     ["생명흡수", "피해의 5% 회복"],
     ["방어무시", "상대 DEF 10% 무시"],
-    ["반사", "받은 피해의 10% 반사"],
+    ["반사", "받은 피해의 5% 반사"],
   ]
   for (const [name, desc] of data) {
     await db.execute({

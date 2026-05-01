@@ -361,4 +361,19 @@ export async function initDb() {
       "UPDATE battle_config SET label='전투 후 HP/MP 회복'   WHERE config_key='restore_hp_after_battle'",
     ], "write")
   })
+
+  await runMigration("battle_balance_v2", async () => {
+    await db.batch([
+      "UPDATE battle_config SET config_value='0.003' WHERE config_key='accuracy_per_dex'",
+      "UPDATE battle_config SET config_value='0.002' WHERE config_key='evasion_per_dex'",
+      "UPDATE battle_config SET config_value='0.0'   WHERE config_key='crit_multiplier_per_int'",
+      "UPDATE item_passive_pool SET description='25% 확률 추가타격' WHERE name='더블어택'",
+      "UPDATE item_passive_pool SET description='받은 피해의 5% 반사' WHERE name='반사'",
+      "UPDATE skill_table SET base_effect_value=18, effect_coeff=3.5 WHERE id='ACTIVE_RAGE_01'",
+      "UPDATE skill_table SET base_effect_value=30, effect_coeff=2.5 WHERE id='ACTIVE_CHAIN_01'",
+      "UPDATE skill_table SET base_effect_value=12, effect_coeff=2.5 WHERE id='ACTIVE_FIRST_STRIKE_01'",
+      "UPDATE skill_table SET base_effect_value=30, effect_coeff=5.0 WHERE id='ACTIVE_MANA_BURST_01'",
+      "UPDATE skill_table SET base_effect_value=22, effect_coeff=4.0 WHERE id='ACTIVE_SPARK_01'",
+    ], "write")
+  })
 }
