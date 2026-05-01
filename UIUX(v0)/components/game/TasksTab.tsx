@@ -41,9 +41,10 @@ interface TasksTabProps {
   onCountChange?: (count: number) => void
   onDailyCompletedChange?: (count: number) => void
   refreshTick?: number
+  questTotal?: number
 }
 
-export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedChange, refreshTick }: TasksTabProps) {
+export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedChange, refreshTick, questTotal }: TasksTabProps) {
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
@@ -508,6 +509,32 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         </div>
       )}
 
+      {/* DAILY QUEST 요약 카드 */}
+      {(() => {
+        const routineDoneCount = routines.reduce((s, r) => s + r.items.filter(it => checkedRoutineItemIds.has(it.id)).length, 0)
+        const done = checkedDailyIds.size + routineDoneCount + completedTodoCount
+        const total = questTotal ?? (dailyItems.length + routines.reduce((s, r) => s + r.items.length, 0))
+        const pct = total > 0 ? Math.min(done / total, 1) : 0
+        const r = 22
+        const circ = 2 * Math.PI * r
+        return (
+          <div className="mx-4 mt-3 rounded-2xl flex items-center gap-3 px-3 py-3" style={{ background: 'linear-gradient(135deg, #FFFAEF, #FFF1E0)', border: '1px solid #FFE3C7' }}>
+            <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0 }}>
+              <circle cx="29" cy="29" r={r} fill="none" stroke="#FFE3C7" strokeWidth="5"/>
+              <circle cx="29" cy="29" r={r} fill="none" stroke="#FFB87A" strokeWidth="5"
+                strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
+                strokeLinecap="round" transform="rotate(-90 29 29)"/>
+              <text x="29" y="33" textAnchor="middle" fontSize="11" fontWeight="800" fill="#B5651D" fontFamily="Inter">{Math.round(pct * 100)}%</text>
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold tracking-wide" style={{ color: '#B5651D', letterSpacing: '0.04em' }}>DAILY QUEST</p>
+              <p className="text-base font-extrabold text-foreground mt-0.5">{done} / {total} 완료</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">모두 완료 시 <strong style={{ color: '#FFB87A' }}>+200 XP</strong> 보너스</p>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* 필터 칩 */}
       <div className="px-4 pt-3 pb-1 flex gap-2">
         {([
@@ -580,15 +607,23 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         <p className="text-center text-muted-foreground text-sm py-4">+ 버튼으로 루틴을 추가하세요</p>
       )}
 
-      {routines.map((r) => {
+      {routines.map((r, rIdx) => {
         const total = r.items.length
         const checked = r.items.filter((it) => checkedRoutineItemIds.has(it.id)).length
         const totalExp = r.items.reduce((s, it) => s + it.fixed_exp, 0)
         const bonusGranted = bonusRoutineIds.has(r.id)
         const expanded = expandedRoutineIds.has(r.id)
         const isAddingItem = addingItemFor === r.id
+        // 활성 루틴: 마감 시간이 가장 가까운 것, 없으면 첫 번째
+        const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+        const isActive = r.deadline_time
+          ? (() => { const [h, m] = r.deadline_time.split(':').map(Number); return (h * 60 + m) >= nowMins - 30 })()
+          : rIdx === 0
+        const progressPct = total > 0 ? (checked / total) * 100 : 0
         return (
-          <div key={r.id} className="mx-4 mt-2 bg-background border border-teal-100 rounded-2xl overflow-hidden">
+          <div key={r.id} className="mx-4 mt-2 bg-background rounded-2xl overflow-hidden"
+            style={{ border: isActive ? '1.5px solid #8FD3B5' : '1px solid #CCEDE4', borderLeft: isActive ? '3px solid #5BA888' : undefined }}
+          >
             {editingRoutineNameId === r.id ? (
               <div className="flex items-center gap-1.5 px-4 py-3">
                 <input
@@ -639,6 +674,15 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 </div>
                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
               </button>
+            )}
+
+            {/* 진행 바 */}
+            {!editingRoutineNameId && total > 0 && (
+              <div className="px-4 pb-2.5">
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #8FD3B5, #5BA888)' }} />
+                </div>
+              </div>
             )}
 
             {expanded && (
@@ -938,34 +982,42 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                    {item.name}
-                  </p>
-                  {!done && (
-                    <button
-                      onClick={() => { setEditingDailyNameId(item.id); setEditingDailyNameVal(item.name); setEditingDailyExpVal(item.fixed_exp) }}
-                      className="text-gray-300 hover:text-amber-400 transition-colors flex-shrink-0 p-0.5"
-                      aria-label="이름 수정"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                  )}
-                  <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
-                    {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
-                  </span>
-                  {!done && (
-                    <button
-                      onClick={() => { setNotifyEditId({ type: "daily", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
-                      className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
-                        item.notify_time
-                          ? "text-amber-600 bg-amber-50 border-amber-200"
-                          : "text-muted-foreground bg-muted border-border"
-                      }`}
-                    >
-                      {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
-                    </button>
-                  )}
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                      {item.name}
+                    </p>
+                    {!done && (
+                      <button
+                        onClick={() => { setEditingDailyNameId(item.id); setEditingDailyNameVal(item.name); setEditingDailyExpVal(item.fixed_exp) }}
+                        className="text-gray-300 hover:text-amber-400 transition-colors flex-shrink-0 p-0.5"
+                        aria-label="이름 수정"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
+                    <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
+                      {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
+                    </span>
+                    {!done && (
+                      <button
+                        onClick={() => { setNotifyEditId({ type: "daily", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
+                        className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border transition-colors active:scale-95 ${
+                          item.notify_time
+                            ? "text-amber-600 bg-amber-50 border-amber-200"
+                            : "text-muted-foreground bg-muted border-border"
+                        }`}
+                      >
+                        {item.notify_time ? `🔔 ${item.notify_time}` : "+ 알림"}
+                      </button>
+                    )}
+                  </div>
+                  {/* 주간 점 표시 */}
+                  <div className="flex gap-1">
+                    {[1,2,3,4,5,6,7].map(d => (
+                      <div key={d} style={{ width: 6, height: 6, borderRadius: 3, flexShrink: 0, background: d <= Math.min(streak, 7) ? '#FFB87A' : '#E5E7EB' }} />
+                    ))}
+                  </div>
                 </div>
               )}
               {!isEditingName && notifyEditId?.type === "daily" && notifyEditId?.id === item.id && (

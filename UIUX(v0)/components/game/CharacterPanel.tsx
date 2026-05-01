@@ -9,84 +9,79 @@ interface CharacterPanelProps {
   level: number
   drawTickets: number
   statPoints: number
+  skillPoints: number
   totalExp: number
   nextExp: number
   tick?: number
 }
 
 export default function CharacterPanel({
-  name, hp, maxHp, mp, maxMp, level, drawTickets, statPoints, totalExp, nextExp,
+  name, hp, maxHp, mp, maxMp, level, drawTickets, statPoints, skillPoints, totalExp, nextExp,
 }: CharacterPanelProps) {
   const hpPct  = maxHp  > 0 ? Math.min((hp  / maxHp)  * 100, 100) : 0
   const mpPct  = maxMp  > 0 ? Math.min((mp  / maxMp)  * 100, 100) : 0
   const expPct = nextExp > 0 ? Math.min((totalExp / nextExp) * 100, 100) : 0
 
+  const bars = [
+    { label: 'HP', val: hp,       max: maxHp,  pct: hpPct,  color: '#F58FA8' },
+    { label: 'MP', val: mp,       max: maxMp,  pct: mpPct,  color: '#7FB3F5' },
+    { label: 'XP', val: totalExp, max: nextExp, pct: expPct, color: '#F5C879' },
+  ]
+
   return (
-    <div className="flex gap-3 px-4 pt-2 pb-1">
-      {/* 왼쪽: 캐릭터 정보 텍스트 */}
-      <div className="w-28 flex-shrink-0 flex flex-col justify-center gap-1.5 bg-muted/50 border border-border rounded-2xl px-3 py-2.5">
-        <div>
-          <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-0.5">PLAYER</p>
-          <p className="text-sm font-extrabold text-foreground truncate leading-tight">{name || "모험가"}</p>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-muted-foreground font-bold">Lv.</span>
-            <span className="text-base font-extrabold text-foreground leading-none">{level}</span>
-          </div>
-          {/* 뽑기권 + 스탯포인트 한 줄 */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <div className="flex items-center gap-0.5">
-              <span className="text-sm leading-none">🎫</span>
-              <span className="text-xs font-bold text-muted-foreground">{drawTickets}</span>
-            </div>
-            {statPoints > 0 && (
-              <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-300 rounded-lg px-1.5 py-0.5">
-                <span className="text-[10px] leading-none">⭐</span>
-                <span className="text-[10px] font-bold text-amber-600">{statPoints} SP</span>
-              </div>
-            )}
-          </div>
-        </div>
+    <div
+      className="mx-4 mb-2 mt-1 rounded-2xl border border-border bg-background"
+      style={{ padding: '10px 12px', boxShadow: '0 1px 2px rgba(28,27,31,0.04), 0 2px 8px rgba(28,27,31,0.04)' }}
+    >
+      {/* Row 1: Name + Lv badge */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-sm font-bold text-foreground leading-none">{name || "모험가"}</span>
+        <span
+          className="text-[11px] font-bold px-1.5 py-0.5 rounded leading-none"
+          style={{ color: '#A89BF0', background: '#F0ECFB' }}
+        >
+          Lv.{level}
+        </span>
       </div>
 
-      {/* 오른쪽: HP / MP / EXP 바 */}
-      <div className="flex-1 flex flex-col justify-center gap-1.5">
-        {/* HP */}
-        <div>
-          <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-xs leading-none">❤️</span>
-            <span className="text-[11px] font-bold text-[#e74c3c] uppercase tracking-wide">HP</span>
-            <span className="ml-auto text-[11px] font-semibold text-[#e74c3c]">{hp} / {maxHp}</span>
+      {/* Row 2: HP / MP / XP thin pills */}
+      <div className="flex gap-2 mb-2">
+        {bars.map(({ label, val, pct, color }) => (
+          <div key={label} className="flex-1 flex flex-col gap-0.5 min-w-0">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[10px] font-bold leading-none" style={{ color }}>{label}</span>
+              <span className="text-[10px] font-bold text-muted-foreground leading-none tabular-nums">{val}</span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: `${pct}%`, background: color }}
+              />
+            </div>
           </div>
-          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#e74c3c] to-[#ff6b6b] transition-all" style={{ width: `${hpPct}%` }} />
-          </div>
-        </div>
+        ))}
+      </div>
 
-        {/* MP */}
-        <div>
-          <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-xs leading-none">💎</span>
-            <span className="text-[11px] font-bold text-[#3498db] uppercase tracking-wide">MP</span>
-            <span className="ml-auto text-[11px] font-semibold text-[#3498db]">{mp} / {maxMp}</span>
-          </div>
-          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#3498db] to-[#5dade2] transition-all" style={{ width: `${mpPct}%` }} />
-          </div>
-        </div>
-
-        {/* EXP */}
-        <div>
-          <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-xs leading-none">✨</span>
-            <span className="text-[11px] font-bold text-[#f39c12] uppercase tracking-wide">EXP</span>
-            <span className="ml-auto text-[11px] font-semibold text-[#f39c12]">{totalExp.toLocaleString()} / {nextExp.toLocaleString()}</span>
-          </div>
-          <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-[#f39c12] to-[#f1c40f] transition-all" style={{ width: `${expPct}%` }} />
-          </div>
-        </div>
+      {/* Row 3: SP / SKP / 뽑기권 resource pills */}
+      <div className="flex gap-1.5">
+        <span
+          className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold rounded-lg py-1 leading-none"
+          style={{ background: '#FFF1E0', color: '#B5651D' }}
+        >
+          ✦ SP {statPoints}
+        </span>
+        <span
+          className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold rounded-lg py-1 leading-none"
+          style={{ background: '#F0ECFB', color: '#7A6BD6' }}
+        >
+          ⚡ SKP {skillPoints}
+        </span>
+        <span
+          className="flex-1 flex items-center justify-center gap-1 text-[10px] font-bold rounded-lg py-1 leading-none"
+          style={{ background: '#FFF4DC', color: '#B5651D' }}
+        >
+          🎫 {drawTickets}
+        </span>
       </div>
     </div>
   )

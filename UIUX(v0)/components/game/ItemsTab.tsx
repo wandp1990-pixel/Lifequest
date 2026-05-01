@@ -180,29 +180,35 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
       {/* 가챠 배너 */}
       <div
         className="relative rounded-2xl overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)" }}
+        style={{ background: "linear-gradient(135deg, #1F1638 0%, #2A1F47 60%, #7A6BD6 100%)", boxShadow: "0 6px 20px rgba(40,30,80,0.25)" }}
       >
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "12px 12px" }} />
+        <div className="absolute" style={{ right: -30, top: -40, width: 140, height: 140, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,138,61,0.4), transparent 70%)' }} />
         <div className="relative px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-amber-400 text-xs font-bold tracking-widest uppercase mb-0.5">GACHA</p>
+              <p className="text-[11px] font-black tracking-widest uppercase mb-1" style={{ color: '#FFB57A', letterSpacing: '0.12em' }}>GACHA · LIMITED</p>
               <p className="text-white font-bold text-base leading-tight">아이템 뽑기</p>
-              <p className="text-muted-foreground text-xs mt-0.5">🎫 {drawTickets}장 보유</p>
+              <div className="flex gap-1.5 mt-2">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.12)', color: '#C5C0E5' }}>SSR 3.2%</span>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1" style={{ background: 'rgba(255,138,61,0.2)', color: '#FFB57A' }}>
+                  🎫 {drawTickets}장 보유
+                </span>
+              </div>
             </div>
             <button
               onClick={handleGacha}
               disabled={rolling || drawTickets < 1}
-              className={`flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 flex-shrink-0 w-16 h-16 border-4 ${
+              className={`flex flex-col items-center justify-center rounded-2xl transition-all active:scale-95 flex-shrink-0 w-16 h-16 border-2 ${
                 rolling || drawTickets < 1
-                  ? "border-gray-500 bg-gray-700 opacity-60"
-                  : "border-amber-400 bg-amber-400/10 shadow-lg shadow-amber-400/20"
+                  ? "border-gray-500 bg-gray-700/50 opacity-60"
+                  : "border-white/30 shadow-lg"
               }`}
+              style={rolling || drawTickets < 1 ? {} : { background: 'linear-gradient(135deg, #FFB87A, #F5C879)', boxShadow: '0 0 24px rgba(255,138,61,0.5)' }}
             >
               {rolling ? (
                 <span className="text-amber-400 font-black text-xl animate-pulse">...</span>
               ) : (
-                <span className="font-black text-amber-400 leading-none select-none" style={{ fontSize: "2.2rem", textShadow: "0 0 12px #f59e0b" }}>?</span>
+                <span className="font-black text-white leading-none select-none" style={{ fontSize: "2.2rem" }}>?</span>
               )}
             </button>
           </div>

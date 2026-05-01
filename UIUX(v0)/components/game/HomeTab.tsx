@@ -1,13 +1,26 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Send, CheckCircle2, Gift } from "lucide-react"
+import { Send, CheckCircle2, Gift, Clock, Flame } from "lucide-react"
 
 interface ActivityLog {
   id: number
   input_text: string
   exp_gained: number
   ai_comment: string
+}
+
+interface HabitItem {
+  id: number
+  name: string
+  streak: number
+  fixed_exp: number
+}
+
+interface RoutineItem {
+  id: number
+  name: string
+  deadline_time: string | null
 }
 
 interface HomeTabProps {
@@ -27,6 +40,10 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const [streak, setStreak] = useState(0)
   const [attendToast, setAttendToast] = useState<{ bonusTickets: number } | null>(null)
 
+  const [habits, setHabits] = useState<HabitItem[]>([])
+  const [checkedHabitIds, setCheckedHabitIds] = useState<Set<number>>(new Set())
+  const [routines, setRoutines] = useState<RoutineItem[]>([])
+
   const fetchActLogs = useCallback(async () => {
     const res = await fetch("/api/activities?type=ai&limit=5")
     if (res.ok) setActLogs(await res.json())
@@ -41,10 +58,29 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     }
   }, [])
 
+  const fetchHabits = useCallback(async () => {
+    const res = await fetch("/api/checklist")
+    if (res.ok) {
+      const data = await res.json()
+      setHabits(data.items ?? [])
+      setCheckedHabitIds(new Set(data.checkedIds ?? []))
+    }
+  }, [])
+
+  const fetchRoutines = useCallback(async () => {
+    const res = await fetch("/api/routines")
+    if (res.ok) {
+      const data = await res.json()
+      setRoutines((data.routines ?? []).filter((r: RoutineItem) => r.deadline_time))
+    }
+  }, [])
+
   useEffect(() => {
     fetchActLogs()
     fetchAttendance()
-  }, [fetchActLogs, fetchAttendance, refreshTick])
+    fetchHabits()
+    fetchRoutines()
+  }, [fetchActLogs, fetchAttendance, fetchHabits, fetchRoutines, refreshTick])
 
   const handleAttendance = async () => {
     if (attended || attendLoading) return
@@ -64,8 +100,6 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     }
   }
 
-  // 다음 마일스톤 계산 (streak은 초기화 후 값이므로 초기화 직전 streak으로 판단)
-  // streak=0이면 방금 14일 달성 후 초기화된 것
   const nextMilestone = streak < 7 ? 7 : 14
   const milestoneBonus = nextMilestone === 7 ? 5 : 10
 
@@ -90,6 +124,27 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       setActSubmitting(false)
     }
   }
+
+  // 오늘 획득 XP 합계
+  const todayXp = actLogs.reduce((s, l) => s + l.exp_gained, 0)
+
+  // 최고 스트릭 습관
+  const maxStreak = habits.reduce((mx, h) => Math.max(mx, h.streak ?? 0), 0)
+
+  // 다음 일정: deadline_time이 있는 루틴 중 현재 시간 이후 첫 번째
+  const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+  const nextRoutine = routines
+    .filter(r => r.deadline_time)
+    .sort((a, b) => {
+      const toMins = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
+      return toMins(a.deadline_time!) - toMins(b.deadline_time!)
+    })
+    .find(r => {
+      const [h, m] = r.deadline_time!.split(':').map(Number)
+      return (h * 60 + m) >= nowMins - 30
+    })
+
+  const topHabit = habits.filter(h => !checkedHabitIds.has(h.id)).sort((a, b) => (b.streak ?? 0) - (a.streak ?? 0))[0]
 
   return (
     <div className="flex flex-col gap-0 pb-6">
@@ -152,6 +207,32 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
         </div>
       </div>
 
+      {/* 미니 스탯 그리드 */}
+      <div className="mx-4 mt-3 grid grid-cols-3 gap-2">
+        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#E5F4ED' }}>
+            <span className="text-xs">✓</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">습관 완료</p>
+          <p className="text-sm font-extrabold">{checkedHabitIds.size} / {habits.length}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FFF1E0' }}>
+            <Flame className="w-3.5 h-3.5" style={{ color: '#B5651D' }} />
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">최고 스트릭</p>
+          <p className="text-sm font-extrabold">{maxStreak}일</p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#F0ECFB' }}>
+            <span className="text-xs" style={{ color: '#A89BF0' }}>✦</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">오늘 획득</p>
+          <p className="text-sm font-extrabold">+{todayXp} XP</p>
+        </div>
+      </div>
+
+      {/* 오늘의 활동 */}
       <div className="mx-4 mt-3 rounded-2xl border border-border shadow-sm overflow-hidden">
         <div className="px-4 pt-3 pb-3 bg-background">
           <div className="flex items-center justify-between mb-2">
@@ -215,6 +296,40 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
           </div>
         )}
       </div>
+
+      {/* 다음 일정 */}
+      {(nextRoutine || topHabit) && (
+        <div className="mx-4 mt-3 rounded-2xl border border-border bg-background shadow-sm overflow-hidden">
+          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> 다음 일정
+            </p>
+          </div>
+          {nextRoutine && (
+            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#E5F4ED' }}>
+                <Clock className="w-4 h-4" style={{ color: '#5BA888' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground truncate">{nextRoutine.name}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">⏰ {nextRoutine.deadline_time}까지 · 2배 보너스</p>
+              </div>
+            </div>
+          )}
+          {topHabit && (
+            <div className="flex items-center gap-3 px-4 py-2.5">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#FFF1E0' }}>
+                <Flame className="w-4 h-4" style={{ color: '#B5651D' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground truncate">{topHabit.name}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">🔥 {topHabit.streak}일 스트릭 중</p>
+              </div>
+              <span className="text-[11px] font-bold text-amber-500 flex-shrink-0">+{topHabit.fixed_exp} EXP</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

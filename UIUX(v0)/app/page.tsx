@@ -111,7 +111,7 @@ export default function GamePage() {
     return (
       <>
         {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} />}
-        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} />}
+        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} questTotal={questTotal} />}
         {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} itemStatBonuses={char?.item_stat_bonuses} effectiveStats={char?.effective} />}
         {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} refreshTick={refreshTick} />}
         <div className={activeTab === "battle" ? "block" : "hidden"}>
@@ -149,6 +149,7 @@ export default function GamePage() {
             level={char?.level ?? 1}
             drawTickets={char?.draw_tickets ?? 0}
             statPoints={char?.stat_points ?? 0}
+            skillPoints={char?.skill_points ?? 0}
             totalExp={char?.total_exp ?? 0}
             nextExp={char?.next_exp ?? 100}
             tick={tick}
