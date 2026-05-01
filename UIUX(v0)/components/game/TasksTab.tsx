@@ -614,7 +614,6 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         const bonusGranted = bonusRoutineIds.has(r.id)
         const expanded = expandedRoutineIds.has(r.id)
         const isAddingItem = addingItemFor === r.id
-        // 활성 루틴: 마감 시간이 가장 가까운 것, 없으면 첫 번째
         const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
         const isActive = r.deadline_time
           ? (() => { const [h, m] = r.deadline_time.split(':').map(Number); return (h * 60 + m) >= nowMins - 30 })()
@@ -624,6 +623,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           <div key={r.id} className="mx-4 mt-2 bg-background rounded-2xl overflow-hidden"
             style={{ border: isActive ? '1.5px solid #8FD3B5' : '1px solid #CCEDE4', borderLeft: isActive ? '3px solid #5BA888' : undefined }}
           >
+            {/* 헤더 */}
             {editingRoutineNameId === r.id ? (
               <div className="flex items-center gap-1.5 px-4 py-3">
                 <input
@@ -634,23 +634,17 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   onKeyDown={(e) => { if (e.key === "Enter") saveRoutineName(r.id); if (e.key === "Escape") setEditingRoutineNameId(null) }}
                   className="flex-1 min-w-0 text-sm text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
                 />
-                <button
-                  onClick={() => saveRoutineName(r.id)}
-                  className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0"
-                >
-                  저장
-                </button>
-                <button onClick={() => setEditingRoutineNameId(null)} className="text-muted-foreground flex-shrink-0">
-                  <X className="w-3 h-3" />
-                </button>
+                <button onClick={() => saveRoutineName(r.id)} className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0">저장</button>
+                <button onClick={() => setEditingRoutineNameId(null)} className="text-muted-foreground flex-shrink-0"><X className="w-3 h-3" /></button>
               </div>
             ) : (
               <button
                 onClick={() => toggleRoutine(r.id)}
-                className="w-full flex items-center justify-between px-4 py-3 active:bg-teal-50 transition-colors"
+                className="w-full px-4 pt-3 pb-2.5 text-left active:bg-teal-50/50 transition-colors"
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-bold text-foreground truncate">{r.name}</span>
+                {/* 이름 행 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-foreground flex-1 truncate min-w-0">{r.name}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingRoutineNameId(r.id); setEditingRoutineNameVal(r.name) }}
                     className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
@@ -658,26 +652,26 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   >
                     <Pencil className="w-3 h-3" />
                   </button>
-                  <span className="text-[11px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100 flex-shrink-0">
-                    {checked}/{total}
-                  </span>
                   {r.deadline_time && !bonusGranted && (
-                    <span className="flex items-center gap-0.5 text-[10px] font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100 flex-shrink-0">
-                      <Clock className="w-2.5 h-2.5" />{r.deadline_time}까지 2배
-                    </span>
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: '#FFF1E0', color: '#B5651D', border: '1px solid #FFE3C7' }}>×2배</span>
                   )}
                   {bonusGranted && (
-                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex-shrink-0">
-                      🎉 +{totalExp} EXP
-                    </span>
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex-shrink-0">🎉 완수!</span>
                   )}
+                  <span className="text-sm font-extrabold flex-shrink-0" style={{ color: checked === total && total > 0 ? '#5BA888' : '#5BA888' }}>{checked}/{total}</span>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
                 </div>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
+                {/* 마감 시간 서브텍스트 */}
+                {r.deadline_time && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                    <Clock className="w-3 h-3 flex-shrink-0" />{r.deadline_time}까지
+                  </p>
+                )}
               </button>
             )}
 
             {/* 진행 바 */}
-            {!editingRoutineNameId && total > 0 && (
+            {editingRoutineNameId !== r.id && total > 0 && (
               <div className="px-4 pb-2.5">
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg, #8FD3B5, #5BA888)' }} />
@@ -685,6 +679,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
               </div>
             )}
 
+            {/* 펼쳐진 항목 목록 */}
             {expanded && (
               <div className="border-t border-teal-100">
                 {r.items.length === 0 && !isAddingItem && (
@@ -700,17 +695,30 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                       key={item.id}
                       onDragOver={(e) => handleItemDragOver(e, item.id)}
                       onDrop={(e) => handleItemDrop(e, item.id, r.id)}
-                      className={`flex items-center gap-2 px-3 py-2.5 border-b border-teal-50 last:border-b-0 transition-colors ${done ? "opacity-50" : ""} ${isDragOver ? "bg-teal-50" : ""} ${draggingItemId === item.id ? "opacity-30" : ""}`}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 border-b border-teal-50 last:border-b-0 transition-colors ${isDragOver ? "bg-teal-50" : ""} ${draggingItemId === item.id ? "opacity-30" : ""}`}
                     >
+                      {/* 드래그 핸들 */}
                       <div
                         draggable
                         onDragStart={(e) => handleItemDragStart(e, item.id)}
                         onDragEnd={handleItemDragEnd}
                         className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
-                        aria-label="순서 변경"
                       >
-                        <GripVertical className="w-4 h-4 text-gray-300" />
+                        <GripVertical className="w-3.5 h-3.5 text-gray-300" />
                       </div>
+
+                      {/* 체크박스 */}
+                      <button
+                        onClick={() => completeRoutineItem(item)}
+                        disabled={done || !!completing}
+                        className="w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all active:scale-95"
+                        style={{ borderColor: done ? '#5BA888' : '#D1D5DB', background: done ? '#5BA888' : 'transparent' }}
+                      >
+                        {done && <span className="text-white text-[9px] font-black leading-none">✓</span>}
+                        {isLoading && !done && <span className="w-2 h-2 rounded-full bg-teal-300 animate-pulse" />}
+                      </button>
+
+                      {/* 이름 */}
                       <div className="flex-1 min-w-0">
                         {isEditingItemName ? (
                           <div className="flex items-center gap-1.5">
@@ -729,59 +737,36 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                               className="w-14 text-xs text-center text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                               min={1}
                             />
-                            <button
-                              onClick={() => saveRoutineItemName(item.id)}
-                              className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0"
-                            >
-                              저장
-                            </button>
-                            <button onClick={() => setEditingRoutineItemNameId(null)} className="text-muted-foreground flex-shrink-0">
-                              <X className="w-3 h-3" />
-                            </button>
+                            <button onClick={() => saveRoutineItemName(item.id)} className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0">저장</button>
+                            <button onClick={() => setEditingRoutineItemNameId(null)} className="text-muted-foreground flex-shrink-0"><X className="w-3 h-3" /></button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className={`text-sm leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                              {item.name}
-                            </p>
-                            {!done && (
-                              <button
-                                onClick={() => { setEditingRoutineItemNameId(item.id); setEditingRoutineItemNameVal(item.name); setEditingRoutineItemExpVal(item.fixed_exp) }}
-                                className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
-                                aria-label="항목 이름 수정"
-                              >
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
+                          <p className={`text-sm leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{item.name}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <button
-                          onClick={() => completeRoutineItem(item)}
-                          disabled={done || !!completing}
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
-                            done
-                              ? "bg-muted text-muted-foreground cursor-not-allowed"
-                              : isLoading
-                              ? "bg-teal-200 text-teal-700 animate-pulse cursor-wait"
-                              : "bg-teal-100 text-teal-600 hover:bg-teal-200"
-                          }`}
-                        >
-                          {done ? "✓ 완료" : isLoading ? "처리 중..." : `+${item.fixed_exp} EXP`}
-                        </button>
-                        <button
-                          onClick={() => confirmAndDelete("routineItem", item.id, item.name)}
-                          className="text-gray-300 hover:text-red-400 transition-colors p-0.5"
-                          aria-label="항목 삭제"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+
+                      {/* 우측: EXP + 편집 + 삭제 */}
+                      {!isEditingItemName && (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span className="text-[10px] font-bold" style={{ color: '#5BA888' }}>+{item.fixed_exp}</span>
+                          {!done && (
+                            <button
+                              onClick={() => { setEditingRoutineItemNameId(item.id); setEditingRoutineItemNameVal(item.name); setEditingRoutineItemExpVal(item.fixed_exp) }}
+                              className="text-gray-300 hover:text-teal-400 transition-colors p-0.5"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button onClick={() => confirmAndDelete("routineItem", item.id, item.name)} className="text-gray-300 hover:text-red-400 transition-colors p-0.5">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
 
+                {/* 항목 추가 인풋 */}
                 {isAddingItem ? (
                   <div className="px-4 py-2 flex gap-1.5 bg-teal-50/50">
                     <input
@@ -800,19 +785,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                       className="w-14 text-sm text-center bg-background border border-teal-200 rounded-xl px-1 py-2 outline-none"
                       min={1}
                     />
-                    <button
-                      onClick={() => addRoutineItemSubmit(r.id)}
-                      className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-bold active:scale-95"
-                    >
-                      추가
-                    </button>
-                    <button
-                      onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }}
-                      className="text-muted-foreground px-1"
-                      aria-label="취소"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <button onClick={() => addRoutineItemSubmit(r.id)} className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-bold active:scale-95">추가</button>
+                    <button onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }} className="text-muted-foreground px-1"><X className="w-3.5 h-3.5" /></button>
                   </div>
                 ) : (
                   <div className="bg-teal-50/30">
@@ -826,50 +800,22 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                           onChange={(e) => setDeadlineInputVal(e.target.value)}
                           className="text-xs bg-background border border-sky-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-sky-300"
                         />
-                        <button
-                          onClick={() => saveDeadline(r.id, deadlineInputVal || null)}
-                          className="text-xs font-bold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg active:scale-95"
-                        >
-                          저장
-                        </button>
-                        {r.deadline_time && (
-                          <button
-                            onClick={() => saveDeadline(r.id, null)}
-                            className="text-xs text-muted-foreground active:scale-95"
-                          >
-                            제거
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setEditingDeadlineFor(null)}
-                          className="text-muted-foreground active:scale-95"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                        <button onClick={() => saveDeadline(r.id, deadlineInputVal || null)} className="text-xs font-bold text-sky-600 bg-sky-50 border border-sky-200 px-2 py-1 rounded-lg active:scale-95">저장</button>
+                        {r.deadline_time && <button onClick={() => saveDeadline(r.id, null)} className="text-xs text-muted-foreground active:scale-95">제거</button>}
+                        <button onClick={() => setEditingDeadlineFor(null)} className="text-muted-foreground active:scale-95"><X className="w-3 h-3" /></button>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between px-4 py-2">
                         <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }}
-                            className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95"
-                          >
+                          <button onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }} className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95">
                             <Plus className="w-3 h-3" /> 항목 추가
                           </button>
-                          <button
-                            onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }}
-                            className="flex items-center gap-1 text-xs text-sky-500 active:scale-95"
-                          >
+                          <button onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }} className="flex items-center gap-1 text-xs text-sky-500 active:scale-95">
                             <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
                             {r.deadline_time ? `${r.deadline_time}까지 2배` : "마감 시간"}
                           </button>
                         </div>
-                        <button
-                          onClick={() => confirmAndDelete("routine", r.id, r.name)}
-                          className="text-xs text-red-400 hover:text-red-500 active:scale-95"
-                        >
-                          루틴 삭제
-                        </button>
+                        <button onClick={() => confirmAndDelete("routine", r.id, r.name)} className="text-xs text-red-400 hover:text-red-500 active:scale-95">루틴 삭제</button>
                       </div>
                     )}
                   </div>
