@@ -103,6 +103,13 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const nextMilestone = streak < 7 ? 7 : 14
   const milestoneBonus = nextMilestone === 7 ? 5 : 10
 
+  const today = new Date()
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토']
+  const todayStr = `TODAY · ${dayNames[today.getDay()]}요일`
+  const questTitle = `${today.getMonth() + 1}월 ${today.getDate()}일의 퀘스트`
+  const remaining = nextMilestone - (streak % nextMilestone || (streak > 0 && streak % nextMilestone === 0 ? nextMilestone : nextMilestone - streak % nextMilestone))
+  const daysLeft = nextMilestone - Math.min(streak, nextMilestone)
+
   const submitActivity = async () => {
     if (!actText.trim() || actSubmitting) return
     setActSubmitting(true)
@@ -149,61 +156,53 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   return (
     <div className="flex flex-col gap-0 pb-6">
 
-      {/* 출석체크 */}
-      <div className="mx-4 mt-4 rounded-2xl overflow-hidden shadow-sm" style={{ border: '1px solid #FFE0BF', background: 'linear-gradient(135deg, #FFF8EE 0%, #FFEDD5 100%)' }}>
-        <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-black uppercase tracking-wide" style={{ color: '#B5651D' }}>🗓️ 오늘의 출석</p>
-            {attendToast && attendToast.bonusTickets > 0 ? (
-              <p className="text-xs font-black text-violet-500 mt-0.5">
-                🎉 {streak === 0 ? "14" : "7"}일 연속! 뽑기권 +{attendToast.bonusTickets} 보너스!
-              </p>
-            ) : attendToast ? (
-              <p className="text-xs font-black text-violet-500 mt-0.5">뽑기권 +1 획득!</p>
-            ) : attended ? (
-              <p className="text-xs text-muted-foreground mt-0.5">오늘 출석 완료</p>
-            ) : null}
+      {/* 출석체크 — 디자인 스타일 */}
+      <div className="mx-4 mt-4 rounded-2xl px-4 pt-3 pb-4 relative overflow-hidden" style={{ border: '1px solid #FFE0BF', background: 'linear-gradient(135deg, #FFF8EE 0%, #FFEDD5 100%)' }}>
+        {/* 배경 장식 원 */}
+        <div className="absolute" style={{ right: -30, top: -30, width: 130, height: 130, borderRadius: '50%', background: 'rgba(255,138,61,0.08)' }} />
+
+        {/* 상단: 제목 + 연속일 배지 */}
+        <div className="flex items-start justify-between relative">
+          <div>
+            <p className="text-[11px] font-bold tracking-wider" style={{ color: '#B5651D', letterSpacing: '0.04em' }}>{todayStr}</p>
+            <p className="text-[17px] font-extrabold text-foreground mt-0.5 leading-tight">{questTitle}</p>
+            {attendToast && attendToast.bonusTickets > 0 && (
+              <p className="text-xs font-black text-violet-500 mt-1">🎉 뽑기권 +{attendToast.bonusTickets} 보너스!</p>
+            )}
           </div>
+          <div className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 flex-shrink-0" style={{ background: 'white', border: '1px solid #FFE0BF', color: '#B5651D' }}>
+            <Flame className="w-3.5 h-3.5" style={{ color: '#FFB87A' }} />
+            <span className="text-xs font-extrabold">{streak}일 연속</span>
+          </div>
+        </div>
+
+        {/* 스트릭 바 (7칸) */}
+        <div className="flex gap-1.5 mt-3 relative">
+          {Array.from({ length: 7 }, (_, i) => (
+            <div key={i} className="flex-1 h-1.5 rounded-full transition-all" style={{ background: i < Math.min(streak, 7) ? '#FFB87A' : 'rgba(255,138,61,0.18)' }} />
+          ))}
+        </div>
+
+        {/* 하단: 안내 + 버튼 */}
+        <div className="flex items-center justify-between mt-2.5 relative">
+          <span className="text-[11px] text-muted-foreground">
+            {daysLeft > 0 ? `${daysLeft}일 더 모으면 뽑기권 +${milestoneBonus}` : `🎉 ${nextMilestone}일 달성!`}
+          </span>
           <button
             onClick={handleAttendance}
             disabled={attended || attendLoading}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-black transition active:scale-95 flex-shrink-0
-              ${attended
-                ? "bg-muted text-muted-foreground cursor-default"
-                : "bg-violet-500 text-white shadow-sm"
-              }`}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-black transition-all active:scale-95 flex-shrink-0"
+            style={attended
+              ? { background: '#E5E7EB', color: '#9CA3AF' }
+              : { background: '#FFB87A', color: 'white', boxShadow: '0 2px 6px rgba(255,138,61,0.3)' }
+            }
           >
             {attended ? (
-              <><CheckCircle2 className="w-4 h-4" /> 완료</>
+              <><CheckCircle2 className="w-3.5 h-3.5" /> 완료</>
             ) : (
-              <><Gift className="w-4 h-4" />{attendLoading ? "..." : "출석 체크"}</>
+              attendLoading ? "..." : "출석 체크"
             )}
           </button>
-        </div>
-
-        {/* 연속 출석 진행바 */}
-        <div className="px-4 pb-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[11px] text-muted-foreground">
-              연속 <span className="font-black text-violet-500">{streak}일</span>
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              {nextMilestone}일 달성 시 뽑기권 +{milestoneBonus}
-            </span>
-          </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-violet-400 rounded-full transition-all duration-500"
-              style={{ width: `${(streak / nextMilestone) * 100}%` }}
-            />
-          </div>
-          <div className="flex mt-1">
-            {Array.from({ length: nextMilestone }, (_, i) => (
-              <div key={i} className="flex-1 flex justify-end">
-                <div className={`w-1 h-1 rounded-full ${i < streak ? "bg-violet-400" : "bg-muted"}`} />
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
