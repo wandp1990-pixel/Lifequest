@@ -404,4 +404,13 @@ export async function initDb() {
     await db.execute("UPDATE item_passive_pool SET description='상대 DEF 10% 무시' WHERE name='방어무시'")
     await db.execute("UPDATE item_passive_pool SET description='받은 피해의 5% 반사' WHERE name='반사'")
   })
+
+  await runMigration("item_stat_nerf_v1", async () => {
+    await db.execute("UPDATE item_grade_table SET stat_min=12, stat_max=20  WHERE grade='B'")
+    await db.execute("UPDATE item_grade_table SET stat_min=20, stat_max=35  WHERE grade='A'")
+    await db.execute("UPDATE item_grade_table SET stat_min=35, stat_max=60  WHERE grade='S'")
+    await db.execute("UPDATE item_grade_table SET stat_min=60, stat_max=100 WHERE grade='SR'")
+    await db.execute("UPDATE item_grade_table SET stat_min=100,stat_max=170 WHERE grade='SSR'")
+    await db.execute("UPDATE item_grade_table SET stat_min=170,stat_max=300 WHERE grade='UR'")
+  })
 }
