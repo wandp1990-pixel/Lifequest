@@ -132,3 +132,12 @@
 input, select, textarea {
   font-size: 16px !important;
 }
+
+/* 모바일 앱 스크롤바 숨기기 */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}

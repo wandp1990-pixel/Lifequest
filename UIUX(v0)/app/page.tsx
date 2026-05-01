@@ -163,7 +163,7 @@ export default function GamePage() {
           )}
         </div>
 
-        <div className={`flex-1 min-h-0 ${activeTab === "skills" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`} style={activeTab !== "skills" ? { scrollbarGutter: 'stable' } : undefined}>
+        <div className={`flex-1 min-h-0 ${activeTab === "skills" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
           {renderTabContent()}
         </div>
 
