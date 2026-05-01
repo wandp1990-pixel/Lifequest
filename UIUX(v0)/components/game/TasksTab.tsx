@@ -531,7 +531,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       </div>
 
       {/* ── 루틴 섹션 ───────────────────────────────────── */}
-      <div style={{ display: taskFilter === "all" || taskFilter === "routine" ? "contents" : "none" }}>
+      {(taskFilter === "all" || taskFilter === "routine") && <>
       <div className="px-4 py-3 flex items-center justify-between bg-teal-50 dark:bg-teal-900/30 border-y border-teal-100 dark:border-teal-800/50">
         <div className="flex items-center gap-2">
           <span className="text-sm">🔁</span>
@@ -836,10 +836,10 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
-      </div>{/* end 루틴 섹션 filter wrapper */}
+      </>}
 
       {/* ── 습관 섹션 ─────────────────────────────────── */}
-      <div style={{ display: taskFilter === "all" || taskFilter === "habit" ? "contents" : "none" }}>
+      {(taskFilter === "all" || taskFilter === "habit") && <>
       <div className="px-4 py-3 flex items-center justify-between bg-amber-50 dark:bg-amber-900/30 border-y border-amber-100 dark:border-amber-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
@@ -1021,10 +1021,10 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
-      </div>{/* end 습관 섹션 filter wrapper */}
+      </>}
 
       {/* ── 할 일 섹션 ──────────────────────────────────── */}
-      <div style={{ display: taskFilter === "all" || taskFilter === "todo" ? "contents" : "none" }}>
+      {(taskFilter === "all" || taskFilter === "todo") && <>
       <div className="px-4 py-3 flex items-center justify-between bg-violet-50 dark:bg-violet-900/30 border-y border-violet-100 dark:border-violet-800/50 mt-2">
         <div className="flex items-center gap-2">
           <span className="text-sm">📋</span>
@@ -1201,7 +1201,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
-      </div>{/* end 할일 섹션 filter wrapper */}
+      </>}
 
       {/* ── 삭제 확인 바텀시트 ──────────────────────────── */}
       {confirmDelete && (
