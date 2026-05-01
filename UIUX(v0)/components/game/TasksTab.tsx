@@ -642,21 +642,25 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                 onClick={() => toggleRoutine(r.id)}
                 className="w-full px-4 pt-3 pb-2.5 text-left active:bg-teal-50/50 transition-colors rounded-t-2xl"
               >
-                {/* 이름 행: 이름 + 연필 (바로 옆) | 완수뱃지 + N/N + 화살표 */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-foreground truncate flex-1 min-w-0">{r.name}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingRoutineNameId(r.id); setEditingRoutineNameVal(r.name) }}
-                    className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
-                    aria-label="루틴 이름 수정"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                  {bonusGranted && (
-                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex-shrink-0">🎉 완수!</span>
-                  )}
-                  <span className="text-sm font-extrabold flex-shrink-0" style={{ color: '#5BA888' }}>{checked}/{total}</span>
-                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
+                {/* 이름 행: [이름 + 연필] | [완수뱃지 + N/N + 화살표] */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 min-w-0 flex-1">
+                    <span className="text-sm font-bold text-foreground truncate min-w-0">{r.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingRoutineNameId(r.id); setEditingRoutineNameVal(r.name) }}
+                      className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
+                      aria-label="루틴 이름 수정"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {bonusGranted && (
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">🎉 완수!</span>
+                    )}
+                    <span className="text-sm font-extrabold" style={{ color: '#5BA888' }}>{checked}/{total}</span>
+                    <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
+                  </div>
                 </div>
                 {/* 마감 시간 행: ⏰ 시간 + ×2배 뱃지 */}
                 {r.deadline_time && (
