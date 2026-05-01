@@ -620,7 +620,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           : rIdx === 0
         const progressPct = total > 0 ? (checked / total) * 100 : 0
         return (
-          <div key={r.id} className="mx-4 mt-2 bg-background rounded-2xl overflow-hidden"
+          <div key={r.id} className="mx-4 mt-2 bg-background rounded-2xl"
             style={{ border: isActive ? '1.5px solid #8FD3B5' : '1px solid #CCEDE4', borderLeft: isActive ? '3px solid #5BA888' : undefined }}
           >
             {/* 헤더 */}
@@ -640,11 +640,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             ) : (
               <button
                 onClick={() => toggleRoutine(r.id)}
-                className="w-full px-4 pt-3 pb-2.5 text-left active:bg-teal-50/50 transition-colors"
+                className="w-full px-4 pt-3 pb-2.5 text-left active:bg-teal-50/50 transition-colors rounded-t-2xl"
               >
-                {/* 이름 행 */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-foreground flex-1 truncate min-w-0">{r.name}</span>
+                {/* 이름 행: 이름 + 연필 (바로 옆) | 완수뱃지 + N/N + 화살표 */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold text-foreground truncate flex-1 min-w-0">{r.name}</span>
                   <button
                     onClick={(e) => { e.stopPropagation(); setEditingRoutineNameId(r.id); setEditingRoutineNameVal(r.name) }}
                     className="text-gray-300 hover:text-teal-400 transition-colors flex-shrink-0 p-0.5"
@@ -652,19 +652,20 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                   >
                     <Pencil className="w-3 h-3" />
                   </button>
-                  {r.deadline_time && !bonusGranted && (
-                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: '#FFF1E0', color: '#B5651D', border: '1px solid #FFE3C7' }}>×2배</span>
-                  )}
                   {bonusGranted && (
                     <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100 flex-shrink-0">🎉 완수!</span>
                   )}
-                  <span className="text-sm font-extrabold flex-shrink-0" style={{ color: checked === total && total > 0 ? '#5BA888' : '#5BA888' }}>{checked}/{total}</span>
+                  <span className="text-sm font-extrabold flex-shrink-0" style={{ color: '#5BA888' }}>{checked}/{total}</span>
                   <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`} />
                 </div>
-                {/* 마감 시간 서브텍스트 */}
+                {/* 마감 시간 행: ⏰ 시간 + ×2배 뱃지 */}
                 {r.deadline_time && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                    <Clock className="w-3 h-3 flex-shrink-0" />{r.deadline_time}까지
+                  <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3 flex-shrink-0" />
+                    {r.deadline_time}까지
+                    {!bonusGranted && (
+                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: '#FFF1E0', color: '#B5651D', border: '1px solid #FFE3C7' }}>×2배</span>
+                    )}
                   </p>
                 )}
               </button>
@@ -789,7 +790,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     <button onClick={() => { setAddingItemFor(null); setNewItemName(""); setNewItemExp(10) }} className="text-muted-foreground px-1"><X className="w-3.5 h-3.5" /></button>
                   </div>
                 ) : (
-                  <div className="bg-teal-50/30">
+                  <div className="bg-teal-50/30 rounded-b-2xl">
                     {editingDeadlineFor === r.id ? (
                       <div className="px-4 py-2 flex flex-wrap items-center gap-2">
                         <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
