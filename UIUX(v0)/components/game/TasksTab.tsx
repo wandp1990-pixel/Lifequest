@@ -559,7 +559,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
 
       {/* ── 루틴 섹션 ───────────────────────────────────── */}
       {(taskFilter === "all" || taskFilter === "routine") && <>
-      <div className="px-4 py-3 flex items-center justify-between bg-teal-50 dark:bg-teal-900/30 border-y border-teal-100 dark:border-teal-800/50">
+      <div className="mx-4 mt-3 rounded-2xl border border-teal-100 overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between bg-teal-50 dark:bg-teal-900/30">
         <div className="flex items-center gap-2">
           <span className="text-sm">🔁</span>
           <div>
@@ -581,6 +582,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         >
           {adding === "routine" ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
         </button>
+      </div>
       </div>
 
       {adding === "routine" && (
@@ -835,7 +837,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
 
       {/* ── 습관 섹션 ─────────────────────────────────── */}
       {(taskFilter === "all" || taskFilter === "habit") && <>
-      <div className="px-4 py-3 flex items-center justify-between bg-amber-50 dark:bg-amber-900/30 border-y border-amber-100 dark:border-amber-800/50 mt-2">
+      <div className="mx-4 mt-2 rounded-2xl border border-amber-100 overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between bg-amber-50 dark:bg-amber-900/30">
         <div className="flex items-center gap-2">
           <span className="text-sm">☀️</span>
           <div>
@@ -858,7 +861,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       </div>
 
       {adding === "daily" && (
-        <div className="mx-4 mt-2 mb-2 flex gap-1.5">
+        <div className="px-4 py-2 flex gap-1.5 border-t border-amber-100 bg-amber-50/50">
           <input
             autoFocus
             type="text"
@@ -866,13 +869,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="습관 이름..."
-            className="flex-1 min-w-0 text-sm text-gray-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
+            className="flex-1 min-w-0 text-sm text-gray-900 bg-background border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
           />
           <input
             type="number"
             value={newExp}
             onChange={(e) => setNewExp(Number(e.target.value))}
-            className="w-14 text-sm text-center text-gray-900 bg-amber-50 border border-amber-200 rounded-xl px-1 py-2 outline-none"
+            className="w-14 text-sm text-center text-gray-900 bg-background border border-amber-200 rounded-xl px-1 py-2 outline-none"
             min={1}
           />
           <button
@@ -902,7 +905,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         return (
           <div
             key={item.id}
-            className={`flex items-center gap-3 px-4 py-3 border-b border-border transition-opacity ${done ? "opacity-50" : ""}`}
+            className={`flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 transition-opacity ${done ? "opacity-50" : ""}`}
           >
             <div className="flex-1 min-w-0">
               {isEditingName ? (
@@ -1024,11 +1027,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
+      </div>
       </>}
 
       {/* ── 할 일 섹션 ──────────────────────────────────── */}
       {(taskFilter === "all" || taskFilter === "todo") && <>
-      <div className="px-4 py-3 flex items-center justify-between bg-violet-50 dark:bg-violet-900/30 border-y border-violet-100 dark:border-violet-800/50 mt-2">
+      <div className="mx-4 mt-2 rounded-2xl border border-violet-100 overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between bg-violet-50 dark:bg-violet-900/30">
         <div className="flex items-center gap-2">
           <span className="text-sm">📋</span>
           <div>
@@ -1053,7 +1058,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       </div>
 
       {adding === "todo" && (
-        <div className="mx-4 mt-2 mb-2 flex gap-1.5">
+        <div className="px-4 py-2 flex gap-1.5 border-t border-violet-100 bg-violet-50/50">
           <input
             autoFocus
             type="text"
@@ -1061,13 +1066,13 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             placeholder="할 일 이름..."
-            className="flex-1 min-w-0 text-sm text-gray-900 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+            className="flex-1 min-w-0 text-sm text-gray-900 bg-background border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
           />
           <input
             type="number"
             value={newExp}
             onChange={(e) => setNewExp(Number(e.target.value))}
-            className="w-14 text-sm text-center text-gray-900 bg-violet-50 border border-violet-200 rounded-xl px-1 py-2 outline-none"
+            className="w-14 text-sm text-center text-gray-900 bg-background border border-violet-200 rounded-xl px-1 py-2 outline-none"
             min={0}
           />
           <button
@@ -1090,7 +1095,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         return (
           <div
             key={item.id}
-            className={`flex items-center gap-3 px-4 py-3 border-b border-border transition-opacity ${done ? "opacity-50" : ""}`}
+            className={`flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 transition-opacity ${done ? "opacity-50" : ""}`}
           >
             <div className="flex-1 min-w-0">
               {isEditingName ? (
@@ -1204,6 +1209,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         )
       })}
 
+      </div>
       </>}
 
       {/* ── 삭제 확인 바텀시트 ──────────────────────────── */}
