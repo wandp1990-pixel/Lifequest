@@ -1,6 +1,6 @@
 export { getClient } from "./client"
 export type { Character } from "./types"
-export { initDb } from "./schema"
+export { initDb, initDbSchemaOnly } from "./schema"
 
 export { getCharacter, updateCharacter, incrementTaskCount } from "./queries/character"
 export { addActivityLog, getRecentActivities } from "./queries/activity"

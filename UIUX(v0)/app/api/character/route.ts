@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { initDb, getCharacter, getGameConfig, updateCharacter, getBattleConfig, getClient, getEquipment, getSkillsWithInvestment } from "@/lib/db"
+import { initDb, initDbSchemaOnly, getCharacter, getGameConfig, updateCharacter, getBattleConfig, getClient, getEquipment, getSkillsWithInvestment } from "@/lib/db"
 import { requiredExp, recalcHpMp } from "@/lib/game"
 import { buildPlayerCombatStats, parseEquippedStatBonuses } from "@/lib/battle"
 import { ensureChecklistItems } from "@/lib/db/seed"
@@ -58,7 +58,7 @@ export async function GET() {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await initDb()
+    await initDbSchemaOnly()
     const db = getClient()
     const mode = new URL(req.url).searchParams.get("mode") ?? "full"
 

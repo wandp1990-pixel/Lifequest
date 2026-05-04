@@ -2,6 +2,7 @@ import { getClient, now } from "./client"
 import { seedIfEmpty, seedCharacter, ensureChecklistItems, ensurePrompt, ensureItemSeeds, ensureSkills, ensureBattleConfig } from "./seed"
 
 let _initialized = false
+let _schemaInitialized = false
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS character (
@@ -223,9 +224,33 @@ CREATE TABLE IF NOT EXISTS migration_log (
 );
 `
 
+// 캐릭터 초기화 등 리셋 경로에서 호출 — 에디터 테이블(game_config, battle_config, skill_table 등) 값을
+// 건드리는 데이터 마이그레이션은 실행하지 않고 스키마 생성과 컬럼 추가만 보장한다.
+export async function initDbSchemaOnly() {
+  if (_schemaInitialized) return
+  _schemaInitialized = true
+  const db = getClient()
+  const ddl = SCHEMA.trim().split(";").map(s => s.trim()).filter(Boolean)
+  await db.batch(ddl, "write")
+  try { await db.execute("ALTER TABLE character ADD COLUMN clear_count INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN task_count INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN name TEXT DEFAULT '전사'") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN attendance_streak INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN max_cleared_grade TEXT DEFAULT NULL") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN pending_battle_monster TEXT DEFAULT NULL") } catch {}
+  try { await db.execute("ALTER TABLE checklist_item ADD COLUMN streak INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE checklist_item ADD COLUMN best_streak INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE checklist_item ADD COLUMN notify_time TEXT") } catch {}
+  try { await db.execute("ALTER TABLE todo_item ADD COLUMN notify_time TEXT") } catch {}
+  try { await db.execute("ALTER TABLE routine_item ADD COLUMN time_limit_minutes INTEGER") } catch {}
+  try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN last_regen_at TEXT") } catch {}
+}
+
 export async function initDb() {
   if (_initialized) return
   _initialized = true
+  _schemaInitialized = true
   const db = getClient()
   const ddl = SCHEMA.trim().split(";").map(s => s.trim()).filter(Boolean)
   await db.batch(ddl, "write")
