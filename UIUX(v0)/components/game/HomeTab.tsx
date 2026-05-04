@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Send, CheckCircle2, Gift, Clock, Flame } from "lucide-react"
+import { Send, CheckCircle2, Gift, Flame } from "lucide-react"
 
 interface ActivityLog {
   id: number
@@ -138,20 +138,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   // 최고 스트릭 습관
   const maxStreak = habits.reduce((mx, h) => Math.max(mx, h.streak ?? 0), 0)
 
-  // 다음 일정: deadline_time이 있는 루틴 중 현재 시간 이후 첫 번째
-  const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
-  const nextRoutine = routines
-    .filter(r => r.deadline_time)
-    .sort((a, b) => {
-      const toMins = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
-      return toMins(a.deadline_time!) - toMins(b.deadline_time!)
-    })
-    .find(r => {
-      const [h, m] = r.deadline_time!.split(':').map(Number)
-      return (h * 60 + m) >= nowMins - 30
-    })
 
-  const topHabit = habits.filter(h => !checkedHabitIds.has(h.id)).sort((a, b) => (b.streak ?? 0) - (a.streak ?? 0))[0]
 
   return (
     <div className="flex flex-col gap-0 pb-6">
@@ -296,39 +283,6 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
         )}
       </div>
 
-      {/* 다음 일정 */}
-      {(nextRoutine || topHabit) && (
-        <div className="mx-4 mt-3 rounded-2xl border border-border bg-background shadow-sm overflow-hidden">
-          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-            <p className="text-xs font-black text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" /> 다음 일정
-            </p>
-          </div>
-          {nextRoutine && (
-            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#E5F4ED' }}>
-                <Clock className="w-4 h-4" style={{ color: '#5BA888' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground truncate">{nextRoutine.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">⏰ {nextRoutine.deadline_time}까지 · 2배 보너스</p>
-              </div>
-            </div>
-          )}
-          {topHabit && (
-            <div className="flex items-center gap-3 px-4 py-2.5">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#FFF1E0' }}>
-                <Flame className="w-4 h-4" style={{ color: '#B5651D' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground truncate">{topHabit.name}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">🔥 {topHabit.streak}일 스트릭 중</p>
-              </div>
-              <span className="text-[11px] font-bold text-amber-500 flex-shrink-0">+{topHabit.fixed_exp} EXP</span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
