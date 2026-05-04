@@ -1,3 +1,32 @@
+export type Project = {
+  id: number
+  name: string
+  description: string | null
+  status: 'todo' | 'in_progress' | 'done'
+  priority: 'low' | 'medium' | 'high'
+  bonus_exp: number
+  due_date: string | null
+  color: string
+  created_at: string
+  completed_at: string | null
+}
+
+export type ProjectTask = {
+  id: number
+  project_id: number
+  name: string
+  is_completed: number
+  exp_reward: number
+  sort_order: number
+  created_at: string
+  completed_at: string | null
+}
+
+export type ProjectWithTasks = Project & {
+  tasks: ProjectTask[]
+  progress: number
+}
+
 export type Character = {
   id: number
   name: string

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Plus, X, ChevronDown, GripVertical, Clock, Pencil, Bell } from "lucide-react"
+import ProjectsTab from "./ProjectsTab"
 
 interface DailyItem {
   id: number
@@ -89,7 +90,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   } | null>(null)
   const [notifyEditId, setNotifyEditId] = useState<{ type: "daily" | "todo"; id: number } | null>(null)
   const [notifyEditVal, setNotifyEditVal] = useState("")
-  const [taskFilter, setTaskFilter] = useState<"all" | "routine" | "habit" | "todo">("all")
+  const [taskFilter, setTaskFilter] = useState<"all" | "routine" | "habit" | "todo" | "project">("all")
 
   const saveNotifyTime = async (type: "daily" | "todo", id: number, time: string | null) => {
     const url = type === "daily" ? "/api/checklist" : "/api/todos"
@@ -564,6 +565,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
           ["routine", "루틴",  routines.length],
           ["habit",   "습관",  dailyItems.length],
           ["todo",    "할일",  todoItems.filter(t => !t.is_completed).length],
+          ["project", "프로젝트", null],
         ] as [string, string, number | null][]).map(([k, label, count]) => (
           <button
             key={k}
@@ -1242,6 +1244,11 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
 
       </div>
       </>}
+
+      {/* ── 프로젝트 섹션 ──────────────────────────────── */}
+      {taskFilter === "project" && (
+        <ProjectsTab onExpGained={onExpGained} refreshTick={refreshTick} />
+      )}
 
       {/* ── 삭제 확인 바텀시트 ──────────────────────────── */}
       {confirmDelete && (

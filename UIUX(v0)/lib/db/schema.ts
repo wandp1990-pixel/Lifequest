@@ -217,6 +217,28 @@ CREATE TABLE IF NOT EXISTS push_subscription (
     auth       TEXT,
     created_at TEXT
 );
+CREATE TABLE IF NOT EXISTS project (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL,
+    description  TEXT,
+    status       TEXT DEFAULT 'todo',
+    priority     TEXT DEFAULT 'medium',
+    bonus_exp    INTEGER DEFAULT 0,
+    due_date     TEXT,
+    color        TEXT DEFAULT 'violet',
+    created_at   TEXT,
+    completed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS project_task (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id   INTEGER NOT NULL REFERENCES project(id),
+    name         TEXT NOT NULL,
+    is_completed INTEGER DEFAULT 0,
+    exp_reward   INTEGER DEFAULT 10,
+    sort_order   INTEGER DEFAULT 0,
+    created_at   TEXT,
+    completed_at TEXT
+);
 CREATE TABLE IF NOT EXISTS migration_log (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     version    TEXT UNIQUE,
@@ -448,5 +470,32 @@ export async function initDb() {
   await runMigration("todo_deadline_v1", async () => {
     try { await db.execute("ALTER TABLE todo_item ADD COLUMN due_time TEXT") } catch {}
     try { await db.execute("ALTER TABLE todo_item ADD COLUMN penalty_applied INTEGER DEFAULT 0") } catch {}
+  })
+
+  await runMigration("project_system_v1", async () => {
+    await db.batch([
+      `CREATE TABLE IF NOT EXISTS project (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        status TEXT DEFAULT 'todo',
+        priority TEXT DEFAULT 'medium',
+        bonus_exp INTEGER DEFAULT 0,
+        due_date TEXT,
+        color TEXT DEFAULT 'violet',
+        created_at TEXT,
+        completed_at TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS project_task (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES project(id),
+        name TEXT NOT NULL,
+        is_completed INTEGER DEFAULT 0,
+        exp_reward INTEGER DEFAULT 10,
+        sort_order INTEGER DEFAULT 0,
+        created_at TEXT,
+        completed_at TEXT
+      )`,
+    ], "write")
   })
 }
