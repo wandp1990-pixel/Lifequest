@@ -242,6 +242,8 @@ export async function initDbSchemaOnly() {
   try { await db.execute("ALTER TABLE checklist_item ADD COLUMN best_streak INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE checklist_item ADD COLUMN notify_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE todo_item ADD COLUMN notify_time TEXT") } catch {}
+  try { await db.execute("ALTER TABLE todo_item ADD COLUMN due_time TEXT") } catch {}
+  try { await db.execute("ALTER TABLE todo_item ADD COLUMN penalty_applied INTEGER DEFAULT 0") } catch {}
   try { await db.execute("ALTER TABLE routine_item ADD COLUMN time_limit_minutes INTEGER") } catch {}
   try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN last_regen_at TEXT") } catch {}
@@ -441,5 +443,10 @@ export async function initDb() {
 
   await runMigration("equipment_reset_v1", async () => {
     await db.execute("DELETE FROM equipment")
+  })
+
+  await runMigration("todo_deadline_v1", async () => {
+    try { await db.execute("ALTER TABLE todo_item ADD COLUMN due_time TEXT") } catch {}
+    try { await db.execute("ALTER TABLE todo_item ADD COLUMN penalty_applied INTEGER DEFAULT 0") } catch {}
   })
 }

@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem,
   updateTodoExp, updateTodoName, addActivityLog, incrementTaskCount, updateTodoNotifyTime,
+  applyExpiredTodoPenalties,
 } from "@/lib/db"
+import { now } from "@/lib/db/client"
 import { gainExp } from "@/lib/game"
 import { judgeActivity } from "@/lib/ai"
 
@@ -10,7 +12,9 @@ export async function GET() {
   try {
     await initDb()
     await cleanupCompletedTodos()
-    return NextResponse.json(await getTodoItems())
+    const penalties = await applyExpiredTodoPenalties()
+    const items = await getTodoItems()
+    return NextResponse.json({ items, penalties })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
@@ -19,10 +23,11 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     await initDb()
-    const { name, suggested_exp } = await req.json()
+    const { name, suggested_exp, due_time } = await req.json()
     if (!name?.trim()) return NextResponse.json({ error: "할 일을 입력하세요" }, { status: 400 })
-    await addTodoItem(name.trim(), suggested_exp ?? 0)
-    return NextResponse.json(await getTodoItems())
+    await addTodoItem(name.trim(), suggested_exp ?? 0, due_time ?? null)
+    const items = await getTodoItems()
+    return NextResponse.json({ items, penalties: { count: 0, hpLost: 0 } })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
@@ -36,19 +41,38 @@ export async function PATCH(req: NextRequest) {
     const item = items.find((i) => i.id === id)
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
 
-    let exp = (item.suggested_exp as number) ?? 10
+    let baseExp = (item.suggested_exp as number) ?? 10
     let comment = "할 일 완료!"
-    if (exp === 0) {
+    if (baseExp === 0) {
       const aiResult = await judgeActivity(item.name as string)
-      exp = aiResult.exp
+      baseExp = aiResult.exp
       comment = aiResult.comment
     }
+
+    let exp = baseExp
+    let bonusExp = 0
+    let penaltyApplied = false
+
+    const dueTime = item.due_time as string | null
+    if (dueTime) {
+      const currentNow = now()
+      if (currentNow <= dueTime) {
+        bonusExp = Math.floor(baseExp * 0.5)
+        exp = baseExp + bonusExp
+        comment = `⏰ 기한 내 완료! ${comment}`
+      } else {
+        exp = Math.floor(baseExp * 0.5)
+        penaltyApplied = true
+        comment = `⌛ 기한 초과 (EXP 절반)`
+      }
+    }
+
     await completeTodoItem(id, exp, comment)
     await addActivityLog(item.name as string, "todo", exp, comment)
     await incrementTaskCount()
     const levelResult = await gainExp(exp)
 
-    return NextResponse.json({ exp, comment, ...levelResult })
+    return NextResponse.json({ exp, comment, bonusExp, penaltyApplied, ...levelResult })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

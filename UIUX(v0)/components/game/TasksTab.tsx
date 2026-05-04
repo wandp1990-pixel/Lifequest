@@ -20,6 +20,8 @@ interface TodoItem {
   exp_gained?: number
   ai_comment?: string
   notify_time?: string | null
+  due_time?: string | null
+  penalty_applied?: number
 }
 
 interface RoutineItem {
@@ -73,7 +75,9 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [editingRoutineItemNameVal, setEditingRoutineItemNameVal] = useState("")
   const [editingRoutineItemExpVal, setEditingRoutineItemExpVal] = useState(10)
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
-  const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number } | null>(null)
+  const [newDueTime, setNewDueTime] = useState("")
+  const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number; penalty?: boolean } | null>(null)
+  const [penaltyToast, setPenaltyToast] = useState<{ count: number; hpLost: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [draggingItemId, setDraggingItemId] = useState<number | null>(null)
@@ -132,9 +136,14 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         setCheckedDailyIds(new Set(data.checkedIds ?? []))
       }
       if (todoRes.ok) {
-        const items = await todoRes.json()
+        const data = await todoRes.json()
+        const items = data.items ?? data
         setTodoItems(items)
         setCompletedTodoCount(items.filter((t: TodoItem) => t.is_completed).length)
+        if (data.penalties?.count > 0) {
+          setPenaltyToast(data.penalties)
+          setTimeout(() => setPenaltyToast(null), 4000)
+        }
       }
       if (routineRes.ok) {
         const data = await routineRes.json()
@@ -179,8 +188,8 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
     onDailyCompletedChange?.(totalDone)
   }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, completedTodoCount, onCountChange, onDailyCompletedChange])
 
-  const showToast = (exp: number, comment: string, bonus?: number) => {
-    setToast({ exp, comment, bonus })
+  const showToast = (exp: number, comment: string, bonus?: number, penalty?: boolean) => {
+    setToast({ exp, comment, bonus, penalty })
     setTimeout(() => setToast(null), 3000)
   }
 
@@ -223,7 +232,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         prev.map((t) => t.id === item.id ? { ...t, is_completed: 1, exp_gained: data.exp } : t)
       )
       setCompletedTodoCount((prev) => prev + 1)
-      showToast(data.exp, data.comment)
+      showToast(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined, data.penaltyApplied)
       onExpGained?.()
     } finally {
       setCompleting(null)
@@ -369,15 +378,20 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
         setCheckedDailyIds(new Set(data.checkedIds ?? []))
       }
     } else {
+      const dueTimeVal = newDueTime ? newDueTime.replace("T", " ") + ":00" : null
       const res = await fetch("/api/todos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName, suggested_exp: newExp }),
+        body: JSON.stringify({ name: newName, suggested_exp: newExp, due_time: dueTimeVal }),
       })
-      if (res.ok) setTodoItems(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setTodoItems(data.items ?? data)
+      }
     }
     setNewName("")
     setNewExp(10)
+    setNewDueTime("")
     setAdding(null)
   }
 
@@ -493,11 +507,19 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
 
   return (
     <div className="flex flex-col gap-0 relative pb-6">
+      {/* 패널티 토스트 */}
+      {penaltyToast && (
+        <div className="sticky top-0 z-20 mx-4 mt-2 bg-red-500 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5">
+          <span className="text-sm">⚠️ 기한 초과 패널티 -{penaltyToast.hpLost} HP</span>
+          <span className="opacity-90 font-normal">{penaltyToast.count}개의 할 일이 기한을 넘겼습니다</span>
+        </div>
+      )}
+
       {/* 토스트 */}
       {toast && (
-        <div className="sticky top-0 z-20 mx-4 mt-2 bg-amber-400 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5">
+        <div className={`sticky top-0 z-20 mx-4 mt-2 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5 ${toast.penalty ? "bg-red-400" : "bg-amber-400"}`}>
           <span className="text-sm">
-            +{toast.exp} EXP{toast.bonus ? ` · 보너스 +${toast.bonus}` : "!"}
+            {toast.penalty ? `${toast.exp} EXP (기한 초과 절반)` : `+${toast.exp} EXP${toast.bonus ? ` · 보너스 +${toast.bonus}` : "!"}`}
           </span>
           <span className="opacity-90 font-normal leading-snug">{toast.comment}</span>
         </div>
@@ -1038,29 +1060,45 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
       </div>
 
       {adding === "todo" && (
-        <div className="px-4 py-2 flex gap-1.5 border-t border-violet-100 bg-violet-50/50">
-          <input
-            autoFocus
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addItem()}
-            placeholder="할 일 이름..."
-            className="flex-1 min-w-0 text-sm text-gray-900 bg-background border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
-          />
-          <input
-            type="number"
-            value={newExp}
-            onChange={(e) => setNewExp(Number(e.target.value))}
-            className="w-14 text-sm text-center text-gray-900 bg-background border border-violet-200 rounded-xl px-1 py-2 outline-none"
-            min={0}
-          />
-          <button
-            onClick={addItem}
-            className="px-3 py-2 bg-violet-500 text-white rounded-xl text-sm font-bold active:scale-95"
-          >
-            추가
-          </button>
+        <div className="px-4 py-2 flex flex-col gap-1.5 border-t border-violet-100 bg-violet-50/50">
+          <div className="flex gap-1.5">
+            <input
+              autoFocus
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addItem()}
+              placeholder="할 일 이름..."
+              className="flex-1 min-w-0 text-sm text-gray-900 bg-background border border-violet-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+            />
+            <input
+              type="number"
+              value={newExp}
+              onChange={(e) => setNewExp(Number(e.target.value))}
+              className="w-14 text-sm text-center text-gray-900 bg-background border border-violet-200 rounded-xl px-1 py-2 outline-none"
+              min={0}
+            />
+            <button
+              onClick={addItem}
+              className="px-3 py-2 bg-violet-500 text-white rounded-xl text-sm font-bold active:scale-95"
+            >
+              추가
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+            <input
+              type="datetime-local"
+              value={newDueTime}
+              onChange={(e) => setNewDueTime(e.target.value)}
+              className="flex-1 text-xs text-gray-700 bg-background border border-violet-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-violet-300"
+            />
+            {newDueTime && (
+              <button onClick={() => setNewDueTime("")} className="text-muted-foreground">
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1125,16 +1163,27 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
                     )}
                   </div>
                   {!done && (
-                    <button
-                      onClick={() => { setNotifyEditId({ type: "todo", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
-                      className={`flex-shrink-0 flex items-center gap-0.5 self-start transition-colors active:scale-95 ${
-                        item.notify_time ? "text-violet-500" : "text-gray-300 hover:text-violet-400"
-                      }`}
-                      aria-label="알림 설정"
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      {item.notify_time && <span className="text-[10px] font-bold">{item.notify_time}</span>}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setNotifyEditId({ type: "todo", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
+                        className={`flex-shrink-0 flex items-center gap-0.5 transition-colors active:scale-95 ${
+                          item.notify_time ? "text-violet-500" : "text-gray-300 hover:text-violet-400"
+                        }`}
+                        aria-label="알림 설정"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        {item.notify_time && <span className="text-[10px] font-bold">{item.notify_time}</span>}
+                      </button>
+                      {item.due_time && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
+                          item.penalty_applied
+                            ? "text-red-600 bg-red-50 border-red-200"
+                            : "text-violet-600 bg-violet-50 border-violet-200"
+                        }`}>
+                          {item.penalty_applied ? "⚠️ 기한초과" : `⏰ ${item.due_time.slice(5, 16).replace(" ", " ")}`}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
