@@ -499,7 +499,7 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
                   skillFilter === f ? "bg-purple-500 text-white border-transparent" : "bg-white text-gray-500 border-[#f1ece4]"
                 }`}
               >
-                {f === "all" ? "전체" : f === "active" ? "⚡ 액티브" : "♡ 패시브"}
+                {f === "all" ? "전체" : f === "active" ? "⚡ 액티브" : "🛡 패시브"}
               </button>
             ))}
           </div>
