@@ -24,6 +24,8 @@ export { getItemGrades, getItemSlots, getAbilityPool, getPassivePool } from "./q
 export { getSkillsWithInvestment, saveSkillInvestments, getAllSkillsDb, createSkillDb, updateSkillDb, deleteSkillDb } from "./queries/skills"
 export type { SkillRow, SkillDbRow } from "./queries/skills"
 export { getTodayAttendance, checkAttendance } from "./queries/attendance"
+export { getChapters, addChapter, completeChapter, deleteChapter } from "./queries/chapter"
+export type { ChapterWithProgress } from "./types"
 export {
   savePushSubscription, deletePushSubscription, getAllPushSubscriptions,
   updateChecklistNotifyTime, updateTodoNotifyTime,

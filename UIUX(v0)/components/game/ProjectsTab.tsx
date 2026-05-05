@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, Pencil } from "lucide-react"
+import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, Sparkles, BookOpen, Trophy } from "lucide-react"
 
 interface ProjectTask {
   id: number
@@ -23,10 +23,22 @@ interface Project {
   bonus_exp: number
   due_date: string | null
   color: string
+  chapter_id: number | null
   created_at: string
   completed_at: string | null
   tasks: ProjectTask[]
   progress: number
+}
+
+interface Chapter {
+  id: number
+  name: string
+  start_date: string | null
+  end_date: string | null
+  bonus_tickets: number
+  status: "active" | "done"
+  total_projects: number
+  done_projects: number
 }
 
 interface ProjectsTabProps {
@@ -42,93 +54,131 @@ const PRIORITY_COLOR: Record<string, string> = {
 }
 const STATUS_LABEL: Record<string, string> = { todo: "시작 전", in_progress: "진행 중", done: "완료" }
 const COLOR_OPTIONS = [
-  { value: "violet", label: "보라", cls: "bg-violet-500" },
-  { value: "blue", label: "파랑", cls: "bg-blue-500" },
-  { value: "emerald", label: "초록", cls: "bg-emerald-500" },
-  { value: "amber", label: "노랑", cls: "bg-amber-500" },
-  { value: "rose", label: "빨강", cls: "bg-rose-500" },
+  { value: "violet",  label: "보라",  cls: "bg-violet-500" },
+  { value: "blue",    label: "파랑",  cls: "bg-blue-500" },
+  { value: "emerald", label: "초록",  cls: "bg-emerald-500" },
+  { value: "amber",   label: "노랑",  cls: "bg-amber-500" },
+  { value: "rose",    label: "빨강",  cls: "bg-rose-500" },
 ]
 const COLOR_CLS: Record<string, string> = {
-  violet: "bg-violet-500",
-  blue: "bg-blue-500",
-  emerald: "bg-emerald-500",
-  amber: "bg-amber-500",
-  rose: "bg-rose-500",
+  violet: "bg-violet-500", blue: "bg-blue-500", emerald: "bg-emerald-500",
+  amber: "bg-amber-500", rose: "bg-rose-500",
 }
 
-function formatDueDate(due: string | null): { label: string; overdue: boolean } | null {
-  if (!due) return null
-  const d = new Date(due)
-  const now = new Date()
-  const overdue = d < now
-  const label = d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
-  return { label, overdue }
+function formatDate(d: string | null): string | null {
+  if (!d) return null
+  return new Date(d).toLocaleDateString("ko-KR", { month: "short", day: "numeric" })
+}
+
+function isDueSoon(due: string | null): boolean {
+  if (!due) return false
+  const diff = new Date(due).getTime() - Date.now()
+  return diff < 3 * 24 * 60 * 60 * 1000
 }
 
 export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabProps) {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
+  const [projects,  setProjects]  = useState<Project[]>([])
+  const [chapters,  setChapters]  = useState<Chapter[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [adding,    setAdding]    = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
-  const [toast, setToast] = useState<{ msg: string; exp?: number } | null>(null)
+  const [toast,     setToast]     = useState<{ msg: string; exp?: number } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null)
 
-  // 새 프로젝트 폼 상태
-  const [newName, setNewName] = useState("")
-  const [newDesc, setNewDesc] = useState("")
-  const [newPriority, setNewPriority] = useState<"low" | "medium" | "high">("medium")
-  const [newBonusExp, setNewBonusExp] = useState(50)
-  const [newDueDate, setNewDueDate] = useState("")
-  const [newColor, setNewColor] = useState("violet")
+  // 새 프로젝트 폼
+  const [newName,      setNewName]      = useState("")
+  const [newDesc,      setNewDesc]      = useState("")
+  const [newPriority,  setNewPriority]  = useState<"low" | "medium" | "high">("medium")
+  const [newBonusExp,  setNewBonusExp]  = useState(100)
+  const [newDueDate,   setNewDueDate]   = useState("")
+  const [newColor,     setNewColor]     = useState("violet")
+  const [newChapterId, setNewChapterId] = useState<number | null>(null)
+  const [defaultTaskExp, setDefaultTaskExp] = useState(20)
 
-  // 하위 작업 추가 상태 (project id → 입력 중)
+  // AI 판정
+  const [aiJudging, setAiJudging] = useState(false)
+  const [aiSuggestion, setAiSuggestion] = useState<{ bonus_exp: number; task_exp: number; comment: string } | null>(null)
+
+  // 하위 작업 추가
   const [addingTaskFor, setAddingTaskFor] = useState<number | null>(null)
-  const [newTaskName, setNewTaskName] = useState("")
-  const [newTaskExp, setNewTaskExp] = useState(10)
+  const [newTaskName,   setNewTaskName]   = useState("")
+  const [newTaskExp,    setNewTaskExp]    = useState(20)
+  const [completing,    setCompleting]    = useState<number | null>(null)
 
-  // 완료 중 상태 (task id)
-  const [completing, setCompleting] = useState<number | null>(null)
+  // 챕터 UI
+  const [chapterExpanded, setChapterExpanded] = useState(false)
+  const [addingChapter,   setAddingChapter]   = useState(false)
+  const [chName,          setChName]          = useState("")
+  const [chEnd,           setChEnd]           = useState("")
+  const [chTickets,       setChTickets]       = useState(3)
+  const [completingChapter, setCompletingChapter] = useState<number | null>(null)
 
-  const fetchProjects = useCallback(async () => {
-    const res = await fetch("/api/projects")
-    if (res.ok) {
-      const data = await res.json()
+  const fetchAll = useCallback(async () => {
+    const [pRes, cRes] = await Promise.all([
+      fetch("/api/projects"),
+      fetch("/api/chapters"),
+    ])
+    if (pRes.ok) {
+      const data = await pRes.json()
       setProjects(data.projects ?? [])
+    }
+    if (cRes.ok) {
+      const data = await cRes.json()
+      setChapters(data.chapters ?? [])
     }
     setLoading(false)
   }, [])
 
-  useEffect(() => { fetchProjects() }, [fetchProjects, refreshTick])
+  useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
 
   const showToast = (msg: string, exp?: number) => {
     setToast({ msg, exp })
     setTimeout(() => setToast(null), 3000)
   }
 
+  // ── AI 판정 ───────────────────────────────────────────
+  const handleAiJudge = async () => {
+    if (!newName.trim() || aiJudging) return
+    setAiJudging(true)
+    setAiSuggestion(null)
+    try {
+      const res = await fetch("/api/projects/ai-judge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), description: newDesc, priority: newPriority }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setAiSuggestion(data)
+        setNewBonusExp(data.bonus_exp)
+        setDefaultTaskExp(data.task_exp)
+        setNewTaskExp(data.task_exp)
+      }
+    } finally {
+      setAiJudging(false)
+    }
+  }
+
+  // ── 프로젝트 CRUD ─────────────────────────────────────
   const handleAddProject = async () => {
     if (!newName.trim()) return
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: newName.trim(),
-        description: newDesc,
-        priority: newPriority,
-        bonus_exp: newBonusExp,
-        due_date: newDueDate || null,
-        color: newColor,
+        name: newName.trim(), description: newDesc, priority: newPriority,
+        bonus_exp: newBonusExp, due_date: newDueDate || null, color: newColor,
+        chapter_id: newChapterId,
       }),
     })
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
+      await fetchAll()
       setAdding(false)
-      setNewName("")
-      setNewDesc("")
-      setNewPriority("medium")
-      setNewBonusExp(50)
-      setNewDueDate("")
-      setNewColor("violet")
+      setNewName(""); setNewDesc(""); setNewPriority("medium")
+      setNewBonusExp(100); setNewDueDate(""); setNewColor("violet")
+      setNewChapterId(null); setAiSuggestion(null); setDefaultTaskExp(20)
     }
   }
 
@@ -142,9 +192,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
-      setAddingTaskFor(null)
-      setNewTaskName("")
-      setNewTaskExp(10)
+      setAddingTaskFor(null); setNewTaskName(""); setNewTaskExp(defaultTaskExp)
     }
   }
 
@@ -155,12 +203,9 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
-      const exp = data.exp ?? 0
-      if (data.projectCompleted) {
-        showToast(`프로젝트 완료! 보너스 +${data.bonusExp}XP`, data.bonusExp)
-      } else {
-        showToast(`+${exp}XP`, exp)
-      }
+      await fetchAll()
+      if (data.projectCompleted) showToast(`프로젝트 완료! 보너스 +${data.bonusExp}XP`, data.bonusExp)
+      else showToast(`+${data.exp}XP`, data.exp)
       onExpGained?.()
     }
     setCompleting(null)
@@ -168,17 +213,14 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
 
   const handleDeleteTask = async (projectId: number, taskId: number) => {
     const res = await fetch(`/api/projects/${projectId}/tasks/${taskId}`, { method: "DELETE" })
-    if (res.ok) {
-      const data = await res.json()
-      setProjects(data.projects ?? [])
-    }
+    if (res.ok) setProjects((await res.json()).projects ?? [])
   }
 
   const handleDeleteProject = async (id: number) => {
     const res = await fetch(`/api/projects/${id}`, { method: "DELETE" })
     if (res.ok) {
-      const data = await res.json()
-      setProjects(data.projects ?? [])
+      setProjects((await res.json()).projects ?? [])
+      await fetchAll()
     }
     setConfirmDelete(null)
   }
@@ -192,10 +234,52 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
+      await fetchAll()
       if (status === "done" && data.bonusExp > 0) {
         showToast(`프로젝트 완료! +${data.bonusExp}XP`, data.bonusExp)
         onExpGained?.()
       }
+    }
+  }
+
+  // ── 챕터 CRUD ─────────────────────────────────────────
+  const handleAddChapter = async () => {
+    if (!chName.trim()) return
+    const res = await fetch("/api/chapters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: chName.trim(), end_date: chEnd || null, bonus_tickets: chTickets }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setChapters(data.chapters ?? [])
+      setAddingChapter(false); setChName(""); setChEnd(""); setChTickets(3)
+    }
+  }
+
+  const handleCompleteChapter = async (ch: Chapter) => {
+    if (completingChapter !== null) return
+    setCompletingChapter(ch.id)
+    const res = await fetch(`/api/chapters/${ch.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "complete", bonus_tickets: ch.bonus_tickets }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setChapters(data.chapters ?? [])
+      showToast(`챕터 완료! 뽑기권 +${data.ticketsAwarded}`)
+      onExpGained?.()
+    }
+    setCompletingChapter(null)
+  }
+
+  const handleDeleteChapter = async (id: number) => {
+    const res = await fetch(`/api/chapters/${id}`, { method: "DELETE" })
+    if (res.ok) {
+      const data = await res.json()
+      setChapters(data.chapters ?? [])
+      await fetchAll()
     }
   }
 
@@ -209,17 +293,21 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
 
   const grouped = {
     in_progress: projects.filter((p) => p.status === "in_progress"),
-    todo: projects.filter((p) => p.status === "todo"),
-    done: projects.filter((p) => p.status === "done"),
+    todo:        projects.filter((p) => p.status === "todo"),
+    done:        projects.filter((p) => p.status === "done"),
   }
 
+  const activeChapters = chapters.filter((c) => c.status === "active")
+
+  // ── 프로젝트 카드 렌더 ────────────────────────────────
   const renderProject = (project: Project) => {
     const expanded = expandedIds.has(project.id)
-    const due = formatDueDate(project.due_date)
+    const dueSoon  = isDueSoon(project.due_date) && project.status !== "done"
+    const dueLabel = formatDate(project.due_date)
+    const chapter  = chapters.find((c) => c.id === project.chapter_id)
 
     return (
       <div key={project.id} className="rounded-xl border border-border bg-card overflow-hidden">
-        {/* 프로젝트 헤더 */}
         <div
           className="flex items-start gap-3 p-3 cursor-pointer active:bg-muted/40 transition-colors"
           onClick={() => toggleExpand(project.id)}
@@ -233,16 +321,20 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${PRIORITY_COLOR[project.priority]}`}>
                 {PRIORITY_LABEL[project.priority]}
               </span>
-              {due && (
-                <span className={`text-[10px] ${due.overdue ? "text-red-400" : "text-muted-foreground"}`}>
-                  {due.overdue ? "⚠ " : ""}{due.label}
+              {dueLabel && (
+                <span className={`text-[10px] ${dueSoon ? "text-red-400 font-bold" : "text-muted-foreground"}`}>
+                  {dueSoon ? "⚠ " : ""}{dueLabel}
+                </span>
+              )}
+              {chapter && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400">
+                  {chapter.name}
                 </span>
               )}
             </div>
             {project.description && (
               <p className="text-xs text-muted-foreground mt-0.5 truncate">{project.description}</p>
             )}
-            {/* 진행률 바 */}
             <div className="mt-2 flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
@@ -255,15 +347,13 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="shrink-0">
             {expanded ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
           </div>
         </div>
 
-        {/* 상세 펼침 */}
         {expanded && (
           <div className="border-t border-border px-3 pb-3 pt-2 space-y-2">
-            {/* 상태 변경 */}
             <div className="flex gap-1 flex-wrap">
               {(["todo", "in_progress", "done"] as const).map((s) => (
                 <button
@@ -279,28 +369,20 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 </button>
               ))}
               <div className="flex-1" />
-              <button
-                onClick={() => setConfirmDelete({ id: project.id, name: project.name })}
-                className="text-[10px] text-red-400 px-1"
-              >
+              <button onClick={() => setConfirmDelete({ id: project.id, name: project.name })} className="text-[10px] text-red-400 px-1">
                 <Trash2 size={12} />
               </button>
             </div>
 
-            {/* 보너스 EXP 표시 */}
             {project.bonus_exp > 0 && (
               <div className="text-[11px] text-muted-foreground">
                 완료 보너스: <span className="text-amber-400 font-bold">+{project.bonus_exp}XP</span>
               </div>
             )}
 
-            {/* 하위 작업 목록 */}
             <div className="space-y-1.5">
               {project.tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className={`flex items-center gap-2 py-1 ${task.is_completed ? "opacity-50" : ""}`}
-                >
+                <div key={task.id} className={`flex items-center gap-2 py-1 ${task.is_completed ? "opacity-50" : ""}`}>
                   <button
                     onClick={() => !task.is_completed && handleCompleteTask(project.id, task.id)}
                     disabled={!!task.is_completed || completing === task.id}
@@ -325,7 +407,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               ))}
             </div>
 
-            {/* 하위 작업 추가 */}
             {addingTaskFor === project.id ? (
               <div className="flex flex-col gap-1.5 mt-1">
                 <input
@@ -342,30 +423,18 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 <div className="flex gap-2 items-center">
                   <span className="text-[11px] text-muted-foreground shrink-0">EXP</span>
                   <input
-                    type="number"
-                    min={1}
-                    max={500}
+                    type="number" min={1} max={500}
                     className="w-20 text-xs bg-muted border border-border rounded-lg px-2 py-1 outline-none focus:border-violet-500"
                     value={newTaskExp}
                     onChange={(e) => setNewTaskExp(Number(e.target.value))}
                   />
-                  <button
-                    onClick={() => handleAddTask(project.id)}
-                    className="flex-1 py-1 text-xs bg-violet-500 text-white rounded-lg font-bold"
-                  >
-                    추가
-                  </button>
-                  <button
-                    onClick={() => { setAddingTaskFor(null); setNewTaskName("") }}
-                    className="text-muted-foreground"
-                  >
-                    <X size={14} />
-                  </button>
+                  <button onClick={() => handleAddTask(project.id)} className="flex-1 py-1 text-xs bg-violet-500 text-white rounded-lg font-bold">추가</button>
+                  <button onClick={() => { setAddingTaskFor(null); setNewTaskName("") }} className="text-muted-foreground"><X size={14} /></button>
                 </div>
               </div>
             ) : (
               <button
-                onClick={() => { setAddingTaskFor(project.id); setNewTaskName(""); setNewTaskExp(10) }}
+                onClick={() => { setAddingTaskFor(project.id); setNewTaskName(""); setNewTaskExp(defaultTaskExp) }}
                 className="flex items-center gap-1 text-xs text-muted-foreground mt-1"
                 disabled={project.status === "done"}
               >
@@ -384,14 +453,130 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
 
   return (
     <div className="px-4 pb-4 space-y-4">
-      {/* 새 프로젝트 추가 버튼 / 폼 */}
+
+      {/* ── 챕터 섹션 ── */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <button
+          className="w-full flex items-center gap-2 px-3 py-2.5 active:bg-muted/40 transition-colors"
+          onClick={() => setChapterExpanded((v) => !v)}
+        >
+          <BookOpen size={14} className="text-violet-400" />
+          <span className="text-xs font-bold text-violet-400">챕터</span>
+          <span className="text-xs text-muted-foreground ml-1">{activeChapters.length}개 진행 중</span>
+          <div className="flex-1" />
+          {chapterExpanded ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
+        </button>
+
+        {chapterExpanded && (
+          <div className="border-t border-border px-3 pb-3 pt-2 space-y-3">
+            {chapters.length === 0 && !addingChapter && (
+              <p className="text-xs text-muted-foreground text-center py-2">챕터가 없습니다</p>
+            )}
+
+            {chapters.map((ch) => {
+              const pct = ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
+              const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
+              return (
+                <div key={ch.id} className={`rounded-lg border p-3 space-y-2 ${ch.status === "done" ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
+                  <div className="flex items-center gap-2">
+                    {ch.status === "done" ? <Trophy size={13} className="text-emerald-500 shrink-0" /> : <BookOpen size={13} className="text-violet-400 shrink-0" />}
+                    <span className={`text-xs font-bold flex-1 ${ch.status === "done" ? "line-through text-muted-foreground" : ""}`}>{ch.name}</span>
+                    {ch.end_date && (
+                      <span className="text-[10px] text-muted-foreground">{formatDate(ch.end_date)}</span>
+                    )}
+                    <button onClick={() => handleDeleteChapter(ch.id)} className="text-muted-foreground ml-1">
+                      <X size={12} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${ch.status === "done" ? "bg-emerald-500" : "bg-violet-500"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{ch.done_projects}/{ch.total_projects}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">
+                      완료 보상: <span className="text-violet-400 font-bold">뽑기권 +{ch.bonus_tickets}</span>
+                    </span>
+                    {ch.status === "active" && (
+                      <button
+                        onClick={() => handleCompleteChapter(ch)}
+                        disabled={!allDone || completingChapter === ch.id}
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${
+                          allDone
+                            ? "bg-emerald-500 text-white active:scale-95"
+                            : "bg-muted text-muted-foreground opacity-50"
+                        }`}
+                      >
+                        {completingChapter === ch.id ? "..." : "챕터 완료"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            {addingChapter ? (
+              <div className="space-y-2 border border-border rounded-lg p-2">
+                <input
+                  autoFocus
+                  className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
+                  placeholder="챕터 이름 *"
+                  value={chName}
+                  onChange={(e) => setChName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddChapter()}
+                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
+                    <input
+                      type="date"
+                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                      value={chEnd}
+                      onChange={(e) => setChEnd(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[11px] text-muted-foreground block mb-1">보상 뽑기권</label>
+                    <input
+                      type="number" min={1} max={30}
+                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                      value={chTickets}
+                      onChange={(e) => setChTickets(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={handleAddChapter} disabled={!chName.trim()} className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40">추가</button>
+                  <button onClick={() => setAddingChapter(false)} className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground">취소</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingChapter(true)}
+                className="flex items-center gap-1 text-xs text-muted-foreground"
+              >
+                <Plus size={12} /> 새 챕터 추가
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── 새 프로젝트 추가 ── */}
       <div>
         {adding ? (
           <div className="border border-border rounded-xl p-3 space-y-2 bg-card">
             <div className="flex justify-between items-center">
               <span className="text-sm font-bold">새 프로젝트</span>
-              <button onClick={() => setAdding(false)}><X size={16} className="text-muted-foreground" /></button>
+              <button onClick={() => { setAdding(false); setAiSuggestion(null) }}><X size={16} className="text-muted-foreground" /></button>
             </div>
+
             <input
               autoFocus
               className="w-full text-sm bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
@@ -405,13 +590,14 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
             />
+
             <div className="flex gap-2">
               <div className="flex-1">
                 <label className="text-[11px] text-muted-foreground block mb-1">우선순위</label>
                 <select
                   className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
                   value={newPriority}
-                  onChange={(e) => setNewPriority(e.target.value as "low" | "medium" | "high")}
+                  onChange={(e) => { setNewPriority(e.target.value as "low" | "medium" | "high"); setAiSuggestion(null) }}
                 >
                   <option value="high">높음</option>
                   <option value="medium">보통</option>
@@ -419,20 +605,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 </select>
               </div>
               <div className="flex-1">
-                <label className="text-[11px] text-muted-foreground block mb-1">완료 보너스 EXP</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={9999}
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                  value={newBonusExp}
-                  onChange={(e) => setNewBonusExp(Number(e.target.value))}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-[11px] text-muted-foreground block mb-1">마감일 (선택)</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
                 <input
                   type="date"
                   className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
@@ -441,6 +614,55 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 />
               </div>
             </div>
+
+            {/* AI 추천 버튼 */}
+            <button
+              onClick={handleAiJudge}
+              disabled={!newName.trim() || aiJudging}
+              className="w-full flex items-center justify-center gap-2 py-2 text-xs rounded-lg border border-violet-500/40 text-violet-400 font-bold active:bg-violet-500/10 disabled:opacity-40 transition-colors"
+            >
+              <Sparkles size={13} />
+              {aiJudging ? "AI 판정 중..." : "AI EXP 추천 받기"}
+            </button>
+
+            {aiSuggestion && (
+              <div className="rounded-lg bg-violet-500/10 border border-violet-500/20 px-3 py-2 space-y-0.5">
+                <div className="flex items-center gap-1">
+                  <Sparkles size={11} className="text-violet-400" />
+                  <span className="text-[11px] font-bold text-violet-400">AI 추천</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">{aiSuggestion.comment}</p>
+                <p className="text-[11px] text-violet-300">
+                  완료 보너스 <span className="font-bold text-amber-400">{aiSuggestion.bonus_exp} XP</span> · 작업당 <span className="font-bold text-amber-400">{aiSuggestion.task_exp} XP</span>
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-[11px] text-muted-foreground block mb-1">완료 보너스 EXP</label>
+                <input
+                  type="number" min={0} max={9999}
+                  className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                  value={newBonusExp}
+                  onChange={(e) => setNewBonusExp(Number(e.target.value))}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-[11px] text-muted-foreground block mb-1">챕터 연결</label>
+                <select
+                  className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                  value={newChapterId ?? ""}
+                  onChange={(e) => setNewChapterId(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">없음</option>
+                  {activeChapters.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="text-[11px] text-muted-foreground block mb-1">색상</label>
               <div className="flex gap-2">
@@ -453,6 +675,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 ))}
               </div>
             </div>
+
             <button
               onClick={handleAddProject}
               disabled={!newName.trim()}
@@ -471,7 +694,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         )}
       </div>
 
-      {/* 진행 중 */}
+      {/* ── 프로젝트 목록 ── */}
       {grouped.in_progress.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -482,7 +705,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         </div>
       )}
 
-      {/* 시작 전 */}
       {grouped.todo.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -493,7 +715,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         </div>
       )}
 
-      {/* 완료 */}
       {grouped.done.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -504,7 +725,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         </div>
       )}
 
-      {/* 빈 상태 */}
       {projects.length === 0 && !adding && (
         <div className="text-center py-10 text-muted-foreground text-sm">
           <p className="text-2xl mb-2">📋</p>
@@ -513,14 +733,12 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         </div>
       )}
 
-      {/* 삭제 확인 */}
+      {/* ── 삭제 확인 ── */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4" onClick={() => setConfirmDelete(null)}>
           <div className="bg-card border border-border rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <p className="text-sm font-bold mb-1">프로젝트 삭제</p>
-            <p className="text-xs text-muted-foreground mb-4">
-              &quot;{confirmDelete.name}&quot;과 모든 하위 작업이 삭제됩니다.
-            </p>
+            <p className="text-xs text-muted-foreground mb-4">&quot;{confirmDelete.name}&quot;과 모든 하위 작업이 삭제됩니다.</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 rounded-xl border border-border text-sm">취소</button>
               <button onClick={() => handleDeleteProject(confirmDelete.id)} className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-bold">삭제</button>
@@ -529,7 +747,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         </div>
       )}
 
-      {/* 토스트 */}
+      {/* ── 토스트 ── */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-full px-4 py-2 text-xs font-bold shadow-lg animate-in fade-in slide-in-from-bottom-2">
           {toast.msg}

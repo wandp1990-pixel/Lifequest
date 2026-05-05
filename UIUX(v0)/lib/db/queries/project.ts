@@ -33,12 +33,13 @@ export async function addProject(
   priority: string,
   bonusExp: number,
   dueDate: string | null,
-  color: string
+  color: string,
+  chapterId: number | null = null,
 ): Promise<void> {
   const db = getClient()
   await db.execute({
-    sql: "INSERT INTO project (name, description, priority, bonus_exp, due_date, color, status, created_at) VALUES (?,?,?,?,?,?,'todo',?)",
-    args: [name, description, priority, bonusExp, dueDate ?? null, color, now()],
+    sql: "INSERT INTO project (name, description, priority, bonus_exp, due_date, color, chapter_id, status, created_at) VALUES (?,?,?,?,?,?,?,'todo',?)",
+    args: [name, description, priority, bonusExp, dueDate ?? null, color, chapterId ?? null, now()],
   })
 }
 

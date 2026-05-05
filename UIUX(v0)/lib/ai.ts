@@ -16,18 +16,36 @@ const RESPONSE_SCHEMA: ObjectSchema = {
   required: ["exp", "comment"],
 }
 
+const PROJECT_EXP_SCHEMA: ObjectSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    bonus_exp: { type: SchemaType.INTEGER, description: "50~500 사이 정수" },
+    task_exp:  { type: SchemaType.INTEGER, description: "10~100 사이 정수" },
+    comment:   { type: SchemaType.STRING,  description: "산정 근거 50자 이내 한국어" },
+  },
+  required: ["bonus_exp", "task_exp", "comment"],
+}
+
+const PROJECT_JUDGE_SYSTEM = `당신은 RPG 게임 마스터입니다. 플레이어의 실생활 프로젝트를 보고 경험치를 산정합니다.
+규칙:
+- bonus_exp: 프로젝트 전체 완료 보너스 EXP (50~500, 우선순위·복잡도·기간 반영)
+- task_exp: 하위 작업 1개당 기본 추천 EXP (10~100)
+- high → bonus_exp 200+, medium → 100~200, low → 50~100 기준
+- 복잡하거나 오래 걸릴수록 높게 책정`
+
 const JSON_ENFORCEMENT = `\n\n반드시 아래 JSON 한 개만 출력하라. 다른 텍스트(마크다운/설명/코드블록) 절대 금지:\n{"exp": <0~200 정수>, "comment": "<Base XP 이유 · Bonus XP 이유 포함, 60자 이내 한국어 근거 요약>"}`
 
 async function tryGenerate(
   genai: GoogleGenerativeAI,
   modelName: string,
   fullPrompt: string,
+  schema?: ObjectSchema,
 ): Promise<string> {
   const model = genai.getGenerativeModel({
     model: modelName,
     generationConfig: {
       responseMimeType: "application/json",
-      responseSchema: RESPONSE_SCHEMA,
+      responseSchema: schema ?? RESPONSE_SCHEMA,
     },
   })
   let lastErr: unknown
@@ -183,4 +201,45 @@ export async function judgeActivity(activityText: string): Promise<{
   }
 
   return { exp: 50, comment: "활동 완료! (AI 일시 오류)", error: lastMsg || "모든 모델 실패" }
+}
+
+export async function judgeProjectExp(
+  name: string,
+  description: string,
+  priority: string,
+): Promise<{ bonus_exp: number; task_exp: number; comment: string; error: string | null }> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) return { bonus_exp: 100, task_exp: 20, comment: "기본값 적용", error: "API 키 없음" }
+
+  const genai = new GoogleGenerativeAI(apiKey)
+  const priorityLabel = priority === "high" ? "높음" : priority === "medium" ? "보통" : "낮음"
+  const fullPrompt = `${PROJECT_JUDGE_SYSTEM}
+
+프로젝트:
+- 이름: ${name}
+- 설명: ${description || "없음"}
+- 우선순위: ${priorityLabel}
+
+반드시 JSON만 출력: {"bonus_exp": <50~500 정수>, "task_exp": <10~100 정수>, "comment": "<50자 이내 한국어>"}`
+
+  let lastMsg = ""
+  for (const modelName of MODELS) {
+    try {
+      const text = await tryGenerate(genai, modelName, fullPrompt, PROJECT_EXP_SCHEMA)
+      const data = extractJson(text)
+      if (data && typeof data === "object") {
+        const obj = data as AnyObj
+        const bonus_exp = Math.max(50, Math.min(500, Math.round(Number(obj.bonus_exp) || 100)))
+        const task_exp  = Math.max(10, Math.min(100, Math.round(Number(obj.task_exp)  || 20)))
+        const comment   = String(obj.comment || "AI 산정 완료").slice(0, 80)
+        return { bonus_exp, task_exp, comment, error: null }
+      }
+      lastMsg = `JSON 파싱 실패 (${modelName})`
+    } catch (e) {
+      lastMsg = e instanceof Error ? e.message : String(e)
+      if (QUOTA_ERROR.test(lastMsg))
+        return { bonus_exp: 100, task_exp: 20, comment: "기본값 적용 (AI 쿼터 초과)", error: lastMsg }
+    }
+  }
+  return { bonus_exp: 100, task_exp: 20, comment: "기본값 적용 (AI 오류)", error: lastMsg }
 }

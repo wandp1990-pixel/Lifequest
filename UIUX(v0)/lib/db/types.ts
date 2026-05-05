@@ -1,3 +1,19 @@
+export type Chapter = {
+  id: number
+  name: string
+  start_date: string | null
+  end_date: string | null
+  bonus_tickets: number
+  status: 'active' | 'done'
+  created_at: string
+  completed_at: string | null
+}
+
+export type ChapterWithProgress = Chapter & {
+  total_projects: number
+  done_projects: number
+}
+
 export type Project = {
   id: number
   name: string
@@ -7,6 +23,7 @@ export type Project = {
   bonus_exp: number
   due_date: string | null
   color: string
+  chapter_id: number | null
   created_at: string
   completed_at: string | null
 }

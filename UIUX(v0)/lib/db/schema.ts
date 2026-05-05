@@ -217,6 +217,16 @@ CREATE TABLE IF NOT EXISTS push_subscription (
     auth       TEXT,
     created_at TEXT
 );
+CREATE TABLE IF NOT EXISTS chapter (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    start_date    TEXT,
+    end_date      TEXT,
+    bonus_tickets INTEGER DEFAULT 3,
+    status        TEXT DEFAULT 'active',
+    created_at    TEXT,
+    completed_at  TEXT
+);
 CREATE TABLE IF NOT EXISTS project (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     name         TEXT NOT NULL,
@@ -226,6 +236,7 @@ CREATE TABLE IF NOT EXISTS project (
     bonus_exp    INTEGER DEFAULT 0,
     due_date     TEXT,
     color        TEXT DEFAULT 'violet',
+    chapter_id   INTEGER REFERENCES chapter(id),
     created_at   TEXT,
     completed_at TEXT
 );
@@ -269,6 +280,7 @@ export async function initDbSchemaOnly() {
   try { await db.execute("ALTER TABLE routine_item ADD COLUMN time_limit_minutes INTEGER") } catch {}
   try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN last_regen_at TEXT") } catch {}
+  try { await db.execute("ALTER TABLE project ADD COLUMN chapter_id INTEGER REFERENCES chapter(id)") } catch {}
 }
 
 export async function initDb() {
@@ -437,6 +449,20 @@ export async function initDb() {
   await runMigration("pending_battle_monster_v1", async () => {
     try { await db.execute("ALTER TABLE character ADD COLUMN pending_battle_monster TEXT DEFAULT NULL") } catch {}
     await db.execute("UPDATE character SET pending_battle_monster = NULL WHERE pending_battle_monster = ''")
+  })
+
+  await runMigration("chapter_v1", async () => {
+    await db.execute(`CREATE TABLE IF NOT EXISTS chapter (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      start_date TEXT,
+      end_date TEXT,
+      bonus_tickets INTEGER DEFAULT 3,
+      status TEXT DEFAULT 'active',
+      created_at TEXT,
+      completed_at TEXT
+    )`)
+    try { await db.execute("ALTER TABLE project ADD COLUMN chapter_id INTEGER REFERENCES chapter(id)") } catch {}
   })
 
   await runMigration("item_balance_v1_revert", async () => {

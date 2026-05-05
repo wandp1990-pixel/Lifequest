@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Send, CheckCircle2, Gift, Flame } from "lucide-react"
+import { Send, CheckCircle2, Flame, AlertTriangle } from "lucide-react"
 
 interface ActivityLog {
   id: number
@@ -21,6 +21,14 @@ interface RoutineItem {
   id: number
   name: string
   deadline_time: string | null
+}
+
+interface UrgentProject {
+  id: number
+  name: string
+  due_date: string
+  status: string
+  priority: string
 }
 
 interface HomeTabProps {
@@ -43,6 +51,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const [habits, setHabits] = useState<HabitItem[]>([])
   const [checkedHabitIds, setCheckedHabitIds] = useState<Set<number>>(new Set())
   const [routines, setRoutines] = useState<RoutineItem[]>([])
+  const [urgentProjects, setUrgentProjects] = useState<UrgentProject[]>([])
 
   const fetchActLogs = useCallback(async () => {
     const res = await fetch("/api/activities?type=ai&limit=5")
@@ -75,12 +84,26 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     }
   }, [])
 
+  const fetchUrgentProjects = useCallback(async () => {
+    const res = await fetch("/api/projects")
+    if (!res.ok) return
+    const data = await res.json()
+    const now = Date.now()
+    const urgent = (data.projects ?? []).filter((p: UrgentProject) => {
+      if (!p.due_date || p.status === "done") return false
+      const diff = new Date(p.due_date).getTime() - now
+      return diff < 3 * 24 * 60 * 60 * 1000
+    })
+    setUrgentProjects(urgent)
+  }, [])
+
   useEffect(() => {
     fetchActLogs()
     fetchAttendance()
     fetchHabits()
     fetchRoutines()
-  }, [fetchActLogs, fetchAttendance, fetchHabits, fetchRoutines, refreshTick])
+    fetchUrgentProjects()
+  }, [fetchActLogs, fetchAttendance, fetchHabits, fetchRoutines, fetchUrgentProjects, refreshTick])
 
   const handleAttendance = async () => {
     if (attended || attendLoading) return
@@ -217,6 +240,27 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
           <p className="text-sm font-extrabold">+{todayXp} XP</p>
         </div>
       </div>
+
+      {/* 마감 임박 프로젝트 */}
+      {urgentProjects.length > 0 && (
+        <div className="mx-4 mt-3 rounded-xl border border-red-500/30 bg-red-500/5 overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-red-500/20">
+            <AlertTriangle size={13} className="text-red-400 shrink-0" />
+            <span className="text-xs font-bold text-red-400">마감 임박 프로젝트</span>
+          </div>
+          {urgentProjects.map((p) => {
+            const diff = new Date(p.due_date).getTime() - Date.now()
+            const daysLeft = Math.ceil(diff / (24 * 60 * 60 * 1000))
+            const label = daysLeft <= 0 ? "오늘 마감" : `D-${daysLeft}`
+            return (
+              <div key={p.id} className="flex items-center justify-between px-3 py-2 border-b border-red-500/10 last:border-0">
+                <span className="text-xs text-foreground truncate flex-1">{p.name}</span>
+                <span className={`text-[10px] font-bold ml-2 shrink-0 ${daysLeft <= 0 ? "text-red-500" : "text-red-400"}`}>{label}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* 오늘의 활동 */}
       <div className="mx-4 mt-3 rounded-2xl border border-border shadow-sm overflow-hidden">
