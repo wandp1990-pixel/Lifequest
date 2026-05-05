@@ -423,13 +423,10 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-card to-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-bold">연계 퀘스트 프로젝트</p>
+            <p className="text-sm font-bold">프로젝트</p>
             <p className="mt-1 text-xs text-muted-foreground">
               큰 목표를 프로젝트로 만들고, 실제 행동은 작업으로 쪼개서 관리하세요.
             </p>
-          </div>
-          <div className="rounded-full bg-violet-500/15 px-2.5 py-1 text-[10px] font-bold text-violet-400">
-            Notion-style
           </div>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
@@ -582,7 +579,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       {projects.length === 0 && !adding && (
         <div className="text-center py-10 text-muted-foreground text-sm">
           <p className="text-2xl mb-2">📋</p>
-          <p>아직 연계 퀘스트가 없습니다</p>
+          <p>아직 프로젝트가 없습니다</p>
           <p className="text-xs mt-1">큰 목표 하나를 만들고, 안에 작업을 쪼개서 진행해보세요.</p>
         </div>
       )}
