@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, Sparkles, BookOpen, Trophy } from "lucide-react"
+import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, BookOpen, Trophy } from "lucide-react"
 
 interface ProjectTask {
   id: number
@@ -89,20 +89,13 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   const [newName,      setNewName]      = useState("")
   const [newDesc,      setNewDesc]      = useState("")
   const [newPriority,  setNewPriority]  = useState<"low" | "medium" | "high">("medium")
-  const [newBonusExp,  setNewBonusExp]  = useState(100)
   const [newDueDate,   setNewDueDate]   = useState("")
   const [newColor,     setNewColor]     = useState("violet")
   const [newChapterId, setNewChapterId] = useState<number | null>(null)
-  const [defaultTaskExp, setDefaultTaskExp] = useState(20)
-
-  // AI 판정
-  const [aiJudging, setAiJudging] = useState(false)
-  const [aiSuggestion, setAiSuggestion] = useState<{ bonus_exp: number; task_exp: number; comment: string } | null>(null)
 
   // 하위 작업 추가
   const [addingTaskFor, setAddingTaskFor] = useState<number | null>(null)
   const [newTaskName,   setNewTaskName]   = useState("")
-  const [newTaskExp,    setNewTaskExp]    = useState(20)
   const [completing,    setCompleting]    = useState<number | null>(null)
 
   // 챕터 UI
@@ -136,29 +129,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     setTimeout(() => setToast(null), 3000)
   }
 
-  // ── AI 판정 ───────────────────────────────────────────
-  const handleAiJudge = async () => {
-    if (!newName.trim() || aiJudging) return
-    setAiJudging(true)
-    setAiSuggestion(null)
-    try {
-      const res = await fetch("/api/projects/ai-judge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), description: newDesc, priority: newPriority }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setAiSuggestion(data)
-        setNewBonusExp(data.bonus_exp)
-        setDefaultTaskExp(data.task_exp)
-        setNewTaskExp(data.task_exp)
-      }
-    } finally {
-      setAiJudging(false)
-    }
-  }
-
   // ── 프로젝트 CRUD ─────────────────────────────────────
   const handleAddProject = async () => {
     if (!newName.trim()) return
@@ -167,8 +137,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: newName.trim(), description: newDesc, priority: newPriority,
-        bonus_exp: newBonusExp, due_date: newDueDate || null, color: newColor,
-        chapter_id: newChapterId,
+        due_date: newDueDate || null, color: newColor, chapter_id: newChapterId,
       }),
     })
     if (res.ok) {
@@ -177,8 +146,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       await fetchAll()
       setAdding(false)
       setNewName(""); setNewDesc(""); setNewPriority("medium")
-      setNewBonusExp(100); setNewDueDate(""); setNewColor("violet")
-      setNewChapterId(null); setAiSuggestion(null); setDefaultTaskExp(20)
+      setNewDueDate(""); setNewColor("violet"); setNewChapterId(null)
     }
   }
 
@@ -187,12 +155,12 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     const res = await fetch(`/api/projects/${projectId}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newTaskName.trim(), exp_reward: newTaskExp }),
+      body: JSON.stringify({ name: newTaskName.trim() }),
     })
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
-      setAddingTaskFor(null); setNewTaskName(""); setNewTaskExp(defaultTaskExp)
+      setAddingTaskFor(null); setNewTaskName("")
     }
   }
 
@@ -408,10 +376,10 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
             </div>
 
             {addingTaskFor === project.id ? (
-              <div className="flex flex-col gap-1.5 mt-1">
+              <div className="flex gap-2 mt-1">
                 <input
                   autoFocus
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
+                  className="flex-1 text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
                   placeholder="작업 이름"
                   value={newTaskName}
                   onChange={(e) => setNewTaskName(e.target.value)}
@@ -420,21 +388,12 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                     if (e.key === "Escape") { setAddingTaskFor(null); setNewTaskName("") }
                   }}
                 />
-                <div className="flex gap-2 items-center">
-                  <span className="text-[11px] text-muted-foreground shrink-0">EXP</span>
-                  <input
-                    type="number" min={1} max={500}
-                    className="w-20 text-xs bg-muted border border-border rounded-lg px-2 py-1 outline-none focus:border-violet-500"
-                    value={newTaskExp}
-                    onChange={(e) => setNewTaskExp(Number(e.target.value))}
-                  />
-                  <button onClick={() => handleAddTask(project.id)} className="flex-1 py-1 text-xs bg-violet-500 text-white rounded-lg font-bold">추가</button>
-                  <button onClick={() => { setAddingTaskFor(null); setNewTaskName("") }} className="text-muted-foreground"><X size={14} /></button>
-                </div>
+                <button onClick={() => handleAddTask(project.id)} className="px-3 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold">추가</button>
+                <button onClick={() => { setAddingTaskFor(null); setNewTaskName("") }} className="text-muted-foreground"><X size={14} /></button>
               </div>
             ) : (
               <button
-                onClick={() => { setAddingTaskFor(project.id); setNewTaskName(""); setNewTaskExp(defaultTaskExp) }}
+                onClick={() => { setAddingTaskFor(project.id); setNewTaskName("") }}
                 className="flex items-center gap-1 text-xs text-muted-foreground mt-1"
                 disabled={project.status === "done"}
               >
@@ -574,7 +533,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
           <div className="border border-border rounded-xl p-3 space-y-2 bg-card">
             <div className="flex justify-between items-center">
               <span className="text-sm font-bold">새 프로젝트</span>
-              <button onClick={() => { setAdding(false); setAiSuggestion(null) }}><X size={16} className="text-muted-foreground" /></button>
+              <button onClick={() => setAdding(false)}><X size={16} className="text-muted-foreground" /></button>
             </div>
 
             <input
@@ -597,7 +556,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 <select
                   className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
                   value={newPriority}
-                  onChange={(e) => { setNewPriority(e.target.value as "low" | "medium" | "high"); setAiSuggestion(null) }}
+                  onChange={(e) => setNewPriority(e.target.value as "low" | "medium" | "high")}
                 >
                   <option value="high">높음</option>
                   <option value="medium">보통</option>
@@ -615,40 +574,8 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               </div>
             </div>
 
-            {/* AI 추천 버튼 */}
-            <button
-              onClick={handleAiJudge}
-              disabled={!newName.trim() || aiJudging}
-              className="w-full flex items-center justify-center gap-2 py-2 text-xs rounded-lg border border-violet-500/40 text-violet-400 font-bold active:bg-violet-500/10 disabled:opacity-40 transition-colors"
-            >
-              <Sparkles size={13} />
-              {aiJudging ? "AI 판정 중..." : "AI EXP 추천 받기"}
-            </button>
-
-            {aiSuggestion && (
-              <div className="rounded-lg bg-violet-500/10 border border-violet-500/20 px-3 py-2 space-y-0.5">
-                <div className="flex items-center gap-1">
-                  <Sparkles size={11} className="text-violet-400" />
-                  <span className="text-[11px] font-bold text-violet-400">AI 추천</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">{aiSuggestion.comment}</p>
-                <p className="text-[11px] text-violet-300">
-                  완료 보너스 <span className="font-bold text-amber-400">{aiSuggestion.bonus_exp} XP</span> · 작업당 <span className="font-bold text-amber-400">{aiSuggestion.task_exp} XP</span>
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-[11px] text-muted-foreground block mb-1">완료 보너스 EXP</label>
-                <input
-                  type="number" min={0} max={9999}
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                  value={newBonusExp}
-                  onChange={(e) => setNewBonusExp(Number(e.target.value))}
-                />
-              </div>
-              <div className="flex-1">
+            {activeChapters.length > 0 && (
+              <div>
                 <label className="text-[11px] text-muted-foreground block mb-1">챕터 연결</label>
                 <select
                   className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
@@ -661,7 +588,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                   ))}
                 </select>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="text-[11px] text-muted-foreground block mb-1">색상</label>
