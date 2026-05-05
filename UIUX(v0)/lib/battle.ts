@@ -543,6 +543,39 @@ export function runBattle(
           : Math.random() < 0.5 ? "플레이어" : "몬스터"
   }
 
+  const buildResult = (
+    resultWinner: BattleResult["winner"],
+    completedTurns: number,
+    logs: TurnLog[],
+    finalPlayerHp: number,
+    finalPlayerMp: number,
+    finalMonsterHp: number,
+  ): BattleResult => ({
+    monster,
+    logs,
+    winner: resultWinner,
+    turns: completedTurns,
+    ticket_reward: resultWinner === "플레이어" ? monster.ticket_reward : 0,
+    first_strike:  first,
+    player_start_hp: Math.max(0, Math.round(playerStartHp)),
+    player_start_mp: Math.max(0, Math.round(playerStartMp)),
+    player_max_hp:   Math.round(playerCombat.max_hp),
+    player_max_mp:   Math.round(playerCombat.max_mp),
+    player_final_hp: Math.max(0, Math.round(finalPlayerHp)),
+    player_final_mp: Math.max(0, Math.round(finalPlayerMp)),
+    monster_max_hp: monster.stats.HP,
+    player_stats: {
+      patk:   Math.round(playerCombat.patk),
+      matk:   Math.round(playerCombat.matk),
+      pdef:   Math.round(playerCombat.pdef),
+      mdef:   Math.round(playerCombat.mdef),
+      dex:    Math.round(playerCombat.dex),
+      luk:    Math.round(playerCombat.luk),
+      max_hp: Math.round(playerCombat.max_hp),
+      max_mp: Math.round(playerCombat.max_mp),
+    },
+  })
+
   // ── 액티브 스킬 상태 추적 ──
   const skillUsed = new Set<string>()  // 1회성 스킬 사용 여부
   let playerTurnCount = 0
@@ -561,6 +594,11 @@ export function runBattle(
   }
 
   const logs: TurnLog[] = []
+
+  if (playerHp <= 0) {
+    return buildResult("몬스터", 0, logs, playerHp, playerMp, monsterHp)
+  }
+
   let winner: "플레이어" | "몬스터" | "시간초과" | null = null
   let completedTurns = 0
 
@@ -724,29 +762,5 @@ export function runBattle(
     if (playerHp  <= 0) { winner = "몬스터";   break }
   }
 
-  return {
-    monster,
-    logs,
-    winner: winner ?? "시간초과",
-    turns:  completedTurns,
-    ticket_reward: winner === "플레이어" ? monster.ticket_reward : 0,
-    first_strike:  first,
-    player_start_hp: Math.max(0, Math.round(playerStartHp)),
-    player_start_mp: Math.max(0, Math.round(playerStartMp)),
-    player_max_hp:   Math.round(playerCombat.max_hp),
-    player_max_mp:   Math.round(playerCombat.max_mp),
-    player_final_hp: Math.max(0, Math.round(playerHp)),
-    player_final_mp: Math.max(0, Math.round(playerMp)),
-    monster_max_hp: monster.stats.HP,
-    player_stats: {
-      patk:   Math.round(playerCombat.patk),
-      matk:   Math.round(playerCombat.matk),
-      pdef:   Math.round(playerCombat.pdef),
-      mdef:   Math.round(playerCombat.mdef),
-      dex:    Math.round(playerCombat.dex),
-      luk:    Math.round(playerCombat.luk),
-      max_hp: Math.round(playerCombat.max_hp),
-      max_mp: Math.round(playerCombat.max_mp),
-    },
-  }
+  return buildResult(winner ?? "시간초과", completedTurns, logs, playerHp, playerMp, monsterHp)
 }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import {
   initDb, getCharacter, getEquipment, getGameConfig, getBattleConfig,
   getSkillsWithInvestment, getClient,
@@ -37,12 +37,9 @@ function parsePendingMonster(raw: string | null | undefined): Monster | null {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     await initDb()
-
-    let body: { monster?: Monster } = {}
-    try { body = await req.json() } catch {}
 
     const [char, gameCfg, battleCfg, equipment, allSkills] = await Promise.all([
       getCharacter(), getGameConfig(), getBattleConfig(),
@@ -57,14 +54,11 @@ export async function POST(req: NextRequest) {
     const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, allSkills)
     const pendingMonster = parsePendingMonster(char.pending_battle_monster)
 
-    const gradeKeys = ["C", "B", "A", "S", "SR", "SSR", "UR"]
-    const maxUnlockedIdx = char.max_cleared_grade ? gradeKeys.indexOf(char.max_cleared_grade) + 1 : 0
-    const providedGradeIdx = body.monster ? gradeKeys.indexOf(body.monster.grade_code) : -1
-    const useProvided = isValidMonster(body.monster) && providedGradeIdx >= 0 && providedGradeIdx <= maxUnlockedIdx
-
     // 저장된 재도전 몬스터가 있으면 항상 그 몬스터를 우선 사용한다.
     const monster = pendingMonster
-      ?? (useProvided ? body.monster! : generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null))
+      ?? generateMonster(char.clear_count ?? 0, char.level, gameCfg, char.max_cleared_grade ?? null)
+
+    const gradeKeys = ["C", "B", "A", "S", "SR", "SSR", "UR"]
 
     monster.ticket_reward = parseInt(gameCfg[`monster_grade_${monster.grade_code}_tickets`] ?? "1")
 

@@ -157,7 +157,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   const [result, setResult] = useState<BattleResultData | null>(null)
   const [error, setError]   = useState<string | null>(null)
   const [visibleTurns, setVisibleTurns] = useState(0)
-  const [keepMonster, setKeepMonster] = useState<Monster | null>(null)
   const [savedMonster, setSavedMonster] = useState<Monster | null>(null)
   const [scales, setScales] = useState<BattleScales>(DEFAULT_SCALES)
   const [restoreMode, setRestoreMode] = useState<"full" | "none" | "half">("full")
@@ -235,20 +234,17 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
     logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }, [visibleTurns, phase])
 
-  async function doFight(reuseMonster?: Monster) {
+  async function doFight() {
     setPhase("loading")
     setError(null)
     setVisibleTurns(0)
     try {
       const res = await fetch("/api/battle", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(reuseMonster ? { monster: reuseMonster } : {}),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "전투 오류")
       setResult(data)
-      setKeepMonster(data.monster)
       if (data.winner === "플레이어") {
         setSavedMonster(null)
       } else {
@@ -265,7 +261,6 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
   function newBattle() {
     setPhase("lobby")
     setResult(null)
-    setKeepMonster(null)
     setVisibleTurns(0)
     onExpGained()
   }
@@ -348,7 +343,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
                 <span className="text-[10px] text-muted-foreground">강도 ×{savedMonster.total_coeff.toFixed(2)}</span>
               </div>
               <button
-                onClick={() => doFight(savedMonster)}
+                onClick={() => doFight()}
                 className="w-full py-3 rounded-xl font-bold text-white bg-red-500 active:scale-95 text-sm"
               >
                 🔄 재도전
@@ -360,11 +355,11 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         {/* 새 전투 버튼 — 저장된 상대 없을 때만 */}
         {!savedMonster && (
           <div className="px-4 pt-3 pb-4">
-            <button
-              onClick={() => doFight()}
-              disabled={phase === "loading"}
-              className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all active:scale-95 disabled:opacity-60 bg-red-500 shadow-sm"
-            >
+              <button
+                onClick={doFight}
+                disabled={phase === "loading"}
+                className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all active:scale-95 disabled:opacity-60 bg-red-500 shadow-sm"
+              >
               {phase === "loading" ? "⚔️ 전투 중..." : "⚔️ 전투 시작"}
             </button>
           </div>
@@ -451,8 +446,8 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           📜 전투 로그 · 선공: {first_strike} · 총 {result.turns}턴
         </p>
         <div>
-          {visibleLogs.map((log) => (
-            <TurnItem key={log.turn} log={log} pMax={player_max_hp} mMax={monster_max_hp} />
+          {visibleLogs.map((log, index) => (
+            <TurnItem key={`${log.turn}-${index}-${log.attacker}-${log.result}`} log={log} pMax={player_max_hp} mMax={monster_max_hp} />
           ))}
           <div ref={logEndRef} />
         </div>
@@ -495,7 +490,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
                 </div>
               </div>
               <button
-                onClick={() => doFight(keepMonster ?? undefined)}
+                onClick={doFight}
                 className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
               >
                 🔄 재도전
@@ -508,7 +503,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
                 <div className="text-muted-foreground text-sm">전투가 끝나지 않았습니다.</div>
               </div>
               <button
-                onClick={() => doFight(keepMonster ?? undefined)}
+                onClick={doFight}
                 className="w-full py-4 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-all shadow-sm"
               >
                 🔄 재도전
