@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Sword, Heart, Wind, Brain, Star, Lock, ChevronUp, ChevronDown, Zap, Shield, Save, Loader2 } from "lucide-react"
+import { Sword, Heart, Wind, Brain, Star, Lock, ChevronUp, ChevronDown, Zap, Save, Loader2 } from "lucide-react"
 
 // ─── 스탯 ────────────────────────────────────────────────────────────────────
 
@@ -36,10 +36,10 @@ interface Skill {
 }
 
 
-function effectLabel(skill: Skill) {
-  const val = skill.base_effect_value + skill.effect_coeff * skill.invested
+function skillPreviewLabel(skill: Skill): string {
+  const nextVal = skill.base_effect_value + skill.effect_coeff * (skill.invested + 1)
   const unit = skill.effect_code.endsWith("_FLAT") ? "" : "%"
-  return `${val.toFixed(1)}${unit}`
+  return `+1 → ${nextVal.toFixed(1)}${unit}`
 }
 
 // ─── 전투 스탯 요약 헬퍼 ─────────────────────────────────────────────────────
@@ -79,6 +79,9 @@ interface CharacterTabProps {
 }
 
 // ─── 스킬 카드 ───────────────────────────────────────────────────────────────
+// 스탯 배분 카드와 동일한 레이아웃:
+//   [원형 아이콘] [스킬명 + 라벨/미리보기]         [▽] [숫자] [△]
+//               [컬러 점 + 슬라이더        ]
 
 function SkillCard({
   skill, isUnlocked, availableSkp,
@@ -89,93 +92,93 @@ function SkillCard({
 }) {
   const pct = (skill.invested / skill.max_skp) * 100
   const isPassive = skill.type === "passive"
-  const accentColor = isPassive ? "violet" : "purple"
+  const isHighlighted = skill.invested > 0
+  const labelText = skill.trigger_condition || skill.description
 
   if (!isUnlocked) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl border border-border opacity-55">
-        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-          <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+      <div className="flex items-center gap-3 px-3.5 py-3.5 rounded-2xl border border-[#f1ece4] bg-white opacity-55">
+        <div className="w-9 h-9 rounded-full bg-white border border-[#ececec] flex items-center justify-center flex-shrink-0">
+          <Lock className="w-3.5 h-3.5 text-gray-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-muted-foreground">{skill.name}</span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">Lv.{skill.unlock_level}</span>
+          <div className="flex items-baseline gap-1.5 mb-1.5 whitespace-nowrap overflow-hidden">
+            <span className="text-sm font-bold text-gray-400 flex-shrink-0">{skill.name}</span>
+            <span className="text-[11px] text-gray-300 font-medium overflow-hidden text-ellipsis flex-1 min-w-0">{labelText}</span>
+            <span className="text-[11px] font-semibold text-gray-400 flex-shrink-0">Lv.{skill.unlock_level}</span>
           </div>
-          <p className="text-xs text-muted-foreground">{skill.description}</p>
+          <div className="flex items-center gap-1.5">
+            <div className="w-[5px] h-[5px] rounded-full bg-[#cbd5e0] flex-shrink-0" />
+            <div className="flex-1 h-[3px] bg-[#f3f0ea] rounded-full" />
+          </div>
         </div>
+        <button disabled className="w-7 h-7 flex items-center justify-center opacity-30 text-gray-400">
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+        <div className="w-5 text-center flex-shrink-0">
+          <span className="text-[17px] font-extrabold text-[#cbd5e0]">0</span>
+        </div>
+        <button disabled className="w-7 h-7 flex items-center justify-center opacity-30 text-gray-400">
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
       </div>
     )
   }
 
   return (
-    <div className={`px-4 py-3 rounded-xl border ${
-      skill.invested > 0
-        ? `bg-${accentColor}-50 border-${accentColor}-200`
-        : "bg-background border-border"
-    }`}>
-      <div className="flex items-start gap-3">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-          skill.invested > 0 ? `bg-${accentColor}-500` : "bg-muted"
-        }`}>
-          {isPassive
-            ? <Shield className={`w-3.5 h-3.5 ${skill.invested > 0 ? "text-white" : "text-muted-foreground"}`} />
-            : <Zap    className={`w-3.5 h-3.5 ${skill.invested > 0 ? "text-white" : "text-muted-foreground"}`} />
-          }
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-1">
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-              <span className={`text-sm font-bold ${skill.invested > 0 ? `text-${accentColor}-700` : "text-foreground"}`}>
-                {skill.name}
-              </span>
-              {skill.type === "active" && skill.trigger_condition && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-full font-medium shrink-0">
-                  {skill.trigger_condition}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-0.5 shrink-0">
-              <button
-                onClick={() => onInvest(skill.id, -1)}
-                disabled={skill.invested <= 0}
-                className="w-6 h-6 rounded-full bg-muted hover:bg-muted disabled:opacity-30 flex items-center justify-center"
-              >
-                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
-              <span className={`text-xs font-bold w-9 text-center ${skill.invested > 0 ? `text-${accentColor}-600` : "text-muted-foreground"}`}>
-                {skill.invested}/{skill.max_skp}
-              </span>
-              <button
-                onClick={() => onInvest(skill.id, +1)}
-                disabled={skill.invested >= skill.max_skp || availableSkp <= 0}
-                className={`w-6 h-6 rounded-full flex items-center justify-center disabled:opacity-30 ${
-                  isPassive ? "bg-violet-100 hover:bg-violet-200" : "bg-purple-100 hover:bg-purple-200"
-                } disabled:bg-muted`}
-              >
-                <ChevronUp className={`w-3.5 h-3.5 ${isPassive ? "text-violet-600" : "text-purple-600"}`} />
-              </button>
-            </div>
-          </div>
-          <div className="mt-1.5 flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${isPassive ? "bg-violet-400" : "bg-purple-400"}`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <span className={`text-xs font-semibold shrink-0 ${skill.invested > 0 ? `text-${accentColor}-600` : "text-muted-foreground"}`}>
-              {effectLabel(skill)}
+    <div
+      className={`flex items-center gap-3 px-3.5 py-3.5 rounded-2xl ${
+        isHighlighted ? "bg-[#faf5ff] border-[#ddd6fe]" : "bg-white border-[#f1ece4]"
+      }`}
+      style={{ border: isHighlighted ? "1.5px solid #ddd6fe" : "1px solid #f1ece4" }}
+    >
+      {/* 원형 아이콘 */}
+      <div className="w-9 h-9 rounded-full bg-white border border-[#ececec] flex items-center justify-center flex-shrink-0 text-gray-500">
+        {isPassive ? <Heart className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
+      </div>
+
+      {/* 가운데: 첫 줄 = 스킬명 + 라벨/미리보기, 둘째 줄 = 점 + 슬라이더 */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5 mb-1.5 whitespace-nowrap overflow-hidden">
+          <span className="text-sm font-bold text-gray-900 flex-shrink-0">{skill.name}</span>
+          {!isHighlighted && (
+            <span className="text-[11px] text-gray-500 font-medium overflow-hidden text-ellipsis flex-1 min-w-0">{labelText}</span>
+          )}
+          {isHighlighted && skill.invested < skill.max_skp && (
+            <span className="text-[11px] font-bold text-purple-700 ml-auto flex-shrink-0">
+              ↘ {skillPreviewLabel(skill)}
             </span>
-            {skill.type === "active" && skill.mp_cost > 0 && (
-              <span className="text-[10px] text-blue-400 shrink-0">
-                MP {Math.round(skill.mp_cost + skill.mp_cost_coeff * skill.invested)}
-              </span>
-            )}
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className={`w-[5px] h-[5px] rounded-full flex-shrink-0 ${isPassive ? "bg-emerald-400" : "bg-purple-500"}`} />
+          <div className="flex-1 h-[3px] bg-[#f3f0ea] rounded-full relative overflow-hidden">
+            <div
+              className={`absolute left-0 top-0 h-full rounded-full transition-all ${isPassive ? "bg-emerald-400" : "bg-purple-500"}`}
+              style={{ width: `${pct}%` }}
+            />
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{skill.description}</p>
         </div>
       </div>
+
+      {/* ▽ 숫자 △ */}
+      <button
+        onClick={() => onInvest(skill.id, -1)}
+        disabled={skill.invested <= 0}
+        className="w-7 h-7 flex items-center justify-center disabled:opacity-30 text-gray-400"
+      >
+        <ChevronDown className="w-3.5 h-3.5" />
+      </button>
+      <div className="w-5 text-center flex-shrink-0">
+        <span className="text-[17px] font-extrabold text-gray-900">{skill.invested}</span>
+      </div>
+      <button
+        onClick={() => onInvest(skill.id, +1)}
+        disabled={skill.invested >= skill.max_skp || availableSkp <= 0}
+        className="w-7 h-7 flex items-center justify-center disabled:opacity-30 text-gray-400"
+      >
+        <ChevronUp className="w-3.5 h-3.5" />
+      </button>
     </div>
   )
 }
@@ -465,33 +468,44 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
       {view === "skill" && (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
 
-          {/* 스킬 포인트 헤더 */}
-          <div className="px-4 pb-2 shrink-0">
-            <div className="bg-gradient-to-r from-purple-500 to-violet-500 rounded-2xl px-4 py-3 text-white shadow-sm">
-              <p className="text-xs opacity-80">보유 스킬 포인트</p>
-              <p className="text-2xl font-extrabold leading-none mt-0.5">
-                {availableSkp} <span className="text-sm font-medium opacity-70">SKP</span>
-              </p>
+          {/* 스킬 포인트 헤더 — 스탯 배분의 SP 박스와 동일 스타일, 보라 컬러 */}
+          <div className="px-4 pb-3 shrink-0">
+            <div className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-dashed border-purple-300 bg-[#faf5ff]">
+              <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <Zap className="w-4 h-4 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-purple-500 font-semibold">투자 가능 스킬 포인트</p>
+                <p className="text-xl font-extrabold leading-none mt-0.5 text-purple-900">
+                  {availableSkp} <span className="text-xs font-bold text-purple-600">SKP</span>
+                </p>
+              </div>
+              {skpSpent > 0 && (
+                <div className="text-right">
+                  <p className="text-xs text-purple-400">이번에 투자</p>
+                  <p className="text-lg font-bold text-purple-600">+{skpSpent}</p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* 스킬 필터 */}
-          <div className="px-4 pb-2 flex gap-2 shrink-0">
+          <div className="px-4 pb-3 flex gap-2 shrink-0">
             {(["all", "active", "passive"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setSkillFilter(f)}
-                className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  skillFilter === f ? "bg-purple-500 text-white shadow-sm" : "bg-muted text-muted-foreground"
+                className={`flex-1 py-2 rounded-full text-xs font-bold transition-all border ${
+                  skillFilter === f ? "bg-purple-500 text-white border-transparent" : "bg-white text-gray-500 border-[#f1ece4]"
                 }`}
               >
-                {f === "all" ? "전체" : f === "active" ? "⚡ 액티브" : "🛡 패시브"}
+                {f === "all" ? "전체" : f === "active" ? "⚡ 액티브" : "♡ 패시브"}
               </button>
             ))}
           </div>
 
           {/* 스킬 목록 */}
-          <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-2 pb-2">
+          <div className="flex-1 overflow-y-auto px-4 flex flex-col gap-2.5 pb-2">
             {!skillsLoaded ? (
               <div className="flex items-center justify-center py-8 text-muted-foreground text-sm gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" /> 스킬 로딩 중...
@@ -507,16 +521,17 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
             ))}
           </div>
 
-          {/* 스킬 저장 버튼 */}
-          <div className="px-4 pt-4 pb-4 shrink-0">
+          {/* 스킬 저장 버튼 — 연한 보라 + 자물쇠 아이콘 */}
+          <div className="px-4 pt-2 pb-4 shrink-0">
             <button
               onClick={saveSkills}
               disabled={skillSaving || skillDelta === 0}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-purple-500 text-white rounded-xl text-sm font-bold disabled:opacity-40 active:scale-95 transition-all shadow-sm"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-purple-100 text-purple-700 rounded-xl text-sm font-bold active:scale-95 transition-all"
+              style={{ opacity: skillDelta === 0 && !skillSaving ? 0.7 : 1 }}
             >
               {skillSaving
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
-                : <><Save className="w-4 h-4" /> 스킬 적용</>
+                : <><Lock className="w-4 h-4" /> 스킬 적용</>
               }
             </button>
           </div>
