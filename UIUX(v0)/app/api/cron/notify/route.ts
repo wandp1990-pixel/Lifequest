@@ -7,12 +7,6 @@ import {
   getPendingTodoNotifications,
 } from "@/lib/db"
 
-webpush.setVapidDetails(
-  "mailto:wandp1990@gmail.com",
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-)
-
 function kstTimeNow(): { time: string; date: string } {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
   const hh = kst.getUTCHours().toString().padStart(2, "0")
@@ -31,6 +25,15 @@ export async function GET(req: NextRequest) {
   ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+    return NextResponse.json({ error: "VAPID keys not configured" }, { status: 500 })
+  }
+  webpush.setVapidDetails(
+    "mailto:wandp1990@gmail.com",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  )
 
   try {
     await initDb()
