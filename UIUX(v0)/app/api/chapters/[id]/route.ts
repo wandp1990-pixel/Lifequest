@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { initDb } from "@/lib/db/schema"
 import { getChapters, completeChapter, deleteChapter } from "@/lib/db/queries/chapter"
 import { getCharacter, updateCharacter } from "@/lib/db/queries/character"
+import { getProjects } from "@/lib/db/queries/project"
 
 export async function PATCH(
   req: NextRequest,
@@ -14,6 +15,13 @@ export async function PATCH(
     const { action, bonus_tickets } = await req.json()
 
     if (action === "complete") {
+      const projects = await getProjects()
+      const linkedProjects = projects.filter((project) => project.chapter_id === chapterId)
+      const hasIncompleteProject = linkedProjects.some((project) => project.status !== "done")
+      if (hasIncompleteProject) {
+        return NextResponse.json({ error: "연결된 프로젝트를 모두 완료해야 합니다." }, { status: 400 })
+      }
+
       const tickets = Number(bonus_tickets ?? 0)
       if (tickets > 0) {
         const char = await getCharacter()

@@ -266,6 +266,8 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   }
 
   const activeChapters = chapters.filter((c) => c.status === "active")
+  const dueSoonProjects = projects.filter((p) => isDueSoon(p.due_date) && p.status !== "done")
+  const ungroupedProjects = projects.filter((p) => p.chapter_id === null && p.status !== "done")
 
   // ── 프로젝트 카드 렌더 ────────────────────────────────
   const renderProject = (project: Project) => {
@@ -296,7 +298,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               )}
               {chapter && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400">
-                  {chapter.name}
+                  묶음 · {chapter.name}
                 </span>
               )}
             </div>
@@ -375,6 +377,12 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               ))}
             </div>
 
+            {project.tasks.length === 0 && (
+              <div className="rounded-lg bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">
+                첫 작업을 추가하면 이 프로젝트가 자동으로 진행 중으로 바뀝니다.
+              </div>
+            )}
+
             {addingTaskFor === project.id ? (
               <div className="flex gap-2 mt-1">
                 <input
@@ -412,119 +420,32 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
 
   return (
     <div className="px-4 pb-4 space-y-4">
-
-      {/* ── 챕터 섹션 ── */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <button
-          className="w-full flex items-center gap-2 px-3 py-2.5 active:bg-muted/40 transition-colors"
-          onClick={() => setChapterExpanded((v) => !v)}
-        >
-          <BookOpen size={14} className="text-violet-400" />
-          <span className="text-xs font-bold text-violet-400">챕터</span>
-          <span className="text-xs text-muted-foreground ml-1">{activeChapters.length}개 진행 중</span>
-          <div className="flex-1" />
-          {chapterExpanded ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
-        </button>
-
-        {chapterExpanded && (
-          <div className="border-t border-border px-3 pb-3 pt-2 space-y-3">
-            {chapters.length === 0 && !addingChapter && (
-              <p className="text-xs text-muted-foreground text-center py-2">챕터가 없습니다</p>
-            )}
-
-            {chapters.map((ch) => {
-              const pct = ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
-              const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
-              return (
-                <div key={ch.id} className={`rounded-lg border p-3 space-y-2 ${ch.status === "done" ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
-                  <div className="flex items-center gap-2">
-                    {ch.status === "done" ? <Trophy size={13} className="text-emerald-500 shrink-0" /> : <BookOpen size={13} className="text-violet-400 shrink-0" />}
-                    <span className={`text-xs font-bold flex-1 ${ch.status === "done" ? "line-through text-muted-foreground" : ""}`}>{ch.name}</span>
-                    {ch.end_date && (
-                      <span className="text-[10px] text-muted-foreground">{formatDate(ch.end_date)}</span>
-                    )}
-                    <button onClick={() => handleDeleteChapter(ch.id)} className="text-muted-foreground ml-1">
-                      <X size={12} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${ch.status === "done" ? "bg-emerald-500" : "bg-violet-500"}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{ch.done_projects}/{ch.total_projects}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">
-                      완료 보상: <span className="text-violet-400 font-bold">뽑기권 +{ch.bonus_tickets}</span>
-                    </span>
-                    {ch.status === "active" && (
-                      <button
-                        onClick={() => handleCompleteChapter(ch)}
-                        disabled={!allDone || completingChapter === ch.id}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${
-                          allDone
-                            ? "bg-emerald-500 text-white active:scale-95"
-                            : "bg-muted text-muted-foreground opacity-50"
-                        }`}
-                      >
-                        {completingChapter === ch.id ? "..." : "챕터 완료"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-
-            {addingChapter ? (
-              <div className="space-y-2 border border-border rounded-lg p-2">
-                <input
-                  autoFocus
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
-                  placeholder="챕터 이름 *"
-                  value={chName}
-                  onChange={(e) => setChName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddChapter()}
-                />
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
-                    <input
-                      type="date"
-                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                      value={chEnd}
-                      onChange={(e) => setChEnd(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[11px] text-muted-foreground block mb-1">보상 뽑기권</label>
-                    <input
-                      type="number" min={1} max={30}
-                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                      value={chTickets}
-                      onChange={(e) => setChTickets(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={handleAddChapter} disabled={!chName.trim()} className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40">추가</button>
-                  <button onClick={() => setAddingChapter(false)} className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground">취소</button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingChapter(true)}
-                className="flex items-center gap-1 text-xs text-muted-foreground"
-              >
-                <Plus size={12} /> 새 챕터 추가
-              </button>
-            )}
+      <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-card to-card p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold">연계 퀘스트 프로젝트</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              큰 목표를 프로젝트로 만들고, 실제 행동은 작업으로 쪼개서 관리하세요.
+            </p>
           </div>
-        )}
+          <div className="rounded-full bg-violet-500/15 px-2.5 py-1 text-[10px] font-bold text-violet-400">
+            Notion-style
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground">진행 중</p>
+            <p className="mt-1 text-base font-bold text-violet-400">{grouped.in_progress.length}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground">마감 임박</p>
+            <p className="mt-1 text-base font-bold text-red-400">{dueSoonProjects.length}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground">묶음 없음</p>
+            <p className="mt-1 text-base font-bold text-amber-400">{ungroupedProjects.length}</p>
+          </div>
+        </div>
       </div>
 
       {/* ── 새 프로젝트 추가 ── */}
@@ -535,6 +456,9 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               <span className="text-sm font-bold">새 프로젝트</span>
               <button onClick={() => setAdding(false)}><X size={16} className="text-muted-foreground" /></button>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              프로젝트는 큰 목표이고, 세부 단계는 만든 뒤 안에서 작업으로 추가합니다.
+            </p>
 
             <input
               autoFocus
@@ -576,7 +500,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
 
             {activeChapters.length > 0 && (
               <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">챕터 연결</label>
+                <label className="text-[11px] text-muted-foreground block mb-1">프로젝트 묶음 (선택)</label>
                 <select
                   className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
                   value={newChapterId ?? ""}
@@ -587,6 +511,9 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  예: 5월 집중, 커리어, 건강. 없어도 프로젝트는 바로 쓸 수 있습니다.
+                </p>
               </div>
             )}
 
@@ -655,10 +582,128 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       {projects.length === 0 && !adding && (
         <div className="text-center py-10 text-muted-foreground text-sm">
           <p className="text-2xl mb-2">📋</p>
-          <p>프로젝트가 없습니다</p>
-          <p className="text-xs mt-1">연계 퀘스트를 만들어 목표를 달성하세요!</p>
+          <p>아직 연계 퀘스트가 없습니다</p>
+          <p className="text-xs mt-1">큰 목표 하나를 만들고, 안에 작업을 쪼개서 진행해보세요.</p>
         </div>
       )}
+
+      {/* ── 프로젝트 묶음 섹션 ── */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <button
+          className="w-full flex items-center gap-2 px-3 py-2.5 active:bg-muted/40 transition-colors"
+          onClick={() => setChapterExpanded((v) => !v)}
+        >
+          <BookOpen size={14} className="text-violet-400" />
+          <span className="text-xs font-bold text-violet-400">프로젝트 묶음</span>
+          <span className="text-xs text-muted-foreground ml-1">{activeChapters.length}개 진행 중</span>
+          <div className="flex-1" />
+          {chapterExpanded ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
+        </button>
+
+        {chapterExpanded && (
+          <div className="border-t border-border px-3 pb-3 pt-2 space-y-3">
+            <p className="text-[11px] leading-5 text-muted-foreground">
+              프로젝트 묶음은 비슷한 프로젝트를 한 덩어리로 관리할 때만 쓰세요. 필수 기능은 아니고, 프로젝트를 더 보기 쉽게 분류하는 보조 기능입니다.
+            </p>
+
+            {chapters.length === 0 && !addingChapter && (
+              <p className="text-xs text-muted-foreground text-center py-2">만든 프로젝트 묶음이 없습니다</p>
+            )}
+
+            {chapters.map((ch) => {
+              const pct = ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
+              const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
+              return (
+                <div key={ch.id} className={`rounded-lg border p-3 space-y-2 ${ch.status === "done" ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
+                  <div className="flex items-center gap-2">
+                    {ch.status === "done" ? <Trophy size={13} className="text-emerald-500 shrink-0" /> : <BookOpen size={13} className="text-violet-400 shrink-0" />}
+                    <span className={`text-xs font-bold flex-1 ${ch.status === "done" ? "line-through text-muted-foreground" : ""}`}>{ch.name}</span>
+                    {ch.end_date && (
+                      <span className="text-[10px] text-muted-foreground">{formatDate(ch.end_date)}</span>
+                    )}
+                    <button onClick={() => handleDeleteChapter(ch.id)} className="text-muted-foreground ml-1">
+                      <X size={12} />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${ch.status === "done" ? "bg-emerald-500" : "bg-violet-500"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{ch.done_projects}/{ch.total_projects}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">
+                      묶음 완료 보상: <span className="text-violet-400 font-bold">뽑기권 +{ch.bonus_tickets}</span>
+                    </span>
+                    {ch.status === "active" && (
+                      <button
+                        onClick={() => handleCompleteChapter(ch)}
+                        disabled={!allDone || completingChapter === ch.id}
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${
+                          allDone
+                            ? "bg-emerald-500 text-white active:scale-95"
+                            : "bg-muted text-muted-foreground opacity-50"
+                        }`}
+                      >
+                        {completingChapter === ch.id ? "..." : "묶음 완료"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            {addingChapter ? (
+              <div className="space-y-2 border border-border rounded-lg p-2">
+                <input
+                  autoFocus
+                  className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
+                  placeholder="묶음 이름 *"
+                  value={chName}
+                  onChange={(e) => setChName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddChapter()}
+                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
+                    <input
+                      type="date"
+                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                      value={chEnd}
+                      onChange={(e) => setChEnd(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[11px] text-muted-foreground block mb-1">보상 뽑기권</label>
+                    <input
+                      type="number" min={1} max={30}
+                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                      value={chTickets}
+                      onChange={(e) => setChTickets(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={handleAddChapter} disabled={!chName.trim()} className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40">추가</button>
+                  <button onClick={() => setAddingChapter(false)} className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground">취소</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingChapter(true)}
+                className="flex items-center gap-1 text-xs text-muted-foreground"
+              >
+                <Plus size={12} /> 새 묶음 추가
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ── 삭제 확인 ── */}
       {confirmDelete && (
