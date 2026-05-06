@@ -766,7 +766,7 @@ export default function TasksTab({
                             <button onClick={() => setEditingRoutineItemNameId(null)} className="text-muted-foreground flex-shrink-0"><X className="w-3 h-3" /></button>
                           </div>
                         ) : (
-                          <p className={`text-sm leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{item.name}</p>
+                          <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{item.name}</p>
                         )}
                       </div>
 
@@ -775,9 +775,9 @@ export default function TasksTab({
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <span
                             className="px-2.5 py-1 rounded-full text-xs font-bold"
-                            style={{ background: '#E8F7F0', color: '#5BA888' }}
+                            style={done ? { background: '#F3F4F6', color: '#9CA3AF' } : { background: '#E8F7F0', color: '#5BA888' }}
                           >
-                            +{item.fixed_exp} EXP
+                            {done ? "✓ 완료" : `+${item.fixed_exp} EXP`}
                           </span>
                           {!done && (
                             <button
