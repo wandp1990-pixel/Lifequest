@@ -12,9 +12,9 @@ export async function GET() {
   try {
     await initDb()
     await cleanupCompletedTodos()
-    const penalties = await applyExpiredTodoPenalties()
+    await applyExpiredTodoPenalties()
     const items = await getTodoItems()
-    return NextResponse.json({ items, penalties })
+    return NextResponse.json({ items })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!name?.trim()) return NextResponse.json({ error: "할 일을 입력하세요" }, { status: 400 })
     await addTodoItem(name.trim(), suggested_exp ?? 0, due_time ?? null)
     const items = await getTodoItems()
-    return NextResponse.json({ items, penalties: { count: 0, hpLost: 0 } })
+    return NextResponse.json({ items })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

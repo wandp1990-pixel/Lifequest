@@ -88,7 +88,6 @@ export default function TasksTab({
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [newDueTime, setNewDueTime] = useState("")
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number; penalty?: boolean } | null>(null)
-  const [penaltyToast, setPenaltyToast] = useState<{ count: number; hpLost: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [draggingItemId, setDraggingItemId] = useState<number | null>(null)
@@ -154,10 +153,6 @@ export default function TasksTab({
         const items = data.items ?? data
         setTodoItems(items)
         setCompletedTodoCount(items.filter((t: TodoItem) => t.is_completed).length)
-        if (data.penalties?.count > 0) {
-          setPenaltyToast(data.penalties)
-          setTimeout(() => setPenaltyToast(null), 4000)
-        }
       }
       if (routineRes.ok) {
         const data = await routineRes.json()
@@ -521,14 +516,6 @@ export default function TasksTab({
 
   return (
     <div className="flex flex-col gap-0 relative pb-6">
-      {/* 패널티 토스트 */}
-      {penaltyToast && (
-        <div className="sticky top-0 z-20 mx-4 mt-2 bg-red-500 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5">
-          <span className="text-sm">⚠️ 기한 초과 패널티 -{penaltyToast.hpLost} HP</span>
-          <span className="opacity-90 font-normal">{penaltyToast.count}개의 할 일이 기한을 넘겼습니다</span>
-        </div>
-      )}
-
       {/* 토스트 */}
       {toast && (
         <div className={`sticky top-0 z-20 mx-4 mt-2 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5 ${toast.penalty ? "bg-red-400" : "bg-amber-400"}`}>
