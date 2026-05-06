@@ -772,8 +772,13 @@ export default function TasksTab({
 
                       {/* 우측: EXP + 편집 + 삭제 */}
                       {!isEditingItemName && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <span className="text-[10px] font-bold" style={{ color: '#5BA888' }}>+{item.fixed_exp}</span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span
+                            className="px-2.5 py-1 rounded-full text-xs font-bold"
+                            style={{ background: '#E8F7F0', color: '#5BA888' }}
+                          >
+                            +{item.fixed_exp} EXP
+                          </span>
                           {!done && (
                             <button
                               onClick={() => { setEditingRoutineItemNameId(item.id); setEditingRoutineItemNameVal(item.name); setEditingRoutineItemExpVal(item.fixed_exp) }}
@@ -830,18 +835,24 @@ export default function TasksTab({
                         <button onClick={() => setEditingDeadlineFor(null)} className="text-muted-foreground active:scale-95"><X className="w-3 h-3" /></button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between px-4 py-2">
-                        <div className="flex items-center gap-3">
-                          <button onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }} className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95">
-                            <Plus className="w-3 h-3" /> 항목 추가
-                          </button>
-                          <button onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }} className="flex items-center gap-1 text-xs text-sky-500 active:scale-95">
-                            <Clock className="w-3 h-3 text-sky-400 flex-shrink-0" />
-                            {r.deadline_time ? `${r.deadline_time}까지 2배` : "마감 시간"}
-                          </button>
+                        <div className="flex items-center justify-between px-4 py-2">
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }} className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95">
+                              <Plus className="w-3 h-3" /> 항목 추가
+                            </button>
+                            <button
+                              onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }}
+                              className={`flex-shrink-0 flex items-center gap-0.5 transition-colors active:scale-95 ${
+                                r.deadline_time ? "text-sky-500" : "text-gray-300 hover:text-sky-400"
+                              }`}
+                              aria-label="마감 시간 설정"
+                            >
+                              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                              {r.deadline_time && <span className="text-[10px] font-bold">{r.deadline_time}</span>}
+                            </button>
+                          </div>
+                          <button onClick={() => confirmAndDelete("routine", r.id, r.name)} className="text-xs text-red-400 hover:text-red-500 active:scale-95">루틴 삭제</button>
                         </div>
-                        <button onClick={() => confirmAndDelete("routine", r.id, r.name)} className="text-xs text-red-400 hover:text-red-500 active:scale-95">루틴 삭제</button>
-                      </div>
                     )}
                   </div>
                 )}
