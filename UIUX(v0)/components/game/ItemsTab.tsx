@@ -9,6 +9,7 @@ interface EquipmentItem {
   grade: string
   base_stat: number
   options: string
+  roll_level?: number
   is_equipped: number
 }
 
@@ -17,6 +18,7 @@ interface GachaResult {
   name: string
   grade: string
   slot: string
+  rollLevel?: number
   mainValue: number
   options: string[]
 }
@@ -72,6 +74,15 @@ function GradeBadge({ grade }: { grade: string }) {
       className="border rounded px-1 py-0.5 font-bold leading-none whitespace-nowrap"
     >
       {grade}
+    </span>
+  )
+}
+
+function LevelBadge({ level }: { level?: number }) {
+  if (!level || level <= 1) return null
+  return (
+    <span style={{ fontSize: "9px", color: "#6B7280", background: "#F3F4F6", borderRadius: 4, padding: "1px 4px", fontWeight: 700, lineHeight: 1 }}>
+      Lv.{level}
     </span>
   )
 }
@@ -254,6 +265,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
             >
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-[10px] font-bold text-muted-foreground bg-white/70 px-1.5 py-0.5 rounded">NEW</span>
+                <LevelBadge level={pendingReplace.newItem.rollLevel} />
                 <GradeBadge grade={pendingReplace.newItem.grade} />
                 <span className="text-xs font-bold text-foreground truncate">{pendingReplace.newItem.name}</span>
               </div>
@@ -272,6 +284,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
             >
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="text-[10px] font-bold text-muted-foreground bg-white/70 px-1.5 py-0.5 rounded">현재</span>
+                <LevelBadge level={pendingReplace.oldItem.roll_level} />
                 <GradeBadge grade={pendingReplace.oldItem.grade} />
                 <span className="text-xs font-bold text-muted-foreground truncate">{pendingReplace.oldItem.name}</span>
               </div>
@@ -331,7 +344,10 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
                       <span className="text-sm leading-none">{icon}</span>
                       <span style={{ fontSize: 11, fontWeight: 800, color: '#1C1B1F' }}>{label}</span>
                     </div>
-                    <GradeBadge grade={item.grade} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <LevelBadge level={item.roll_level} />
+                      <GradeBadge grade={item.grade} />
+                    </div>
                   </div>
                   {/* 카드 바디 */}
                   <div className="p-2.5 flex flex-col flex-1">
@@ -391,7 +407,10 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
                       <span className="text-sm leading-none">{slotInfo?.icon}</span>
                       <span style={{ fontSize: 11, fontWeight: 800, color: '#1C1B1F' }}>{slotInfo?.label ?? item.slot}</span>
                     </div>
-                    <GradeBadge grade={item.grade} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <LevelBadge level={item.roll_level} />
+                      <GradeBadge grade={item.grade} />
+                    </div>
                   </div>
                   <div className="p-2.5 flex flex-col flex-1">
                   <p className="text-[11px] font-bold text-foreground leading-tight mb-1.5 line-clamp-2">{item.name}</p>
