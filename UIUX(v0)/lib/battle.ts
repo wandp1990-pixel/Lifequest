@@ -15,7 +15,8 @@ export type SkillData = {
   invested: number
 }
 
-// 패시브 스킬 보너스를 CombatStats에 적용
+// 모든 패시브 스킬의 보너스를 합산 (%, 고정값 포함)
+// effect_coeff에 invested 반영: base + (coeff * invested)
 export function computePassiveBonuses(skills: SkillData[]): {
   patk_pct: number; matk_pct: number; hp_pct: number
   dex_flat: number; luk_flat: number; pdef_pct: number
@@ -38,7 +39,7 @@ export function computePassiveBonuses(skills: SkillData[]): {
   return b
 }
 
-// 투자된 액티브 스킬만 추출
+// 투자된 액티브(triggered) 스킬만 필터링
 export function getActiveSkills(skills: SkillData[]): SkillData[] {
   return skills.filter((s) => s.type === "active" && s.invested > 0)
 }
@@ -203,6 +204,8 @@ function weightedPick<T>(pool: T[], weight: (t: T) => number): T {
 
 // ─── Monster generation ───────────────────────────────────────────────────────
 
+// 도전할 몬스터 생성: 등급(확률), 종족, 스탯 난수화
+// clearCount(도전 횟수), playerLevel 기반 difficulty 스케일링
 export function generateMonster(
   clearCount: number,
   playerLevel: number,
@@ -210,7 +213,7 @@ export function generateMonster(
   maxClearedGrade: string | null = null
 ): Monster {
   const GRADE_KEYS = ["C", "B", "A", "S", "SR", "SSR", "UR"]
-  // 클리어한 최고 등급의 다음 등급까지 해금 (null이면 C만)
+  // 클리어한 최고 등급의 다음 등급까지만 가능 (보상 위한 난이도 제한)
   const maxClearedIdx = maxClearedGrade ? GRADE_KEYS.indexOf(maxClearedGrade) : -1
   type GradeEntry = { grade: string; prob: number; coeff: number; tickets: number }
   const gradePool: GradeEntry[] = GRADE_KEYS
@@ -270,6 +273,9 @@ export function generateMonster(
 
 // ─── Player combat stats (equipment bonus parsing) ────────────────────────────
 
+// 캐릭터 + 장비 옵션 + 패시브 스킬 보너스를 종합하여 전투 스탯 계산
+// equippedOptions: JSON 배열 형식 문자열 ["물리 공격력 +10", "[더블어택]", ...] 리스트
+// 패시브 스킬의 % 보너스는 기초값에 곱해짐: patk * (1 + patk_pct/100)
 export function buildPlayerCombatStats(
   char: Character,
   equippedOptions: string[],
@@ -281,6 +287,7 @@ export function buildPlayerCombatStats(
   const vitToHp   = parseFloat(battleCfg.vit_to_max_hp ?? "10.0")
   const intToMp   = parseFloat(battleCfg.int_to_max_mp ?? "5.0")
 
+  // 장비 옵션 누적 변수 (모든 장비의 보너스를 합산)
   let ePatk = 0, eMatk = 0, ePdef = 0, eMdef = 0
   let eDex = 0, eLuk = 0, eHp = 0, eMp = 0
   let eStr = 0, eInt = 0, eVit = 0
@@ -288,6 +295,7 @@ export function buildPlayerCombatStats(
   let doubleAtkChance = 0, lifeStealRatio = 0, defIgnoreRatio = 0, reflectRatio = 0
   let bonusAccuracy = 0, bonusEvasion = 0
 
+  // 모든 장비 옵션 문자열 파싱
   for (const raw of equippedOptions) {
     let lines: string[] = []
     try {
@@ -298,7 +306,7 @@ export function buildPlayerCombatStats(
     for (const line of lines) {
       if (typeof line !== "string") continue
 
-      // 패시브: "[더블어택]" 형식
+      // 패시브 능력치: "[더블어택]" 형식 → 최대값만 유지 (중복 장비 대비)
       if (line.startsWith("[") && line.endsWith("]")) {
         const name = line.slice(1, -1)
         if (name === "더블어택")  doubleAtkChance = Math.max(doubleAtkChance, 0.25)
@@ -308,7 +316,7 @@ export function buildPlayerCombatStats(
         continue
       }
 
-      // 능력치: "물리 공격력 +10" 또는 "치명타확률 +1.2%" 형식
+      // 일반 옵션 파싱: "물리 공격력 +10" 또는 "치명타확률 +1.2%" 형식
       const isPct = line.endsWith("%")
       const noUnit = isPct ? line.slice(0, -1) : line
       const plusIdx = noUnit.lastIndexOf(" +")
@@ -317,6 +325,7 @@ export function buildPlayerCombatStats(
       const v = parseFloat(noUnit.slice(plusIdx + 2))
       if (isNaN(v)) continue
 
+      // 옵션명별로 해당 변수에 누적
       if (k === "물리 공격력")                      ePatk += v
       else if (k === "마법 공격력")                 eMatk += v
       else if (k === "방어력" || k === "물리방어력") ePdef += v
@@ -339,15 +348,17 @@ export function buildPlayerCombatStats(
   const intTotal = char.int_stat + eInt
   const vitTotal = char.vit + eVit
 
-  // 패시브 스킬 보너스 적용
+  // 패시브 스킬 보너스 적용 (% 또는 고정값)
   const pb = computePassiveBonuses(skills)
 
+  // 기초 스탯 계산: 속성(STR/INT/VIT) + 아이템 보너스 → 전투 스탯 변환
   const basePatk = strTotal * strToPatk + ePatk
   const baseMatk = intTotal * intToMatk + eMatk
   const basePdef = ePdef
   const baseMdef = eMdef
   const baseHp   = char.base_hp + vitTotal * vitToHp + eHp
 
+  // 패시브 스킬 % 보너스 최종 적용
   return {
     patk:   basePatk * (1 + pb.patk_pct / 100),
     matk:   baseMatk * (1 + pb.matk_pct / 100),
@@ -429,17 +440,21 @@ type Combatant = {
   bonus_accuracy: number; bonus_evasion: number
 }
 
+// 단일 공격 시뮬레이션: 명중/회피 → 대미지 계산 → 치명타/더블어택 판정
 function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kind: "normal" | "skill") {
   const baseAcc    = parseFloat(cfg.base_accuracy    ?? "0.9")
   const accPerDex  = parseFloat(cfg.accuracy_per_dex ?? "0.005")
   const evPerDex   = parseFloat(cfg.evasion_per_dex  ?? "0.003")
+  // 명중률: 기본값(0.9) + DEX 차이 + 아이템/스킬 보너스, 범위 [5%, 99%]
   const hitRate    = clamp(baseAcc + (atk.dex - def.dex) * accPerDex + atk.bonus_accuracy, 0.05, 0.99)
+  // 회피율: 방어자 DEX 우위 + 보너스, 최대 90%
   const evRate     = clamp((def.dex - atk.dex) * evPerDex + def.bonus_evasion, 0, 0.9)
 
+  // 명중 판정 (실패 시 0 데미지 반환)
   if (Math.random() > hitRate) return { hit: false as const, reason: "accuracy_fail" as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
   if (Math.random() < evRate)  return { hit: false as const, reason: "evaded"        as const, total_damage: 0, critical: false, double_attack: false, life_steal: 0 }
 
-  // 방어무시: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
+  // 기초 대미지 계산: (공격력² / (공격력 + 방어력)) 형태, 방어무시 반영
   const ignoreRatio = atk.defense_ignore_ratio
   const dmgMin      = parseFloat(cfg.damage_random_min ?? "0.9")
   const dmgMax      = parseFloat(cfg.damage_random_max ?? "1.1")
@@ -453,6 +468,7 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
     base = calcDmg(atk.patk, def.pdef, ignoreRatio, minRatio) * dmgRand
   }
 
+  // 치명타: LUK 차이로 기본 확률 결정, 아이템/스킬 보너스 추가, 최대 75%
   const critPerLuk    = parseFloat(cfg.crit_rate_per_luk              ?? "0.005")
   const critSuppress  = parseFloat(cfg.crit_suppression_per_enemy_luk ?? "0.003")
   const baseCritMult  = parseFloat(cfg.base_crit_multiplier           ?? "1.5")
@@ -464,14 +480,13 @@ function attack(cfg: Record<string, string>, atk: Combatant, def: Combatant, kin
     base *= mult
   }
 
-  // 더블어택: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
+  // 더블어택: 추가 공격 (합산 또는 1.5배 모드), 생명흡수는 전체 대미지 기준
   const doubleChance = atk.double_attack_chance
   const isDouble     = Math.random() < doubleChance
   const doubleMode   = (cfg.total_damage_mode ?? "add").toLowerCase()
   const doubleMult   = !isDouble ? 1 : doubleMode === "multiply" ? 1.5 : 2
   const total        = base * doubleMult
 
-  // 생명흡수: 공격자 본인의 장비/스킬 효과만 적용 (몬스터는 0)
   const lifeStealRate = atk.life_steal_ratio
 
   return {
@@ -501,6 +516,9 @@ function calcMagicSkillDamage(
 
 // ─── Main battle simulation ────────────────────────────────────────────────────
 
+// 턴 기반 전투 시뮬레이션 (최대 30턴, 1턴에 1공격)
+// 선공은 first_strike_mode(기본: dex 비교) 결정, 그 후 교대로 공격
+// 턴 로그 배열 반환 (UI용 상세 기록)
 export function runBattle(
   playerCombat: CombatStats,
   monster: Monster,
@@ -510,6 +528,7 @@ export function runBattle(
   startHp?: number,
   startMp?: number,
 ): BattleResult {
+  // 몬스터 스탯은 보너스 없음 (player만 아이템/스킬 보너스 보유)
   const monCombat: Combatant = {
     patk: monster.stats.patk, matk: monster.stats.matk,
     pdef: monster.stats.pdef, mdef: monster.stats.mdef,
@@ -528,6 +547,7 @@ export function runBattle(
   const playerStartMp = playerMp
   let monsterHp = monster.stats.HP
 
+  // 선공 결정: dex 높은 쪽 먼저 공격, 동일하면 50% 확률
   const firstMode = (battleCfg.first_strike_mode ?? "dex").toLowerCase()
   let first: "플레이어" | "몬스터"
   if (firstMode === "player") {

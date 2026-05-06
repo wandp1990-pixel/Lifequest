@@ -2,6 +2,8 @@ import * as db from "./db"
 import { getClient, now } from "./db/client"
 import { buildPlayerCombatStats } from "./battle"
 
+// 특정 레벨 달성에 필요한 경험치 계산
+// 기본값: base_exp=100, level_multiplier=1.01 → 레벨마다 1% 증가
 export function requiredExp(level: number, cfg: Record<string, string>): number {
   const base = parseFloat(cfg.base_exp ?? "100")
   const mult = parseFloat(cfg.level_multiplier ?? "1.01")
@@ -12,6 +14,8 @@ export function requiredExp(level: number, cfg: Record<string, string>): number 
   return Math.floor(val)
 }
 
+// VIT/INT 스탯을 기반으로 최대 HP/MP 재계산
+// base_hp + (VIT * vit_to_max_hp), base_mp + (INT * int_to_max_mp)
 export function recalcHpMp(
   char: db.Character,
   bcfg: Record<string, string>
@@ -24,6 +28,10 @@ export function recalcHpMp(
   }
 }
 
+// EXP 획득 및 레벨업 처리 (transaction 보장)
+// 1. 누적 EXP에 지급 EXP 더함
+// 2. 필요 EXP 체크하며 레벨업 (stat_points/skill_points/draw_tickets 지급)
+// 3. 레벨업 시 HP/MP 풀 회복 (아이템 보너스 포함)
 export async function gainExp(expAmount: number) {
   const [cfg, bcfg, equipment, allSkills] = await Promise.all([
     db.getGameConfig(),
@@ -49,6 +57,7 @@ export async function gainExp(expAmount: number) {
     const skillPerLv = parseInt(cfg.skill_points_per_level ?? "2")
     const ticketPerLv = parseInt(cfg.draw_tickets_per_level ?? "1")
 
+    // 레벨업 루프: 현재 레벨의 필요 EXP를 초과할 때까지 반복
     let leveledUp = false
     while (totalExp >= requiredExp(level, cfg)) {
       totalExp -= requiredExp(level, cfg)
@@ -71,6 +80,8 @@ export async function gainExp(expAmount: number) {
       max_mp: maxMp,
       updated_at: now(),
     }
+
+    // 레벨업 시: 장비 옵션(아이템 보너스) 포함해서 현재 HP/MP 풀 회복
     if (leveledUp) {
       const equippedOptions = (equipment as { is_equipped: number; options: string }[])
         .filter((e) => e.is_equipped === 1)

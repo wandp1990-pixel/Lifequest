@@ -258,8 +258,11 @@ CREATE TABLE IF NOT EXISTS migration_log (
 );
 `
 
-// 캐릭터 초기화 등 리셋 경로에서 호출 — 에디터 테이블(game_config, battle_config, skill_table 등) 값을
-// 건드리는 데이터 마이그레이션은 실행하지 않고 스키마 생성과 컬럼 추가만 보장한다.
+// 스키마 생성만 실행 (데이터 마이그레이션/시드 제외)
+// 캐릭터 리셋/개발 초기화 시 호출
+// - 테이블 CREATE IF NOT EXISTS
+// - 컬럼 ADD (이미 있으면 무시)
+// - seed 데이터는 초기화하지 않음
 export async function initDbSchemaOnly() {
   if (_schemaInitialized) return
   _schemaInitialized = true
@@ -285,6 +288,9 @@ export async function initDbSchemaOnly() {
   try { await db.execute("ALTER TABLE equipment ADD COLUMN roll_level INTEGER DEFAULT 1") } catch {}
 }
 
+// 전체 DB 초기화 (스키마 + 시드 + 마이그레이션)
+// 앱 시작 시 1회만 실행 (캐시: _initialized 플래그)
+// 순서: 스키마 생성 → 초기 스탯 보정 → seed 데이터 → 마이그레이션
 export async function initDb() {
   if (_initialized) return
   _initialized = true
@@ -299,6 +305,7 @@ export async function initDb() {
   try { await db.execute("ALTER TABLE character ADD COLUMN max_cleared_grade TEXT DEFAULT NULL") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN pending_battle_monster TEXT DEFAULT NULL") } catch {}
   try { await db.execute("UPDATE character SET name='전사' WHERE id=1 AND (name IS NULL OR name='')") } catch {}
+  // 레벨 1 신규 캐릭터 스탯을 0으로 초기화 (1 대신 0)
   try {
     await db.execute(
       "UPDATE character SET str=0,vit=0,dex=0,int_stat=0,luk=0 WHERE id=1 AND level=1 AND str=1 AND total_exp=0"
@@ -312,7 +319,7 @@ export async function initDb() {
   await ensureSkills(db)
   await ensureBattleConfig(db)
 
-  // DB에 기록된 버전 확인 후 1회만 실행하는 마이그레이션 헬퍼
+  // 데이터 마이그레이션: migration_log에서 버전 추적, 1회만 실행
   async function runMigration(version: string, fn: () => Promise<void>) {
     const res = await db.execute({ sql: "SELECT 1 FROM migration_log WHERE version=?", args: [version] })
     if (res.rows.length > 0) return
