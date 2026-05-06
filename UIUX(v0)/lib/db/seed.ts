@@ -112,8 +112,8 @@ async function seedGameConfig(db: Client) {
     ["monster_level_scale", "0.02", "유저 레벨당 몬스터 능력치 계수 증가"],
     ["monster_clear_scale", "0.01", "클리어 횟수당 몬스터 능력치 계수 증가"],
     ["daily_quest_total", "10", "데일리 완료 목표 횟수"],
-    ["daily_quest_exp_min", "10", "데일리 퀘스트 보상 최소 EXP"],
-    ["daily_quest_exp_max", "50", "데일리 퀘스트 보상 최대 EXP"],
+    ["daily_quest_exp_min", "50", "데일리 퀘스트 보상 최소 EXP"],
+    ["daily_quest_exp_max", "100", "데일리 퀘스트 보상 최대 EXP"],
   ]
   for (const [key, val, desc] of data) {
     await db.execute({

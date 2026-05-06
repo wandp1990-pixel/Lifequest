@@ -20,8 +20,8 @@ export async function POST() {
     }
 
     const cfg = await getGameConfig()
-    const expMin = parseInt(cfg.daily_quest_exp_min ?? "10")
-    const expMax = parseInt(cfg.daily_quest_exp_max ?? "50")
+    const expMin = parseInt(cfg.daily_quest_exp_min ?? "50")
+    const expMax = parseInt(cfg.daily_quest_exp_max ?? "100")
     const exp = Math.floor(Math.random() * (expMax - expMin + 1)) + expMin
     const levelResult = await gainExp(exp)
     await addActivityLog("데일리 퀘스트 완료", "daily", exp, "퀘스트 달성!")

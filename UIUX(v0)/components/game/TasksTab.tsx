@@ -55,8 +55,8 @@ export default function TasksTab({
   onDailyCompletedChange,
   refreshTick,
   questTotal,
-  questRewardMin = 10,
-  questRewardMax = 50,
+  questRewardMin = 50,
+  questRewardMax = 100,
 }: TasksTabProps) {
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())

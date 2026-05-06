@@ -60,8 +60,8 @@ export default function GamePage() {
   const [tasksCount, setTasksCount] = useState(0)
   const [dailyCompleted, setDailyCompleted] = useState(0)
   const [questTotal, setQuestTotal] = useState(10)
-  const [questRewardMin, setQuestRewardMin] = useState(10)
-  const [questRewardMax, setQuestRewardMax] = useState(50)
+  const [questRewardMin, setQuestRewardMin] = useState(50)
+  const [questRewardMax, setQuestRewardMax] = useState(100)
   const [showSettings, setShowSettings] = useState(false)
   const [tick, setTick] = useState(0)
   const [refreshTick, setRefreshTick] = useState(0)
@@ -84,8 +84,8 @@ export default function GamePage() {
       const maxItem = rows.find((r) => r.config_key === "daily_quest_exp_max")
 
       if (totalItem) setQuestTotal(parseInt(totalItem.config_value) || 10)
-      if (minItem) setQuestRewardMin(parseInt(minItem.config_value) || 10)
-      if (maxItem) setQuestRewardMax(parseInt(maxItem.config_value) || 50)
+      if (minItem) setQuestRewardMin(parseInt(minItem.config_value) || 50)
+      if (maxItem) setQuestRewardMax(parseInt(maxItem.config_value) || 100)
     } catch {}
   }, [])
 
