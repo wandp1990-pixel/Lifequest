@@ -1177,55 +1177,17 @@ export default function TasksTab({
                       </button>
                     )}
                   </div>
-                  {!done && (
+                  {!done && item.due_time && (
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setNotifyEditId({ type: "todo", id: item.id }); setNotifyEditVal(item.notify_time ?? "") }}
-                        className={`flex-shrink-0 flex items-center gap-0.5 transition-colors active:scale-95 ${
-                          item.notify_time ? "text-violet-500" : "text-gray-300 hover:text-violet-400"
-                        }`}
-                        aria-label="알림 설정"
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                        {item.notify_time && <span className="text-[10px] font-bold">{item.notify_time}</span>}
-                      </button>
-                      {item.due_time && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
-                          item.penalty_applied
-                            ? "text-red-600 bg-red-50 border-red-200"
-                            : "text-violet-600 bg-violet-50 border-violet-200"
-                        }`}>
-                          {item.penalty_applied ? "⚠️ 기한초과" : `⏰ ${item.due_time.slice(5, 16).replace(" ", " ")}`}
-                        </span>
-                      )}
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
+                        item.penalty_applied
+                          ? "text-red-600 bg-red-50 border-red-200"
+                          : "text-violet-600 bg-violet-50 border-violet-200"
+                      }`}>
+                        {item.penalty_applied ? "⚠️ 기한초과" : `⏰ ${item.due_time.slice(5, 16).replace(" ", " ")}`}
+                      </span>
                     </div>
                   )}
-                </div>
-              )}
-              {!isEditingName && notifyEditId?.type === "todo" && notifyEditId?.id === item.id && (
-                <div className="flex items-center gap-1.5 mt-1">
-                  <Bell className="w-3 h-3 text-violet-400 flex-shrink-0" />
-                  <input
-                    autoFocus
-                    type="time"
-                    value={notifyEditVal}
-                    onChange={(e) => setNotifyEditVal(e.target.value)}
-                    className="text-xs bg-background border border-violet-200 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
-                  />
-                  <button
-                    onClick={() => saveNotifyTime("todo", item.id, notifyEditVal || null)}
-                    className="text-xs font-bold text-violet-600 bg-violet-100 border border-violet-200 px-2 py-0.5 rounded-lg active:scale-95"
-                  >
-                    저장
-                  </button>
-                  {item.notify_time && (
-                    <button onClick={() => saveNotifyTime("todo", item.id, null)} className="text-xs text-muted-foreground active:scale-95">
-                      제거
-                    </button>
-                  )}
-                  <button onClick={() => setNotifyEditId(null)} className="text-muted-foreground">
-                    <X className="w-3 h-3" />
-                  </button>
                 </div>
               )}
             </div>
