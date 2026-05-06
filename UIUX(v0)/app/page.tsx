@@ -60,6 +60,8 @@ export default function GamePage() {
   const [tasksCount, setTasksCount] = useState(0)
   const [dailyCompleted, setDailyCompleted] = useState(0)
   const [questTotal, setQuestTotal] = useState(10)
+  const [questRewardMin, setQuestRewardMin] = useState(10)
+  const [questRewardMax, setQuestRewardMax] = useState(50)
   const [showSettings, setShowSettings] = useState(false)
   const [tick, setTick] = useState(0)
   const [refreshTick, setRefreshTick] = useState(0)
@@ -77,8 +79,13 @@ export default function GamePage() {
       const res = await fetch("/api/config")
       if (!res.ok) return
       const rows: { config_key: string; config_value: string }[] = await res.json()
-      const item = rows.find((r) => r.config_key === "daily_quest_total")
-      if (item) setQuestTotal(parseInt(item.config_value) || 10)
+      const totalItem = rows.find((r) => r.config_key === "daily_quest_total")
+      const minItem = rows.find((r) => r.config_key === "daily_quest_exp_min")
+      const maxItem = rows.find((r) => r.config_key === "daily_quest_exp_max")
+
+      if (totalItem) setQuestTotal(parseInt(totalItem.config_value) || 10)
+      if (minItem) setQuestRewardMin(parseInt(minItem.config_value) || 10)
+      if (maxItem) setQuestRewardMax(parseInt(maxItem.config_value) || 50)
     } catch {}
   }, [])
 
@@ -111,7 +118,7 @@ export default function GamePage() {
     return (
       <>
         {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} />}
-        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} questTotal={questTotal} />}
+        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} questTotal={questTotal} questRewardMin={questRewardMin} questRewardMax={questRewardMax} />}
         {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} itemStatBonuses={char?.item_stat_bonuses} effectiveStats={char?.effective} />}
         {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} refreshTick={refreshTick} />}
         <div className={activeTab === "battle" ? "block" : "hidden"}>

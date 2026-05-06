@@ -45,9 +45,19 @@ interface TasksTabProps {
   onDailyCompletedChange?: (count: number) => void
   refreshTick?: number
   questTotal?: number
+  questRewardMin?: number
+  questRewardMax?: number
 }
 
-export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedChange, refreshTick, questTotal }: TasksTabProps) {
+export default function TasksTab({
+  onExpGained,
+  onCountChange,
+  onDailyCompletedChange,
+  refreshTick,
+  questTotal,
+  questRewardMin = 10,
+  questRewardMax = 50,
+}: TasksTabProps) {
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
@@ -91,6 +101,9 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
   const [notifyEditId, setNotifyEditId] = useState<{ type: "daily" | "todo"; id: number } | null>(null)
   const [notifyEditVal, setNotifyEditVal] = useState("")
   const [taskFilter, setTaskFilter] = useState<"all" | "routine" | "habit" | "todo" | "project">("all")
+  const rewardLabel = questRewardMin === questRewardMax
+    ? `+${questRewardMin} XP`
+    : `${questRewardMin}~${questRewardMax} XP`
 
   const saveNotifyTime = async (type: "daily" | "todo", id: number, time: string | null) => {
     const url = type === "daily" ? "/api/checklist" : "/api/todos"
@@ -552,7 +565,7 @@ export default function TasksTab({ onExpGained, onCountChange, onDailyCompletedC
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-bold tracking-wide" style={{ color: '#B5651D', letterSpacing: '0.04em' }}>DAILY QUEST</p>
               <p className="text-base font-extrabold text-foreground mt-0.5">{done} / {total} 완료</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">모두 완료 시 <strong style={{ color: '#FFB87A' }}>+200 XP</strong> 보너스</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">모두 완료 시 <strong style={{ color: '#FFB87A' }}>{rewardLabel}</strong> 보너스</p>
             </div>
           </div>
         )
