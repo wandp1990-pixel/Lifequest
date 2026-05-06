@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS equipment (
     grade       TEXT,
     base_stat   INTEGER,
     options     TEXT,
+    roll_level  INTEGER DEFAULT 1,
     is_equipped INTEGER DEFAULT 0,
     created_at  TEXT
 );
@@ -449,6 +450,10 @@ export async function initDb() {
   await runMigration("pending_battle_monster_v1", async () => {
     try { await db.execute("ALTER TABLE character ADD COLUMN pending_battle_monster TEXT DEFAULT NULL") } catch {}
     await db.execute("UPDATE character SET pending_battle_monster = NULL WHERE pending_battle_monster = ''")
+  })
+
+  await runMigration("equipment_roll_level_v1", async () => {
+    try { await db.execute("ALTER TABLE equipment ADD COLUMN roll_level INTEGER DEFAULT 1") } catch {}
   })
 
   await runMigration("chapter_v1", async () => {

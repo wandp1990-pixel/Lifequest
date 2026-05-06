@@ -147,9 +147,11 @@ export async function POST(req: NextRequest) {
       const used = new Set<string>()
       const optionLines: string[] = []
 
-      // 메인 능력치: stat_min~stat_max 직접 롤
+      // 메인 능력치: stat_min~stat_max 롤 후 레벨 보정 (기본 항목만 2% x (level-1))
       const mainAbility = abilities.find(a => a.name === slot.main_ability)
-      const mainValue = randBetween(grade.stat_min, grade.stat_max)
+      const rawMainValue = randBetween(grade.stat_min, grade.stat_max)
+      const levelMultiplier = 1 + (char.level - 1) * 0.02
+      const mainValue = Math.round(rawMainValue * levelMultiplier)
       if (mainAbility) {
         optionLines.push(formatOpt(mainAbility.name, mainValue, mainAbility.unit || "Pt"))
         used.add(mainAbility.name)
@@ -191,8 +193,8 @@ export async function POST(req: NextRequest) {
       }
 
       const name = `${grade.name} ${slot.name}`
-      const id = await addEquipment(slot.slot, name, grade.grade, mainValue, optionLines)
-      results.push({ id, name, grade: grade.grade, slot: slot.slot, mainValue, options: optionLines })
+      const id = await addEquipment(slot.slot, name, grade.grade, mainValue, optionLines, char.level)
+      results.push({ id, name, grade: grade.grade, slot: slot.slot, rollLevel: char.level, mainValue, options: optionLines })
     }
 
     await updateCharacter({ draw_tickets: char.draw_tickets - count })

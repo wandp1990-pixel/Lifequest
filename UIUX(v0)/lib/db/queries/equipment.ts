@@ -6,11 +6,11 @@ export async function getEquipment() {
   return res.rows
 }
 
-export async function addEquipment(slot: string, name: string, grade: string, baseStat: number, options: string[]) {
+export async function addEquipment(slot: string, name: string, grade: string, baseStat: number, options: string[], rollLevel = 1) {
   const db = getClient()
   await db.execute({
-    sql: "INSERT INTO equipment (slot,name,grade,base_stat,options,is_equipped,created_at) VALUES (?,?,?,?,?,0,?)",
-    args: [slot, name, grade, baseStat, JSON.stringify(options), now()],
+    sql: "INSERT INTO equipment (slot,name,grade,base_stat,options,roll_level,is_equipped,created_at) VALUES (?,?,?,?,?,?,0,?)",
+    args: [slot, name, grade, baseStat, JSON.stringify(options), rollLevel, now()],
   })
   const res = await db.execute("SELECT last_insert_rowid() AS id")
   return res.rows[0].id as number
