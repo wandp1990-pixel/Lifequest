@@ -521,7 +521,7 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
             ))}
           </div>
 
-          {/* 스킬 저장 버튼 — 연한 보라 + 자물쇠 아이콘 */}
+          {/* 스킬 저장 버튼 */}
           <div className="px-4 pt-2 pb-4 shrink-0">
             <button
               onClick={saveSkills}
@@ -531,7 +531,7 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
             >
               {skillSaving
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> 저장 중...</>
-                : <><Lock className="w-4 h-4" /> 스킬 적용</>
+                : <><Save className="w-4 h-4" /> 스킬 적용</>
               }
             </button>
           </div>
