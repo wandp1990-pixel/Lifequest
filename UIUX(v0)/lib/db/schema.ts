@@ -282,6 +282,7 @@ export async function initDbSchemaOnly() {
   try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN last_regen_at TEXT") } catch {}
   try { await db.execute("ALTER TABLE project ADD COLUMN chapter_id INTEGER REFERENCES chapter(id)") } catch {}
+  try { await db.execute("ALTER TABLE equipment ADD COLUMN roll_level INTEGER DEFAULT 1") } catch {}
 }
 
 export async function initDb() {
