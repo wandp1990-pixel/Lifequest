@@ -3,6 +3,30 @@ import { getClient, now, todayKST } from "../client"
 export async function getChecklistItems() {
   const db = getClient()
   const res = await db.execute("SELECT * FROM checklist_item WHERE is_active = 1 ORDER BY id")
+
+  // 7일 미작동 시 streak 초기화
+  const today = todayKST()
+  const sevenDaysAgo = new Date(new Date(today + "T00:00:00Z").getTime() - 7 * 24 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10)
+
+  for (const item of res.rows) {
+    const itemId = item.id as number
+    const lastLogRes = await db.execute({
+      sql: "SELECT checked_at FROM checklist_log WHERE item_id=? ORDER BY checked_at DESC LIMIT 1",
+      args: [itemId],
+    })
+
+    const lastCheckedDate = lastLogRes.rows[0]?.checked_at as string | undefined
+    // 마지막 완료가 7일 이전이거나 없으면 streak 초기화
+    if (!lastCheckedDate || lastCheckedDate.slice(0, 10) < sevenDaysAgo) {
+      await db.execute({
+        sql: "UPDATE checklist_item SET streak=0 WHERE id=?",
+        args: [itemId],
+      })
+      item.streak = 0
+    }
+  }
+
   return res.rows
 }
 
