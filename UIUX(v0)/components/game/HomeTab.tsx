@@ -51,6 +51,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const [habits, setHabits] = useState<HabitItem[]>([])
   const [checkedHabitIds, setCheckedHabitIds] = useState<Set<number>>(new Set())
   const [routines, setRoutines] = useState<RoutineItem[]>([])
+  const [bonusRoutineIds, setBonusRoutineIds] = useState<Set<number>>(new Set())
   const [urgentProjects, setUrgentProjects] = useState<UrgentProject[]>([])
 
   const fetchActLogs = useCallback(async () => {
@@ -81,6 +82,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     if (res.ok) {
       const data = await res.json()
       setRoutines((data.routines ?? []).filter((r: RoutineItem) => r.deadline_time))
+      setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
     }
   }, [])
 
@@ -158,9 +160,6 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   // 오늘 획득 XP 합계
   const todayXp = actLogs.reduce((s, l) => s + l.exp_gained, 0)
 
-  // 최고 스트릭 습관
-  const maxStreak = habits.reduce((mx, h) => Math.max(mx, h.streak ?? 0), 0)
-
 
 
   return (
@@ -227,16 +226,16 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
         </div>
         <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
           <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FFF1E0' }}>
-            <Flame className="w-3.5 h-3.5" style={{ color: '#B5651D' }} />
+            <span className="text-xs">✓</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">최고 스트릭</p>
-          <p className="text-sm font-extrabold">{maxStreak}일</p>
+          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">루틴 완료</p>
+          <p className="text-sm font-extrabold">{bonusRoutineIds.size} / {routines.length}</p>
         </div>
         <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
           <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#F0ECFB' }}>
-            <span className="text-xs" style={{ color: '#A89BF0' }}>✦</span>
+            <span className="text-xs">🤖</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">오늘 획득</p>
+          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">AI 자동 채점</p>
           <p className="text-sm font-extrabold">+{todayXp} XP</p>
         </div>
       </div>
