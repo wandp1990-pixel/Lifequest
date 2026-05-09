@@ -294,7 +294,11 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
         <div className="px-4 pt-3 pb-3 bg-background">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-black text-muted-foreground uppercase tracking-wide">✍️ 오늘의 활동</p>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#EFEAFE', color: '#6E59F2' }}>🤖 AI 자동 채점</span>
+            {actLogs.length > 0 ? (
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-amber-500" style={{ background: '#FEF3C7' }}>+{actLogs.reduce((sum, log) => sum + log.exp_gained, 0)} EXP</span>
+            ) : (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#EFEAFE', color: '#6E59F2' }}>🤖 AI 자동 채점</span>
+            )}
           </div>
 
           {actToast && (
@@ -341,10 +345,6 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
 
         {actLogs.length > 0 && (
           <div className="border-t border-border">
-            <div className="px-4 py-2 flex items-center justify-between bg-amber-50 border-b border-border">
-              <span className="text-[11px] text-amber-600 font-semibold">오늘 활동 합산</span>
-              <span className="text-sm font-black text-amber-500">+{actLogs.reduce((sum, log) => sum + log.exp_gained, 0)} EXP</span>
-            </div>
             {actLogs.map((log) => (
               <div key={log.id} className="flex items-start gap-2 px-4 py-2.5 border-b border-border last:border-0 bg-background">
                 <div className="flex-1 min-w-0">
