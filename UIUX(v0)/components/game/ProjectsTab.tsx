@@ -423,7 +423,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-card to-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-bold">프로젝트</p>
+            <p className="text-sm font-bold">🗂️ 프로젝트</p>
             <p className="mt-1 text-xs text-muted-foreground">
               큰 목표를 프로젝트로 만들고, 실제 행동은 작업으로 쪼개서 관리하세요.
             </p>
