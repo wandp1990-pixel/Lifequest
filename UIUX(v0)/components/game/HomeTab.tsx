@@ -238,7 +238,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
             <span className="text-xs">✓</span>
           </div>
           <p className="text-[10px] text-muted-foreground font-medium mt-0.5">습관 완료</p>
-          <p className="text-sm font-extrabold">{checkedHabitIds.size} / {habits.length}</p>
+          <p className="text-xs font-extrabold">{checkedHabitIds.size} / {habits.length}</p>
         </div>
         <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
           <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FFF1E0' }}>
