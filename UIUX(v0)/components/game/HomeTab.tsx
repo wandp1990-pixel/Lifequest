@@ -235,10 +235,10 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       {(() => {
         const doneTodos = todos.filter(t => !t.is_done).length
         const stats = [
-          { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "✓" },
-          { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "✓" },
-          { label: "프로젝트", done: 0, total: urgentProjects.length, color: "#a78bfa", icon: "📋" },
-          { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "✏️" },
+          { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "☀️" },
+          { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "🔁" },
+          { label: "프로젝트", done: 0, total: urgentProjects.length, color: "#a78bfa", icon: "🗂️" },
+          { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "📋" },
         ]
         const R = 22, C = 50, stroke = 4
         const circ = 2 * Math.PI * R
