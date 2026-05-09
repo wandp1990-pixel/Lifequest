@@ -293,17 +293,17 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           <p className="text-[10px] text-muted-foreground font-bold mb-2">캐릭터 스탯</p>
           <div className="grid grid-cols-5 gap-1.5">
             {([
-              { icon: <Sword className="w-3 h-3" />, label: "STR", eff: effStr, base: char?.str ?? 0 },
-              { icon: <Heart className="w-3 h-3" />, label: "VIT", eff: effVit, base: char?.vit ?? 0 },
-              { icon: <Wind  className="w-3 h-3" />, label: "DEX", eff: effDex, base: char?.dex ?? 0 },
-              { icon: <Brain className="w-3 h-3" />, label: "INT", eff: effInt, base: char?.int_stat ?? 0 },
-              { icon: <Star  className="w-3 h-3" />, label: "LUK", eff: effLuk, base: char?.luk ?? 0 },
-            ]).map(({ icon, label, eff, base }) => {
+              { icon: <Sword className="w-3 h-3" />, label: "STR", eff: effStr, base: char?.str ?? 0, color: "text-red-500" },
+              { icon: <Heart className="w-3 h-3" />, label: "VIT", eff: effVit, base: char?.vit ?? 0, color: "text-emerald-500" },
+              { icon: <Wind  className="w-3 h-3" />, label: "DEX", eff: effDex, base: char?.dex ?? 0, color: "text-sky-500" },
+              { icon: <Brain className="w-3 h-3" />, label: "INT", eff: effInt, base: char?.int_stat ?? 0, color: "text-violet-500" },
+              { icon: <Star  className="w-3 h-3" />, label: "LUK", eff: effLuk, base: char?.luk ?? 0, color: "text-amber-500" },
+            ]).map(({ icon, label, eff, base, color }) => {
               const bonus = eff - base
               return (
                 <div key={label} className="text-center bg-muted rounded-xl py-2 border border-border">
-                  <div className="flex justify-center text-muted-foreground mb-0.5">{icon}</div>
-                  <div className="text-[9px] text-muted-foreground mb-0.5">{label}</div>
+                  <div className={`flex justify-center mb-0.5 ${color}`}>{icon}</div>
+                  <div className={`text-[9px] mb-0.5 font-bold ${color}`}>{label}</div>
                   <div className="text-sm font-bold text-foreground">
                     {eff}
                     {bonus > 0 && <span className="text-[9px] text-emerald-500 ml-0.5">+{bonus}</span>}
