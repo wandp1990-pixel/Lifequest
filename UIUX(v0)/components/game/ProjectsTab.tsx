@@ -424,9 +424,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-bold">🗂️ 프로젝트</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              큰 목표를 프로젝트로 만들고, 실제 행동은 작업으로 쪼개서 관리하세요.
-            </p>
           </div>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
