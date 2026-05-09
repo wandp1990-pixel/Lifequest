@@ -232,34 +232,34 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       </div>
 
       {/* 미니 스탯 그리드 */}
-      <div className="mx-4 mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#E5F4ED' }}>
-            <span className="text-xs">✓</span>
+      <div className="mx-4 mt-3 grid grid-cols-4 gap-1.5">
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#E5F4ED' }}>
+            <span className="text-[8px]">✓</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">습관 완료</p>
-          <p className="text-xs font-extrabold">{checkedHabitIds.size} / {habits.length}</p>
+          <p className="text-[8px] text-muted-foreground font-medium">습관</p>
+          <p className="text-[10px] font-extrabold">{checkedHabitIds.size}/{habits.length}</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FFF1E0' }}>
-            <span className="text-xs">✓</span>
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#FFF1E0' }}>
+            <span className="text-[8px]">✓</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">루틴 완료</p>
-          <p className="text-sm font-extrabold">{bonusRoutineIds.size} / {routines.length}</p>
+          <p className="text-[8px] text-muted-foreground font-medium">루틴</p>
+          <p className="text-[10px] font-extrabold">{bonusRoutineIds.size}/{routines.length}</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FEE3E3' }}>
-            <span className="text-xs">📋</span>
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#FEE3E3' }}>
+            <span className="text-[8px]">📋</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">프로젝트</p>
-          <p className="text-sm font-extrabold">{urgentProjects.length}개 진행중</p>
+          <p className="text-[8px] text-muted-foreground font-medium">프로젝트</p>
+          <p className="text-[10px] font-extrabold">{urgentProjects.length}개</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#E3F2FD' }}>
-            <span className="text-xs">✎</span>
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#E3F2FD' }}>
+            <span className="text-[8px]">✎</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">할 일</p>
-          <p className="text-sm font-extrabold">{todos.filter(t => !t.is_done).length} / {todos.length}</p>
+          <p className="text-[8px] text-muted-foreground font-medium">할 일</p>
+          <p className="text-[10px] font-extrabold">{todos.filter(t => !t.is_done).length}/{todos.length}</p>
         </div>
       </div>
 
