@@ -33,8 +33,8 @@ interface UrgentProject {
 
 interface TodoItem {
   id: number
-  title: string
-  is_done: boolean
+  name: string
+  is_completed: number
 }
 
 interface HomeTabProps {
@@ -59,6 +59,8 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const [routines, setRoutines] = useState<RoutineItem[]>([])
   const [bonusRoutineIds, setBonusRoutineIds] = useState<Set<number>>(new Set())
   const [urgentProjects, setUrgentProjects] = useState<UrgentProject[]>([])
+  const [projectsDone, setProjectsDone] = useState(0)
+  const [projectsTotal, setProjectsTotal] = useState(0)
   const [todos, setTodos] = useState<TodoItem[]>([])
 
   const fetchActLogs = useCallback(async () => {
@@ -97,8 +99,11 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     const res = await fetch("/api/projects")
     if (!res.ok) return
     const data = await res.json()
+    const all: UrgentProject[] = data.projects ?? []
+    setProjectsDone(all.filter((p) => p.status === "done").length)
+    setProjectsTotal(all.length)
     const now = Date.now()
-    const urgent = (data.projects ?? []).filter((p: UrgentProject) => {
+    const urgent = all.filter((p) => {
       if (!p.due_date || p.status === "done") return false
       const diff = new Date(p.due_date).getTime() - now
       return diff < 3 * 24 * 60 * 60 * 1000
@@ -110,7 +115,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     const res = await fetch("/api/todos")
     if (res.ok) {
       const data = await res.json()
-      setTodos(data.todos ?? [])
+      setTodos(data.items ?? [])
     }
   }, [])
 
@@ -148,7 +153,6 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const dayNames = ['일', '월', '화', '수', '목', '금', '토']
   const todayStr = `TODAY · ${dayNames[today.getDay()]}요일`
   const questTitle = `${today.getMonth() + 1}월 ${today.getDate()}일의 퀘스트`
-  const remaining = nextMilestone - (streak % nextMilestone || (streak > 0 && streak % nextMilestone === 0 ? nextMilestone : nextMilestone - streak % nextMilestone))
   const daysLeft = nextMilestone - Math.min(streak, nextMilestone)
 
   const submitActivity = async () => {
@@ -172,11 +176,6 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       setActSubmitting(false)
     }
   }
-
-  // 오늘 획득 XP 합계
-  const todayXp = actLogs.reduce((s, l) => s + l.exp_gained, 0)
-
-
 
   return (
     <div className="flex flex-col gap-0 pb-6">
@@ -233,11 +232,11 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
 
       {/* 미니 스탯 그리드 */}
       {(() => {
-        const doneTodos = todos.filter(t => !t.is_done).length
+        const doneTodos = todos.filter(t => t.is_completed).length
         const stats = [
           { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "☀️", bg: "bg-green-50",  border: "border-green-200",  trackColor: "#bbf7d0" },
           { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "🔁", bg: "bg-indigo-50", border: "border-indigo-200", trackColor: "#c7d2fe" },
-          { label: "프로젝트", done: 0, total: urgentProjects.length, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50", border: "border-violet-200", trackColor: "#ddd6fe" },
+          { label: "프로젝트", done: projectsDone, total: projectsTotal, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50", border: "border-violet-200", trackColor: "#ddd6fe" },
           { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "📋", bg: "bg-amber-50",  border: "border-amber-200",  trackColor: "#fde68a" },
         ]
         const R = 22, C = 50, stroke = 4

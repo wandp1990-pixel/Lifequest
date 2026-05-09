@@ -4,28 +4,35 @@ export async function getChecklistItems() {
   const db = getClient()
   const res = await db.execute("SELECT * FROM checklist_item WHERE is_active = 1 ORDER BY id")
 
-  // 7일 미작동 시 streak 초기화
+  if (res.rows.length === 0) return res.rows
+
   const today = todayKST()
   const sevenDaysAgo = new Date(new Date(today + "T00:00:00Z").getTime() - 7 * 24 * 60 * 60 * 1000)
     .toISOString().slice(0, 10)
 
+  const itemIds = res.rows.map((r) => r.id as number)
+  const placeholders = itemIds.map(() => "?").join(",")
+  const lastLogRes = await db.execute({
+    sql: `SELECT item_id, MAX(checked_at) as last_checked FROM checklist_log WHERE item_id IN (${placeholders}) GROUP BY item_id`,
+    args: itemIds,
+  })
+
+  const lastCheckMap = new Map<number, string>()
+  for (const row of lastLogRes.rows) {
+    lastCheckMap.set(row.item_id as number, row.last_checked as string)
+  }
+
+  const staleIds: number[] = []
+
   for (const item of res.rows) {
     const itemId = item.id as number
-    const lastLogRes = await db.execute({
-      sql: "SELECT checked_at FROM checklist_log WHERE item_id=? ORDER BY checked_at DESC LIMIT 1",
-      args: [itemId],
-    })
+    const lastCheckedDate = lastCheckMap.get(itemId)
 
-    const lastCheckedDate = lastLogRes.rows[0]?.checked_at as string | undefined
     if (!lastCheckedDate || lastCheckedDate.slice(0, 10) < sevenDaysAgo) {
-      await db.execute({
-        sql: "UPDATE checklist_item SET streak=0 WHERE id=?",
-        args: [itemId],
-      })
+      staleIds.push(itemId)
       item.streak = 0
     }
 
-    // 마지막 완료로부터 며칠 지났는지 (오늘=0, 어제=1, 이틀 전=2, ...)
     if (lastCheckedDate) {
       const lastDate = lastCheckedDate.slice(0, 10)
       const diffMs = new Date(today + "T00:00:00Z").getTime() - new Date(lastDate + "T00:00:00Z").getTime()
@@ -33,6 +40,14 @@ export async function getChecklistItems() {
     } else {
       item.days_since_last = null
     }
+  }
+
+  if (staleIds.length > 0) {
+    const stalePlaceholders = staleIds.map(() => "?").join(",")
+    await db.execute({
+      sql: `UPDATE checklist_item SET streak=0 WHERE id IN (${stalePlaceholders})`,
+      args: staleIds,
+    })
   }
 
   return res.rows

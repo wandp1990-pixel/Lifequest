@@ -543,7 +543,7 @@ export default function TasksTab({
       {(() => {
         const routineDoneCount = routines.reduce((s, r) => s + r.items.filter(it => checkedRoutineItemIds.has(it.id)).length, 0)
         const done = checkedDailyIds.size + routineDoneCount + completedTodoCount
-        const total = questTotal ?? (dailyItems.length + routines.reduce((s, r) => s + r.items.length, 0))
+        const total = questTotal ?? (dailyItems.length + routines.reduce((s, r) => s + r.items.length, 0) + todoItems.length)
         const pct = total > 0 ? Math.min(done / total, 1) : 0
         const r = 22
         const circ = 2 * Math.PI * r
