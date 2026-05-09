@@ -111,14 +111,15 @@
 ### 할일 시스템
 | 라우트 | 메서드 | 기능 |
 |---|---|---|
-| `/api/checklist` | GET | 데일리 목록 조회 |
-| `/api/checklist` | POST | 데일리 완료 (AI 판정 + EXP + task_count++) |
-| `/api/checklist` | PUT | 데일리 항목 추가 |
-| `/api/checklist` | DELETE | 데일리 항목 삭제 |
-| `/api/todos` | GET | 투두 목록 조회 |
+| `/api/checklist` | GET | 습관 목록 + 오늘 완료 ID 반환 (`{ items, checkedIds }`) |
+| `/api/checklist` | POST | 습관 완료 (streak/패널티 계산 + EXP + task_count++) — AI 판정 없음 |
+| `/api/checklist` | PUT | 이름·EXP 수정(body에 id 포함), 알림시간 수정(body에 notify_time 포함), 신규 추가(id 없음) |
+| `/api/checklist` | DELETE | 습관 비활성화 (is_active=0, 물리 삭제 아님) |
+| `/api/todos` | GET | 투두 목록 반환 (`{ items }`) — 어제 완료 항목 자동 삭제 + 마감 초과 패널티 적용 |
 | `/api/todos` | POST | 투두 항목 추가 |
-| `/api/todos` | PATCH | 투두 완료 (AI 판정 + EXP + task_count++) |
-| `/api/todos` | DELETE | 투두 항목 삭제 |
+| `/api/todos` | PATCH | 투두 완료 (suggested_exp=0이면 AI 판정, 마감 기한 내 완료 시 +50% 보너스) |
+| `/api/todos` | PUT | 이름·EXP 수정 또는 알림시간 수정 |
+| `/api/todos` | DELETE | 투두 항목 물리 삭제 |
 
 ### 활동 로그
 | 라우트 | 메서드 | 기능 |
@@ -191,16 +192,24 @@
 - 배경 탭 시 닫힘
 
 ### TasksTab
-- 상단: 데일리 섹션 (checklist_item)
-- 하단: 투두 섹션 (todo_item)
-- 각 섹션: + 버튼으로 항목 추가
-- 항목 탭 → AI 판정 → EXP 획득
-- X 버튼 → 삭제 확인 바텀시트
-- 하단: AI 프롬프트 편집, 최근 로그 5개
+- 상단: DAILY QUEST 원형 진행률 카드 (습관+루틴+투두 통합 done/total)
+- 필터 칩: 전체 / 루틴 / 습관 / 할일 / 프로젝트
+- **루틴 섹션** (checklist_item 아님, routine_table): 아코디언 펼침, 마감시간 설정, 드래그 순서변경
+- **습관 섹션** (checklist_item): streak 배지, 패널티 경고, 알림시간 설정
+- **할 일 섹션** (todo_item): 마감 일시 설정, AI 판정 또는 고정 EXP
+- **프로젝트 섹션**: `ProjectsTab` 임베드
+- X 버튼 → 삭제 확인 바텀시트 (공통)
+- KST 자정에 자동 refetch (완료된 투두 정리)
 
 ### HomeTab
-- 텍스트 입력 → AI 판정 → EXP 획득
-- 최근 5개 활동 로그 표시
+- 출석체크 카드: 연속 출석 streak + 7칸 바, 마일스톤 뽑기권 지급
+- 미니 스탯 그리드 4칸: 습관/루틴/프로젝트/할일 각 도넛 차트
+  - 습관: 오늘 체크 수 / 전체
+  - 루틴: 완수 루틴 수 / 전체
+  - 프로젝트: 완료 수 / 전체 (urgent 필터링 별도)
+  - 할 일: 완료 수 / 전체 (API: `data.items`, 필드: `is_completed`)
+- 마감 임박 프로젝트 경고 (3일 이내, 미완료만)
+- 오늘의 활동: 텍스트 입력 → AI 판정 → EXP, 최근 5개 로그
 
 ### BattleTab
 - 몬스터 선택 및 전투 시뮬레이션
@@ -279,7 +288,7 @@
 
 - **DB 스키마**: initDb() 호출 시 자동 생성 + 마이그레이션
 - **파일 구조**:
-  - `lib/db.ts`: 모든 DB 쿼리 함수
+  - `lib/db/queries/`: 도메인별 쿼리 파일 분리 (checklist.ts, todo.ts, routine.ts 등)
   - `lib/game.ts`: EXP/레벨업/회복 로직
   - `lib/ai.ts`: Gemini 판정 로직
   - `lib/regen.ts`: 회복 계산
@@ -287,6 +296,9 @@
   - `components/game/`: UI 컴포넌트
 - **activity_log 보관**: 최대 30개 (초과 시 자동 삭제)
 - **TypeScript 설정**: `next.config.mjs`에서 `ignoreBuildErrors: true`
+- **checklist GET 최적화**: `getChecklistItems()`는 N개 습관에 대해 `GROUP BY` 배치 쿼리로 마지막 완료일 일괄 조회 (N+1 쿼리 방지). streak 7일 초과 시 IN 절로 일괄 초기화.
+- **습관 streak 로직**: 어제 완료 여부로 streak+1 또는 1로 리셋. 7일 미작동 시 0으로 초기화. 100일 cap. bonus EXP: 7일 10%, 14일 25%, 30일 50%, 60일 75%, 100일 100%. 패널티: 공백일 × 10% (최대 50%).
+- **투두 API 응답 구조**: `{ items }` 반환. 필드명 `name`, `is_completed`(0/1), `suggested_exp`, `due_time`, `penalty_applied`.
 
 ---
 

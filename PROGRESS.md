@@ -7,6 +7,24 @@ UI는 v0에서 만든 프로토타입(`UIUX(v0)/`) 기반.
 
 ---
 
+## 버그 수정 및 개선 (2026-05-09)
+
+### 수정 완료
+- [x] **HomeTab — 할 일 통계 완전 망가짐 수정** (3개 필드 오류)
+  - API 응답 `data.todos` → `data.items` (항상 빈 배열이었음)
+  - 인터페이스 `title` → `name`, `is_done` → `is_completed` (DB 실제 컬럼명과 불일치)
+  - 도넛 그래프: `!t.is_completed` → `t.is_completed` (완료/미완료 반전 버그)
+- [x] **HomeTab — 프로젝트 도넛 done 항상 0 수정**
+  - 전체 프로젝트에서 완료 수(`status === "done"`) 계산하도록 수정
+- [x] **TasksTab — DAILY QUEST 진행률 분모 누락 수정**
+  - total에 todoItems.length 추가 (done에는 포함되어 있었으나 total에서 빠져 있어 done > total 가능성)
+- [x] **HomeTab — Dead code 제거**: `remaining` (복잡한 미사용 변수), `todayXp` (inline 중복)
+- [x] **checklist.ts — N+1 쿼리 → 배치 쿼리 최적화**
+  - 기존: 습관 N개마다 개별 SELECT (총 2N 쿼리/요청)
+  - 개선: GROUP BY 배치 SELECT 1회 + 조건부 IN 업데이트 1회 (총 2 쿼리)
+
+---
+
 ## 현재 상태 (2026-04-25 기준)
 
 ### 완료
