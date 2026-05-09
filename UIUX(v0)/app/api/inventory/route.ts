@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb,
   getEquipment,
-  addEquipment,
   equipItem,
   unequipItem,
   deleteEquipment,
@@ -15,6 +14,7 @@ import {
   getBattleConfig,
   getSkillsWithInvestment,
 } from "@/lib/db"
+import { getClient, now } from "@/lib/db/client"
 import { buildPlayerCombatStats } from "@/lib/battle"
 
 type GradeRow = {
@@ -151,7 +151,9 @@ export async function POST(req: NextRequest) {
     const abilities = (await getAbilityPool()) as unknown as AbilityRow[]
     const passives = (await getPassivePool()) as unknown as PassiveRow[]
 
-    const results = []
+    // 가챠 결과를 먼저 모두 결정 (랜덤). DB 쓰기는 트랜잭션 안에서 한 번에.
+    type RolledItem = { slot: string; name: string; grade: string; mainValue: number; options: string[] }
+    const rolled: RolledItem[] = []
     for (let i = 0; i < count; i++) {
       const grade = pickGrade(grades)
       const slot = pickSlot(slots)
@@ -210,12 +212,52 @@ export async function POST(req: NextRequest) {
         break
       }
 
-      const name = `${grade.name} ${slot.name}`
-      const id = await addEquipment(slot.slot, name, grade.grade, mainValue, optionLines, char.level)
-      results.push({ id, name, grade: grade.grade, slot: slot.slot, rollLevel: char.level, mainValue, options: optionLines })
+      rolled.push({
+        slot: slot.slot,
+        name: `${grade.name} ${slot.name}`,
+        grade: grade.grade,
+        mainValue,
+        options: optionLines,
+      })
     }
 
-    await updateCharacter({ draw_tickets: char.draw_tickets - count })
+    // 트랜잭션: 티켓 차감 + N개 INSERT atomic.
+    // 차감은 conditional UPDATE라 race 시 한 쪽만 통과 → rollback.
+    const client = getClient()
+    const tx = await client.transaction("write")
+    const insertedIds: number[] = []
+    try {
+      const upRes = await tx.execute({
+        sql: "UPDATE character SET draw_tickets = draw_tickets - ? WHERE id=1 AND draw_tickets >= ?",
+        args: [count, count],
+      })
+      if (upRes.rowsAffected === 0) {
+        await tx.rollback()
+        return NextResponse.json({ error: "뽑기권이 부족합니다" }, { status: 400 })
+      }
+      const t = now()
+      for (const item of rolled) {
+        const r = await tx.execute({
+          sql: "INSERT INTO equipment (slot,name,grade,base_stat,options,roll_level,is_equipped,created_at) VALUES (?,?,?,?,?,?,0,?)",
+          args: [item.slot, item.name, item.grade, item.mainValue, JSON.stringify(item.options), char.level, t],
+        })
+        insertedIds.push(Number(r.lastInsertRowid))
+      }
+      await tx.commit()
+    } catch (e) {
+      await tx.rollback()
+      throw e
+    }
+
+    const results = rolled.map((item, i) => ({
+      id: insertedIds[i],
+      name: item.name,
+      grade: item.grade,
+      slot: item.slot,
+      rollLevel: char.level,
+      mainValue: item.mainValue,
+      options: item.options,
+    }))
     return NextResponse.json({ results })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

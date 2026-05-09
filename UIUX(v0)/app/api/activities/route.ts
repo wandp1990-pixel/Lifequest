@@ -15,11 +15,20 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// AI 호출 비용 보호: 너무 긴 텍스트는 차단
+const MAX_ACTIVITY_LENGTH = 1000
+
 export async function POST(req: NextRequest) {
   try {
     await initDb()
     const { text } = await req.json()
     if (!text?.trim()) return NextResponse.json({ error: "활동 내용을 입력하세요" }, { status: 400 })
+    if (typeof text !== "string" || text.length > MAX_ACTIVITY_LENGTH) {
+      return NextResponse.json(
+        { error: `활동 내용은 ${MAX_ACTIVITY_LENGTH}자 이하로 입력하세요` },
+        { status: 400 }
+      )
+    }
 
     const result = await judgeActivity(text)
     const levelResult = await gainExp(result.exp)

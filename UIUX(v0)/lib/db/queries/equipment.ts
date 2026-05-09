@@ -20,9 +20,12 @@ export async function equipItem(itemId: number) {
   const db = getClient()
   const res = await db.execute({ sql: "SELECT slot FROM equipment WHERE id = ?", args: [itemId] })
   if (!res.rows[0]) return
-  const slot = res.rows[0].slot
-  await db.execute({ sql: "UPDATE equipment SET is_equipped = 0 WHERE slot = ?", args: [slot] })
-  await db.execute({ sql: "UPDATE equipment SET is_equipped = 1 WHERE id = ?", args: [itemId] })
+  const slot = res.rows[0].slot as string
+  // batch로 atomic 실행 — 슬롯 해제와 장착이 함께 commit. 도중 끊겨도 부분 적용 없음.
+  await db.batch([
+    { sql: "UPDATE equipment SET is_equipped = 0 WHERE slot = ?", args: [slot] },
+    { sql: "UPDATE equipment SET is_equipped = 1 WHERE id = ?", args: [itemId] },
+  ], "write")
 }
 
 export async function unequipItem(itemId: number) {

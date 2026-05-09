@@ -5,6 +5,7 @@ import {
   getAllPushSubscriptions,
   getPendingHabitNotifications,
   getPendingTodoNotifications,
+  deletePushSubscription,
 } from "@/lib/db"
 
 function kstTimeNow(): { time: string; date: string } {
@@ -55,22 +56,32 @@ export async function GET(req: NextRequest) {
     ]
 
     let sent = 0
+    let removed = 0
     for (const sub of subs) {
       const subscription = {
         endpoint: sub.endpoint,
         keys: { p256dh: sub.p256dh, auth: sub.auth },
       }
+      let endpointDead = false
       for (const notif of notifications) {
+        if (endpointDead) break
         try {
           await webpush.sendNotification(subscription, JSON.stringify(notif))
           sent++
-        } catch {
-          // 만료된 구독 등 무시
+        } catch (err: unknown) {
+          // 410 Gone / 404 Not Found = 만료된 구독. 삭제하고 이 endpoint는 더 이상 시도하지 않음.
+          const status = (err as { statusCode?: number })?.statusCode
+          if (status === 410 || status === 404) {
+            await deletePushSubscription(sub.endpoint)
+            removed++
+            endpointDead = true
+          }
+          // 그 외(네트워크 오류 등)는 다음 알림에서 재시도
         }
       }
     }
 
-    return NextResponse.json({ sent, time, habits: habits.length, todos: todos.length })
+    return NextResponse.json({ sent, removed, time, habits: habits.length, todos: todos.length })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

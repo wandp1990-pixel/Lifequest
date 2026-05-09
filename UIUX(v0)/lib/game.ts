@@ -4,11 +4,15 @@ import { buildPlayerCombatStats } from "./battle"
 
 // 특정 레벨 달성에 필요한 경험치 계산
 // 기본값: base_exp=100, level_multiplier=1.01 → 레벨마다 1% 증가
+// 잘못된 cfg(NaN/0/음수/<=1 mult) 방어 — gainExp의 while 루프 hang 방지
 export function requiredExp(level: number, cfg: Record<string, string>): number {
-  const base = parseFloat(cfg.base_exp ?? "100")
-  const mult = parseFloat(cfg.level_multiplier ?? "1.01")
+  const baseRaw = parseFloat(cfg.base_exp ?? "100")
+  const multRaw = parseFloat(cfg.level_multiplier ?? "1.01")
+  const base = Number.isFinite(baseRaw) && baseRaw > 0 ? baseRaw : 100
+  const mult = Number.isFinite(multRaw) && multRaw > 1 ? multRaw : 1.01
+  const safeLevel = Math.max(1, Math.min(level, 10000))
   let val = base
-  for (let i = 0; i < level - 1; i++) {
+  for (let i = 0; i < safeLevel - 1; i++) {
     val = Math.ceil(val * mult)
   }
   return Math.floor(val)
@@ -57,9 +61,11 @@ export async function gainExp(expAmount: number) {
     const skillPerLv = parseInt(cfg.skill_points_per_level ?? "2")
     const ticketPerLv = parseInt(cfg.draw_tickets_per_level ?? "1")
 
-    // 레벨업 루프: 현재 레벨의 필요 EXP를 초과할 때까지 반복
+    // 레벨업 루프: 현재 레벨의 필요 EXP를 초과할 때까지 반복.
+    // 비현실적 EXP 입력/잘못된 cfg로 인한 무한 폭주 방지 위해 안전 상한.
     let leveledUp = false
-    while (totalExp >= requiredExp(level, cfg)) {
+    const MAX_LEVEL = 9999
+    while (level < MAX_LEVEL && totalExp >= requiredExp(level, cfg)) {
       totalExp -= requiredExp(level, cfg)
       level++
       statPts += statPerLv
