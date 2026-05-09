@@ -233,28 +233,28 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
 
       {/* 미니 스탯 그리드 */}
       <div className="mx-4 mt-3 grid grid-cols-4 gap-1.5">
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
           <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#E5F4ED' }}>
             <span className="text-[8px]">✓</span>
           </div>
           <p className="text-[8px] text-muted-foreground font-medium">습관</p>
           <p className="text-[10px] font-extrabold">{checkedHabitIds.size}/{habits.length}</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
           <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#FFF1E0' }}>
             <span className="text-[8px]">✓</span>
           </div>
           <p className="text-[8px] text-muted-foreground font-medium">루틴</p>
           <p className="text-[10px] font-extrabold">{bonusRoutineIds.size}/{routines.length}</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
           <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#FEE3E3' }}>
             <span className="text-[8px]">📋</span>
           </div>
           <p className="text-[8px] text-muted-foreground font-medium">프로젝트</p>
           <p className="text-[10px] font-extrabold">{urgentProjects.length}개</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col gap-0.5 shadow-sm">
+        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
           <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#E3F2FD' }}>
             <span className="text-[8px]">✎</span>
           </div>
