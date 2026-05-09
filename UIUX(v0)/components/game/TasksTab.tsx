@@ -893,7 +893,7 @@ export default function TasksTab({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
-            placeholder="습관 이름..."
+            placeholder="예: 아침 식사 후 물 한 잔"
             className="flex-1 min-w-0 text-sm text-gray-900 bg-background border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
           />
           <input
@@ -926,6 +926,14 @@ export default function TasksTab({
           streak >= 7   ? "text-orange-600 bg-orange-50 border-orange-200" :
           streak >= 1   ? "text-orange-500 bg-orange-50 border-orange-100" :
                           "text-muted-foreground bg-muted border-border"
+        const streakLabel =
+          streak >= 100 ? "🏆 완전 습관" :
+          streak >= 66  ? `🔥 ${streak}일 (거의 습관!)` :
+          streak >= 30  ? `🔥 ${streak}일 (자리잡는 중)` :
+          streak >= 14  ? `🔥 ${streak}일 (유지 중)` :
+          streak >= 7   ? `🔥 ${streak}일 (적응 중)` :
+          streak >= 1   ? `🌱 ${streak}일 (시작)` :
+                          "아직 시작 전"
         const isEditingName = editingDailyNameId === item.id
         return (
           <div
@@ -978,7 +986,7 @@ export default function TasksTab({
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>
-                      {streak >= 1 ? `🔥 ${streak}/100일` : "0/100일"}
+                      {streakLabel}
                     </span>
                     {!done && (
                       <button

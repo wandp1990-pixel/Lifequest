@@ -69,13 +69,14 @@ export async function updateChecklistStreak(itemId: number): Promise<{ streak: n
   const hadYesterday = yesterdayRes.rows.length > 0
   const newStreak = Math.min(hadYesterday ? currentStreak + 1 : 1, 100)
   const newBest = Math.max(bestStreak, newStreak)
+  const isReturn = !hadYesterday && currentStreak > 0
 
   await db.execute({
     sql: "UPDATE checklist_item SET streak=?, best_streak=? WHERE id=?",
     args: [newStreak, newBest, itemId],
   })
 
-  return { streak: newStreak, bonusExp: streakBonusExp(newStreak, baseExp) }
+  return { streak: newStreak, bonusExp: streakBonusExp(newStreak, baseExp), isReturn }
 }
 
 export async function addChecklistLog(itemId: number, exp: number) {

@@ -32,14 +32,16 @@ export async function POST(req: NextRequest) {
     }
 
     const baseExp = (item.fixed_exp as number) ?? 10
-    const { streak, bonusExp } = await updateChecklistStreak(itemId)
+    const { streak, bonusExp, isReturn } = await updateChecklistStreak(itemId)
     const totalExp = baseExp + bonusExp
 
     const comment = streak >= 7
       ? `🔥 ${streak}일 연속! (+${bonusExp} 보너스)`
       : streak > 1
       ? `🔥 ${streak}일 연속!`
-      : "습관 완료!"
+      : isReturn
+      ? "다시 이어가기 시작했어요 💪"
+      : "좋은 시작이에요"
 
     await addChecklistLog(itemId, totalExp)
     await addActivityLog(item.name as string, "daily", totalExp, comment)
