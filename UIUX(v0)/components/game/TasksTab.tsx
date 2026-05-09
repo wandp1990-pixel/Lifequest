@@ -11,6 +11,7 @@ interface DailyItem {
   streak?: number
   best_streak?: number
   notify_time?: string | null
+  days_since_last?: number | null
 }
 
 interface TodoItem {
@@ -87,7 +88,7 @@ export default function TasksTab({
   const [editingRoutineItemExpVal, setEditingRoutineItemExpVal] = useState(10)
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [newDueTime, setNewDueTime] = useState("")
-  const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number; penalty?: boolean } | null>(null)
+  const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number; penalty?: boolean; penaltyExp?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [draggingItemId, setDraggingItemId] = useState<number | null>(null)
@@ -197,8 +198,8 @@ export default function TasksTab({
     onDailyCompletedChange?.(totalDone)
   }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, completedTodoCount, onCountChange, onDailyCompletedChange])
 
-  const showToast = (exp: number, comment: string, bonus?: number, penalty?: boolean) => {
-    setToast({ exp, comment, bonus, penalty })
+  const showToast = (exp: number, comment: string, bonus?: number, penalty?: boolean, penaltyExp?: number) => {
+    setToast({ exp, comment, bonus, penalty, penaltyExp })
     setTimeout(() => setToast(null), 3000)
   }
 
@@ -218,7 +219,7 @@ export default function TasksTab({
       setDailyItems((prev) =>
         prev.map((d) => d.id === item.id ? { ...d, streak: data.streak } : d)
       )
-      showToast(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined)
+      showToast(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined, undefined, data.penaltyExp > 0 ? data.penaltyExp : undefined)
       onExpGained?.()
     } finally {
       setCompleting(null)
@@ -520,7 +521,13 @@ export default function TasksTab({
       {toast && (
         <div className={`sticky top-0 z-20 mx-4 mt-2 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5 ${toast.penalty ? "bg-red-400" : "bg-amber-400"}`}>
           <span className="text-sm">
-            {toast.penalty ? `${toast.exp} EXP (기한 초과 절반)` : `+${toast.exp} EXP${toast.bonus ? ` · 보너스 +${toast.bonus}` : "!"}`}
+            {toast.penalty
+              ? `${toast.exp} EXP (기한 초과 절반)`
+              : toast.penaltyExp
+              ? `+${toast.exp} EXP · 패널티 -${toast.penaltyExp}`
+              : toast.bonus
+              ? `+${toast.exp} EXP · 보너스 +${toast.bonus}`
+              : `+${toast.exp} EXP!`}
           </span>
           <span className="opacity-90 font-normal leading-snug">{toast.comment}</span>
         </div>
@@ -1002,6 +1009,15 @@ export default function TasksTab({
                       </button>
                     )}
                   </div>
+                  {!done && (item.days_since_last ?? 0) >= 2 && (() => {
+                    const missed = (item.days_since_last ?? 2) - 1
+                    const msg = missed === 1
+                      ? "어제 못했어요, 오늘 다시 시작해봐요! 💪"
+                      : missed <= 3
+                      ? `${missed}일 쉬었어요, 오늘부터 다시! 🌱`
+                      : `${missed}일 쉬었어요... 패널티가 쌓이고 있어요 ⚠️`
+                    return <p className="text-[10px] font-medium text-orange-500 leading-snug">{msg}</p>
+                  })()}
                 </div>
               )}
               {!isEditingName && notifyEditId?.type === "daily" && notifyEditId?.id === item.id && (

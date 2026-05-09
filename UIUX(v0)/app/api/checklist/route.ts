@@ -3,6 +3,7 @@ import {
   initDb, getChecklistItems, addChecklistLog, getTodayCheckedItemIds,
   addChecklistItem, deleteChecklistItem, addActivityLog, incrementTaskCount,
   updateChecklistStreak, updateChecklistItemName, updateChecklistNotifyTime,
+  penaltyExpForMissedDays,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -32,10 +33,19 @@ export async function POST(req: NextRequest) {
     }
 
     const baseExp = (item.fixed_exp as number) ?? 10
-    const { streak, bonusExp, isReturn } = await updateChecklistStreak(itemId)
-    const totalExp = baseExp + bonusExp
+    const daysSinceLast = (item.days_since_last as number | null) ?? null
+    // days_since_last=1 은 어제 완료(정상), 2부터 하루씩 밀림
+    const missedDays = daysSinceLast !== null && daysSinceLast >= 2 ? daysSinceLast - 1 : 0
+    const penaltyExp = penaltyExpForMissedDays(missedDays, baseExp)
 
-    const comment = streak >= 7
+    const { streak, bonusExp, isReturn } = await updateChecklistStreak(itemId)
+    const totalExp = Math.max(1, baseExp + bonusExp - penaltyExp)
+
+    const comment = penaltyExp > 0
+      ? isReturn
+        ? "다시 이어가기 시작했어요 💪"
+        : `${missedDays}일 만에 완료! 다시 시작이에요`
+      : streak >= 7
       ? `🔥 ${streak}일 연속! (+${bonusExp} 보너스)`
       : streak > 1
       ? `🔥 ${streak}일 연속!`
@@ -48,7 +58,7 @@ export async function POST(req: NextRequest) {
     await incrementTaskCount()
     const levelResult = await gainExp(totalExp)
 
-    return NextResponse.json({ exp: baseExp, bonusExp, streak, comment, ...levelResult })
+    return NextResponse.json({ exp: totalExp, baseExp, bonusExp, penaltyExp, streak, comment, ...levelResult })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

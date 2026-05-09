@@ -17,7 +17,6 @@ export async function getChecklistItems() {
     })
 
     const lastCheckedDate = lastLogRes.rows[0]?.checked_at as string | undefined
-    // 마지막 완료가 7일 이전이거나 없으면 streak 초기화
     if (!lastCheckedDate || lastCheckedDate.slice(0, 10) < sevenDaysAgo) {
       await db.execute({
         sql: "UPDATE checklist_item SET streak=0 WHERE id=?",
@@ -25,9 +24,25 @@ export async function getChecklistItems() {
       })
       item.streak = 0
     }
+
+    // 마지막 완료로부터 며칠 지났는지 (오늘=0, 어제=1, 이틀 전=2, ...)
+    if (lastCheckedDate) {
+      const lastDate = lastCheckedDate.slice(0, 10)
+      const diffMs = new Date(today + "T00:00:00Z").getTime() - new Date(lastDate + "T00:00:00Z").getTime()
+      item.days_since_last = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    } else {
+      item.days_since_last = null
+    }
   }
 
   return res.rows
+}
+
+// missedDays = days_since_last - 1 (어제 완료=miss 0, 2일 전=miss 1, ...)
+export function penaltyExpForMissedDays(missedDays: number, baseExp: number): number {
+  if (missedDays <= 0) return 0
+  const pct = Math.min(missedDays * 0.2, 0.5)
+  return Math.floor(baseExp * pct)
 }
 
 function yesterdayKST(): string {

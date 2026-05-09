@@ -8,6 +8,7 @@ export {
   getChecklistItems, addChecklistLog, addChecklistItem,
   deleteChecklistItem, getTodayCheckedItemIds,
   updateChecklistStreak, streakBonusExp, updateChecklistItemName,
+  penaltyExpForMissedDays,
 } from "./queries/checklist"
 export { getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName, applyExpiredTodoPenalties } from "./queries/todo"
 export {
