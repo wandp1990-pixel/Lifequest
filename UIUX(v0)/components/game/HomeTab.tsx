@@ -232,7 +232,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       </div>
 
       {/* 미니 스탯 그리드 */}
-      <div className="mx-4 mt-3 grid grid-cols-4 gap-2">
+      <div className="mx-4 mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
         <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
           <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#E5F4ED' }}>
             <span className="text-xs">✓</span>
