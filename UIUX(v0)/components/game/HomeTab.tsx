@@ -31,6 +31,12 @@ interface UrgentProject {
   priority: string
 }
 
+interface TodoItem {
+  id: number
+  title: string
+  is_done: boolean
+}
+
 interface HomeTabProps {
   onExpGained: () => void
   refreshTick?: number
@@ -53,6 +59,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
   const [routines, setRoutines] = useState<RoutineItem[]>([])
   const [bonusRoutineIds, setBonusRoutineIds] = useState<Set<number>>(new Set())
   const [urgentProjects, setUrgentProjects] = useState<UrgentProject[]>([])
+  const [todos, setTodos] = useState<TodoItem[]>([])
 
   const fetchActLogs = useCallback(async () => {
     const res = await fetch("/api/activities?type=ai&limit=5")
@@ -99,13 +106,22 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
     setUrgentProjects(urgent)
   }, [])
 
+  const fetchTodos = useCallback(async () => {
+    const res = await fetch("/api/todos")
+    if (res.ok) {
+      const data = await res.json()
+      setTodos(data.todos ?? [])
+    }
+  }, [])
+
   useEffect(() => {
     fetchActLogs()
     fetchAttendance()
     fetchHabits()
     fetchRoutines()
     fetchUrgentProjects()
-  }, [fetchActLogs, fetchAttendance, fetchHabits, fetchRoutines, fetchUrgentProjects, refreshTick])
+    fetchTodos()
+  }, [fetchActLogs, fetchAttendance, fetchHabits, fetchRoutines, fetchUrgentProjects, fetchTodos, refreshTick])
 
   const handleAttendance = async () => {
     if (attended || attendLoading) return
@@ -216,7 +232,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       </div>
 
       {/* 미니 스탯 그리드 */}
-      <div className="mx-4 mt-3 grid grid-cols-3 gap-2">
+      <div className="mx-4 mt-3 grid grid-cols-4 gap-2">
         <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
           <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#E5F4ED' }}>
             <span className="text-xs">✓</span>
@@ -237,6 +253,13 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
           </div>
           <p className="text-[10px] text-muted-foreground font-medium mt-0.5">프로젝트</p>
           <p className="text-sm font-extrabold">{urgentProjects.length}개 진행중</p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#E3F2FD' }}>
+            <span className="text-xs">✎</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">할 일</p>
+          <p className="text-sm font-extrabold">{todos.filter(t => !t.is_done).length} / {todos.length}</p>
         </div>
       </div>
 
