@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { Sword, Heart, Wind, Brain, Star } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -292,16 +293,16 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
           <p className="text-[10px] text-muted-foreground font-bold mb-2">캐릭터 스탯</p>
           <div className="grid grid-cols-5 gap-1.5">
             {([
-              ["💪", "STR", effStr, char?.str ?? 0],
-              ["🛡️", "VIT", effVit, char?.vit ?? 0],
-              ["🏃", "DEX", effDex, char?.dex ?? 0],
-              ["🧠", "INT", effInt, char?.int_stat ?? 0],
-              ["🍀", "LUK", effLuk, char?.luk ?? 0],
-            ] as [string, string, number, number][]).map(([icon, label, eff, base]) => {
+              { icon: <Sword className="w-3 h-3" />, label: "STR", eff: effStr, base: char?.str ?? 0 },
+              { icon: <Heart className="w-3 h-3" />, label: "VIT", eff: effVit, base: char?.vit ?? 0 },
+              { icon: <Wind  className="w-3 h-3" />, label: "DEX", eff: effDex, base: char?.dex ?? 0 },
+              { icon: <Brain className="w-3 h-3" />, label: "INT", eff: effInt, base: char?.int_stat ?? 0 },
+              { icon: <Star  className="w-3 h-3" />, label: "LUK", eff: effLuk, base: char?.luk ?? 0 },
+            ]).map(({ icon, label, eff, base }) => {
               const bonus = eff - base
               return (
                 <div key={label} className="text-center bg-muted rounded-xl py-2 border border-border">
-                  <div className="text-[10px] mb-0.5">{icon}</div>
+                  <div className="flex justify-center text-muted-foreground mb-0.5">{icon}</div>
                   <div className="text-[9px] text-muted-foreground mb-0.5">{label}</div>
                   <div className="text-sm font-bold text-foreground">
                     {eff}
@@ -417,18 +418,18 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
       <div className="px-4 py-3 bg-background border-b border-border">
         <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 능력치 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
         {([
-          ["⚔️", "PATK", playerEffStats?.patk   ?? result.player_stats.patk,   monster.stats.patk],
-          ["❤️", "HP",   player_max_hp,                                          monster_max_hp],
-          ["🏃", "DEX",  playerEffStats?.dex    ?? result.player_stats.dex,    monster.stats.dex],
-          ["🔮", "MATK", playerEffStats?.matk   ?? result.player_stats.matk,   monster.stats.matk],
-          ["🍀", "LUK",  playerEffStats?.luk    ?? result.player_stats.luk,    monster.stats.luk],
-        ] as [string, string, number, number][]).map(([icon, label, pv, mv]) => {
+          { icon: <Sword className="w-3 h-3" />, label: "PATK", pv: playerEffStats?.patk  ?? result.player_stats.patk,  mv: monster.stats.patk },
+          { icon: <Heart className="w-3 h-3" />, label: "HP",   pv: player_max_hp,                                       mv: monster_max_hp },
+          { icon: <Wind  className="w-3 h-3" />, label: "DEX",  pv: playerEffStats?.dex   ?? result.player_stats.dex,   mv: monster.stats.dex },
+          { icon: <Brain className="w-3 h-3" />, label: "MATK", pv: playerEffStats?.matk  ?? result.player_stats.matk,  mv: monster.stats.matk },
+          { icon: <Star  className="w-3 h-3" />, label: "LUK",  pv: playerEffStats?.luk   ?? result.player_stats.luk,   mv: monster.stats.luk },
+        ]).map(({ icon, label, pv, mv }) => {
           const total = pv + mv
           const pPct  = total > 0 ? Math.round((pv / total) * 100) : 50
           const pWin  = pv >= mv
           return (
             <div key={label} className="flex items-center gap-1.5 my-1">
-              <span className="text-[10px] text-muted-foreground w-12 shrink-0">{icon} {label}</span>
+              <span className="text-[10px] text-muted-foreground w-12 shrink-0 flex items-center gap-1">{icon} {label}</span>
               <span className={`text-[10px] w-8 text-right shrink-0 ${pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{pv}</span>
               <div className="flex-1 h-2 overflow-hidden rounded-full flex bg-muted">
                 <div className="bg-blue-400 rounded-l-full" style={{ width: `${pPct}%` }} />

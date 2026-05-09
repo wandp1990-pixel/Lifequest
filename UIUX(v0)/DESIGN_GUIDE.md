@@ -98,27 +98,21 @@ TasksTab 안의 각 섹션은 BottomNav의 amber 대신 **각기 다른 색상**
 ⚡⚡  → 더블 히트
 ```
 
-### 3.4 스탯 이모지 ⚠️ 불일치 주의
+### 3.4 스탯 아이콘 (Lucide React 통일)
 
-**CharacterTab** (Lucide React 아이콘 사용):
-```
-STR(힘)    → <Sword /> 아이콘
-VIT(체력)  → <Heart /> 아이콘
-DEX(민첩)  → <Wind /> 아이콘
-INT(지능)  → <Brain /> 아이콘
-LUK(운)    → <Star /> 아이콘
-```
+모든 컴포넌트에서 스탯은 Lucide React 아이콘을 사용합니다.
 
-**BattleTab** (텍스트 이모지 사용):
-```
-STR → 💪
-VIT → 🛡️
-DEX → 🏃
-INT → 🧠
-LUK → 🍀
+```tsx
+import { Sword, Heart, Wind, Brain, Star } from "lucide-react"
+
+STR(힘)    → <Sword />
+VIT(체력)  → <Heart />
+DEX(민첩)  → <Wind />
+INT(지능)  → <Brain />
+LUK(운)    → <Star />
 ```
 
-> ⚠️ 두 탭이 다른 방식으로 스탯을 표현하고 있음. 신규 컴포넌트는 Lucide 아이콘을 기준으로 통일 권장.
+> CharacterTab, BattleTab 모두 Lucide 아이콘으로 통일 완료.
 
 ### 3.5 스킬 탭 (SkillsTab/CharacterTab)
 ```
@@ -380,17 +374,15 @@ const STATUS_LABEL = { todo: "시작 전", in_progress: "진행 중", done: "완
 
 ---
 
-## 8. ⚠️ 현재 불일치 목록 (개선 필요)
+## 8. 의도적 설계 결정 사항
 
-향후 리팩토링 시 통일이 필요한 항목들입니다.
+불일치처럼 보이지만 **의도적으로 다르게 설계된** 항목들입니다. 변경하지 마세요.
 
-| 항목 | 현재 상황 | 권장 방향 |
-|-----|---------|---------|
-| **Tasks 탭 색상** | BottomNav=amber, 루틴=teal, 할일=violet | 섹션별 색상을 공식으로 문서화 |
-| **스탯 이모지** | CharacterTab=Lucide 아이콘, BattleTab=텍스트 이모지 | Lucide 아이콘으로 통일 권장 |
-| **아이템 vs 몬스터 S등급** | 아이템=주황, 몬스터=크림슨 | 몬스터는 전투 느낌이므로 유지 가능 |
-| **아이템 vs 몬스터 UR등급** | 아이템=핫핑크, 몬스터=다크오렌지 | 동일한 등급이면 통일 권장 |
-| **violet vs purple 혼용** | SkillsTab에서 패시브=violet, 액티브=purple | 의도적 구분이면 문서화, 실수면 통일 |
+| 항목 | 설계 결정 | 이유 |
+|-----|---------|------|
+| **Tasks 섹션별 색상** | 루틴=teal, 습관=amber, 할일=violet | 섹션마다 시각적으로 구분하기 위한 의도적 선택 |
+| **스킬 passive=violet, active=purple** | violet(파란계열 보라)과 purple(자주계열)을 구분 | 패시브(지속 효과)와 액티브(발동 효과)를 색으로 구분 |
+| **아이템 vs 몬스터 등급 색상** | 아이템(예쁜 색)과 몬스터(강렬한 색)가 다름 | 아이템=소유감, 몬스터=위협감을 다른 감성으로 표현 |
 
 ---
 
