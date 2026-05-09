@@ -224,6 +224,8 @@ const STATS = [
 | INT | 지능/마법 | `text-violet-500` | `bg-violet-400` |
 | LUK | 운/크리 | `text-amber-500` | `bg-amber-400` |
 
+> **색상 적용 조건:** `base > 0 || added > 0 || hasItemBonus` — 기존 스탯값이 있거나, 이번 세션에서 배분 중이거나, 아이템 보너스가 있으면 테마색 적용. 셋 다 0이면 회색(muted).
+
 ### 4.4 CharacterPanel 리소스 바 색상
 
 캐릭터 패널 상단의 HP/MP/XP 게이지와 리소스 필 색상입니다.

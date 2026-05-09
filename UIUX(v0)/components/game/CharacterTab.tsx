@@ -362,7 +362,7 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
               const itemBonus = itemStatBonuses?.[key] ?? 0
               const total = base + added
               const hasItemBonus = itemBonus > 0
-              const isHighlighted = added > 0 || hasItemBonus
+              const isHighlighted = base > 0 || added > 0 || hasItemBonus
               return (
                 <div key={key} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isHighlighted ? `${bg} ${border}` : "bg-background border-border"}`}>
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isHighlighted ? `${bg}` : "bg-muted"}`}>
