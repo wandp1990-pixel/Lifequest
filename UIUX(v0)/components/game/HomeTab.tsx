@@ -232,34 +232,42 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       </div>
 
       {/* 미니 스탯 그리드 */}
-      <div className="mx-4 mt-3 grid grid-cols-4 gap-1.5">
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
-          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#E5F4ED' }}>
-            <span className="text-[8px]">✓</span>
+      <div className="mx-4 mt-3 grid grid-cols-4 gap-2">
+        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#E5F4ED' }}>
+              <span className="text-[9px]">✓</span>
+            </div>
+            <p className="text-[9px] text-muted-foreground font-medium truncate">습관</p>
           </div>
-          <p className="text-[8px] text-muted-foreground font-medium">습관</p>
-          <p className="text-[10px] font-extrabold">{checkedHabitIds.size}/{habits.length}</p>
+          <p className="text-sm font-extrabold">{checkedHabitIds.size}/{habits.length}</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
-          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#FFF1E0' }}>
-            <span className="text-[8px]">✓</span>
+        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#FFF1E0' }}>
+              <span className="text-[9px]">✓</span>
+            </div>
+            <p className="text-[9px] text-muted-foreground font-medium truncate">루틴</p>
           </div>
-          <p className="text-[8px] text-muted-foreground font-medium">루틴</p>
-          <p className="text-[10px] font-extrabold">{bonusRoutineIds.size}/{routines.length}</p>
+          <p className="text-sm font-extrabold">{bonusRoutineIds.size}/{routines.length}</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
-          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#FEE3E3' }}>
-            <span className="text-[8px]">📋</span>
+        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#FEE3E3' }}>
+              <span className="text-[9px]">📋</span>
+            </div>
+            <p className="text-[9px] text-muted-foreground font-medium truncate">프로젝트</p>
           </div>
-          <p className="text-[8px] text-muted-foreground font-medium">프로젝트</p>
-          <p className="text-[10px] font-extrabold">{urgentProjects.length}개</p>
+          <p className="text-sm font-extrabold">{urgentProjects.length}개</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-1.5 flex flex-col items-center gap-0.5 shadow-sm">
-          <div className="w-4 h-4 rounded flex items-center justify-center" style={{ background: '#E3F2FD' }}>
-            <span className="text-[8px]">✎</span>
+        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#E3F2FD' }}>
+              <span className="text-[9px]">✎</span>
+            </div>
+            <p className="text-[9px] text-muted-foreground font-medium truncate">할 일</p>
           </div>
-          <p className="text-[8px] text-muted-foreground font-medium">할 일</p>
-          <p className="text-[10px] font-extrabold">{todos.filter(t => !t.is_done).length}/{todos.length}</p>
+          <p className="text-sm font-extrabold">{todos.filter(t => !t.is_done).length}/{todos.length}</p>
         </div>
       </div>
 
