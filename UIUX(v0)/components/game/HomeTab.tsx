@@ -232,11 +232,11 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
           <p className="text-sm font-extrabold">{bonusRoutineIds.size} / {routines.length}</p>
         </div>
         <div className="rounded-xl border border-border bg-background p-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#F0ECFB' }}>
-            <span className="text-xs">🤖</span>
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: '#FEE3E3' }}>
+            <span className="text-xs">📋</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">AI 자동 채점</p>
-          <p className="text-sm font-extrabold">+{todayXp} XP</p>
+          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">프로젝트</p>
+          <p className="text-sm font-extrabold">{urgentProjects.length}개 진행중</p>
         </div>
       </div>
 
