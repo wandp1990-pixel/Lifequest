@@ -235,23 +235,23 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       {(() => {
         const doneTodos = todos.filter(t => !t.is_done).length
         const stats = [
-          { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "☀️" },
-          { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "🔁" },
-          { label: "프로젝트", done: 0, total: urgentProjects.length, color: "#a78bfa", icon: "🗂️" },
-          { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "📋" },
+          { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "☀️", bg: "bg-green-50",  border: "border-green-200",  trackColor: "#bbf7d0" },
+          { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "🔁", bg: "bg-indigo-50", border: "border-indigo-200", trackColor: "#c7d2fe" },
+          { label: "프로젝트", done: 0, total: urgentProjects.length, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50", border: "border-violet-200", trackColor: "#ddd6fe" },
+          { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "📋", bg: "bg-amber-50",  border: "border-amber-200",  trackColor: "#fde68a" },
         ]
         const R = 22, C = 50, stroke = 4
         const circ = 2 * Math.PI * R
         return (
           <div className="mx-4 mt-3 grid grid-cols-4 gap-2">
-            {stats.map(({ label, done, total, color, icon }) => {
+            {stats.map(({ label, done, total, color, icon, bg, border, trackColor }) => {
               const pct = total > 0 ? done / total : 0
               const offset = circ * (1 - pct)
               return (
-                <div key={label} className="rounded-xl border border-border bg-background py-3 flex flex-col items-center gap-1.5 shadow-sm">
+                <div key={label} className={`rounded-xl border ${bg} ${border} py-3 flex flex-col items-center gap-1.5 shadow-sm`}>
                   <div className="relative" style={{ width: C, height: C }}>
                     <svg width={C} height={C} style={{ transform: "rotate(-90deg)" }}>
-                      <circle cx={C/2} cy={C/2} r={R} fill="none" stroke="#e5e7eb" strokeWidth={stroke} />
+                      <circle cx={C/2} cy={C/2} r={R} fill="none" stroke={trackColor} strokeWidth={stroke} />
                       <circle cx={C/2} cy={C/2} r={R} fill="none" stroke={color} strokeWidth={stroke}
                         strokeDasharray={circ} strokeDashoffset={offset}
                         strokeLinecap="round"
