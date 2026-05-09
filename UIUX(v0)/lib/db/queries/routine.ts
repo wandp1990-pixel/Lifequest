@@ -143,6 +143,14 @@ export async function reorderRoutineItems(orderedItemIds: number[]) {
   }
 }
 
+// 자정 넘김 마감 처리: deadline이 새벽(< 06:00)이고 현재가 저녁 이후(>= 18:00)면
+// "내일 새벽까지" 의미로 해석해 통과시킨다. 그 외에는 currentTime <= deadline.
+function isWithinRoutineDeadline(currentTime: string, deadlineTime: string): boolean {
+  if (currentTime <= deadlineTime) return true
+  if (deadlineTime < "06:00" && currentTime >= "18:00") return true
+  return false
+}
+
 export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResult | null> {
   const db = getClient()
   const today = todayKST()
@@ -154,19 +162,15 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
   const item = itemRes.rows[0]
   if (!item) return null
 
-  const dupRes = await db.execute({
-    sql: "SELECT COUNT(*) AS cnt FROM routine_log WHERE item_id=? AND checked_at LIKE ?",
-    args: [itemId, `${today}%`],
-  })
-  if ((dupRes.rows[0].cnt as number) > 0) return null
-
   const exp = item.fixed_exp as number
   const routineId = item.routine_id as number
 
-  await db.execute({
-    sql: "INSERT INTO routine_log (item_id, exp_gained, checked_at) VALUES (?,?,?)",
+  // race 방어: 오늘 자리 atomic 선점. 이미 체크돼있으면 null.
+  const claimRes = await db.execute({
+    sql: "INSERT OR IGNORE INTO routine_log (item_id, exp_gained, checked_at) VALUES (?,?,?)",
     args: [itemId, exp, now()],
   })
+  if (claimRes.rowsAffected === 0) return null
 
   const allItems = await db.execute({
     sql: "SELECT id, fixed_exp FROM routine_item WHERE routine_id=? AND is_active=1",
@@ -188,11 +192,13 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
   let deadlineBonus = false
 
   if (allDone) {
-    const bonusDup = await db.execute({
-      sql: "SELECT COUNT(*) AS cnt FROM routine_bonus_log WHERE routine_id=? AND granted_at LIKE ?",
-      args: [routineId, `${today}%`],
+    // 보너스도 atomic claim — 동시 마지막 체크 race 방어
+    const bonusClaimRes = await db.execute({
+      sql: "INSERT OR IGNORE INTO routine_bonus_log (routine_id, bonus_exp, granted_at) VALUES (?,0,?)",
+      args: [routineId, now()],
     })
-    if ((bonusDup.rows[0].cnt as number) === 0) {
+    if (bonusClaimRes.rowsAffected > 0) {
+      const bonusLogId = Number(bonusClaimRes.lastInsertRowid)
       const rRes = await db.execute({
         sql: "SELECT deadline_time FROM routine WHERE id=?",
         args: [routineId],
@@ -200,7 +206,7 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
       const deadlineTime = rRes.rows[0]?.deadline_time as string | null
       const baseBonus = allItems.rows.reduce((sum, r) => sum + (r.fixed_exp as number), 0)
 
-      if (deadlineTime && currentTimeKST() <= deadlineTime) {
+      if (deadlineTime && isWithinRoutineDeadline(currentTimeKST(), deadlineTime)) {
         bonusExp = baseBonus * 2
         deadlineBonus = true
       } else {
@@ -208,8 +214,8 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
       }
 
       await db.execute({
-        sql: "INSERT INTO routine_bonus_log (routine_id, bonus_exp, granted_at) VALUES (?,?,?)",
-        args: [routineId, bonusExp, now()],
+        sql: "UPDATE routine_bonus_log SET bonus_exp=? WHERE id=?",
+        args: [bonusExp, bonusLogId],
       })
     }
   }

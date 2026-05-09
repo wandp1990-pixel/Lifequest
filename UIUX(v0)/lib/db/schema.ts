@@ -537,4 +537,32 @@ export async function initDb() {
       )`,
     ], "write")
   })
+
+  // 더블탭 race 방어: 같은 (item_id, KST 날짜)에 대해 1회만 적립
+  await runMigration("daily_log_unique_v1", async () => {
+    await db.execute(`
+      DELETE FROM checklist_log WHERE id NOT IN (
+        SELECT MIN(id) FROM checklist_log GROUP BY item_id, DATE(checked_at)
+      )
+    `)
+    await db.execute(`
+      DELETE FROM routine_log WHERE id NOT IN (
+        SELECT MIN(id) FROM routine_log GROUP BY item_id, DATE(checked_at)
+      )
+    `)
+    await db.execute(`
+      DELETE FROM routine_bonus_log WHERE id NOT IN (
+        SELECT MIN(id) FROM routine_bonus_log GROUP BY routine_id, DATE(granted_at)
+      )
+    `)
+    await db.execute(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_checklist_log_item_date ON checklist_log(item_id, DATE(checked_at))"
+    )
+    await db.execute(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_routine_log_item_date ON routine_log(item_id, DATE(checked_at))"
+    )
+    await db.execute(
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_routine_bonus_log_routine_date ON routine_bonus_log(routine_id, DATE(granted_at))"
+    )
+  })
 }

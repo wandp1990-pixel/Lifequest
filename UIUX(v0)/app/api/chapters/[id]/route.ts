@@ -22,12 +22,17 @@ export async function PATCH(
         return NextResponse.json({ error: "연결된 프로젝트를 모두 완료해야 합니다." }, { status: 400 })
       }
 
+      // 재완료 가드: completeChapter가 conditional. status='done'을 먼저 잡고 그 다음 티켓 지급.
+      const newlyCompleted = await completeChapter(chapterId)
+      if (!newlyCompleted) {
+        return NextResponse.json({ error: "이미 완료된 챕터입니다" }, { status: 400 })
+      }
+
       const tickets = Number(bonus_tickets ?? 0)
       if (tickets > 0) {
         const char = await getCharacter()
         if (char) await updateCharacter({ draw_tickets: char.draw_tickets + tickets })
       }
-      await completeChapter(chapterId)
       const chapters = await getChapters()
       return NextResponse.json({ chapters, ticketsAwarded: tickets })
     }

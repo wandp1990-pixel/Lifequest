@@ -44,12 +44,14 @@ export async function addChapter(
   })
 }
 
-export async function completeChapter(id: number): Promise<void> {
+// 재완료 가드: 이미 done이면 false. 새로 완료한 경우만 true.
+export async function completeChapter(id: number): Promise<boolean> {
   const db = getClient()
-  await db.execute({
-    sql: "UPDATE chapter SET status='done', completed_at=? WHERE id=?",
+  const res = await db.execute({
+    sql: "UPDATE chapter SET status='done', completed_at=? WHERE id=? AND status='active'",
     args: [now(), id],
   })
+  return res.rowsAffected > 0
 }
 
 export async function deleteChapter(id: number): Promise<void> {

@@ -109,6 +109,25 @@ export async function updateChecklistStreak(itemId: number): Promise<{ streak: n
   return { streak: newStreak, bonusExp: streakBonusExp(newStreak, baseExp), isReturn }
 }
 
+// 오늘 자리 선점 (race 방어). 이미 있으면 null 반환.
+export async function claimChecklistLog(itemId: number): Promise<number | null> {
+  const db = getClient()
+  const res = await db.execute({
+    sql: "INSERT OR IGNORE INTO checklist_log (item_id,exp_gained,checked_at) VALUES (?,0,?)",
+    args: [itemId, now()],
+  })
+  if (res.rowsAffected === 0) return null
+  return Number(res.lastInsertRowid)
+}
+
+export async function setChecklistLogExp(logId: number, exp: number) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE checklist_log SET exp_gained=? WHERE id=?",
+    args: [exp, logId],
+  })
+}
+
 export async function addChecklistLog(itemId: number, exp: number) {
   const db = getClient()
   await db.execute({

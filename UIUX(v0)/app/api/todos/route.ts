@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem,
   updateTodoExp, updateTodoName, addActivityLog, incrementTaskCount, updateTodoNotifyTime,
-  applyExpiredTodoPenalties,
 } from "@/lib/db"
 import { now } from "@/lib/db/client"
 import { gainExp } from "@/lib/game"
@@ -12,7 +11,6 @@ export async function GET() {
   try {
     await initDb()
     await cleanupCompletedTodos()
-    await applyExpiredTodoPenalties()
     const items = await getTodoItems()
     return NextResponse.json({ items })
   } catch (e) {
@@ -40,6 +38,7 @@ export async function PATCH(req: NextRequest) {
     const items = await getTodoItems()
     const item = items.find((i) => i.id === id)
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
+    if (item.is_completed) return NextResponse.json({ error: "이미 완료된 항목입니다" }, { status: 400 })
 
     let baseExp = (item.suggested_exp as number) ?? 10
     let comment = "할 일 완료!"
@@ -67,7 +66,10 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    await completeTodoItem(id, exp, comment)
+    // race/재완료 방어: completeTodoItem이 false면 다른 요청이 먼저 완료시킨 것
+    const claimed = await completeTodoItem(id, exp, comment)
+    if (!claimed) return NextResponse.json({ error: "이미 완료된 항목입니다" }, { status: 400 })
+
     await addActivityLog(item.name as string, "todo", exp, comment)
     await incrementTaskCount()
     const levelResult = await gainExp(exp)

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
-  initDb, getChecklistItems, addChecklistLog, getTodayCheckedItemIds,
-  addChecklistItem, deleteChecklistItem, addActivityLog, incrementTaskCount,
-  updateChecklistStreak, updateChecklistItemName, updateChecklistNotifyTime,
-  penaltyExpForMissedDays,
+  initDb, getChecklistItems, claimChecklistLog, setChecklistLogExp,
+  getTodayCheckedItemIds, addChecklistItem, deleteChecklistItem,
+  addActivityLog, incrementTaskCount, updateChecklistStreak,
+  updateChecklistItemName, updateChecklistNotifyTime, penaltyExpForMissedDays,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -27,8 +27,9 @@ export async function POST(req: NextRequest) {
     const item = items.find((i) => i.id === itemId)
     if (!item) return NextResponse.json({ error: "항목 없음" }, { status: 404 })
 
-    const todayChecked = await getTodayCheckedItemIds()
-    if (todayChecked.has(itemId)) {
+    // race 방어: 오늘 자리 atomic 선점. 실패 시 즉시 차단.
+    const logId = await claimChecklistLog(itemId)
+    if (logId === null) {
       return NextResponse.json({ error: "오늘 이미 완료한 항목입니다" }, { status: 400 })
     }
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       ? "다시 이어가기 시작했어요 💪"
       : "좋은 시작이에요"
 
-    await addChecklistLog(itemId, totalExp)
+    await setChecklistLogExp(logId, totalExp)
     await addActivityLog(item.name as string, "daily", totalExp, comment)
     await incrementTaskCount()
     const levelResult = await gainExp(totalExp)

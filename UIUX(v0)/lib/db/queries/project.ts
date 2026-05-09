@@ -55,12 +55,14 @@ export async function updateProject(
   await db.execute({ sql: `UPDATE project SET ${sets} WHERE id=?`, args })
 }
 
-export async function completeProject(id: number): Promise<void> {
+// 재완료 가드: 이미 done이면 false. 새로 완료된 경우만 true.
+export async function completeProject(id: number): Promise<boolean> {
   const db = getClient()
-  await db.execute({
-    sql: "UPDATE project SET status='done', completed_at=? WHERE id=?",
+  const res = await db.execute({
+    sql: "UPDATE project SET status='done', completed_at=? WHERE id=? AND status!='done'",
     args: [now(), id],
   })
+  return res.rowsAffected > 0
 }
 
 export async function deleteProject(id: number): Promise<void> {
@@ -91,12 +93,14 @@ export async function addProjectTask(
   })
 }
 
-export async function completeProjectTask(id: number): Promise<void> {
+// race 방어: 미완료 상태일 때만 통과.
+export async function completeProjectTask(id: number): Promise<boolean> {
   const db = getClient()
-  await db.execute({
-    sql: "UPDATE project_task SET is_completed=1, completed_at=? WHERE id=?",
+  const res = await db.execute({
+    sql: "UPDATE project_task SET is_completed=1, completed_at=? WHERE id=? AND is_completed=0",
     args: [now(), id],
   })
+  return res.rowsAffected > 0
 }
 
 export async function deleteProjectTask(id: number): Promise<void> {
@@ -104,6 +108,8 @@ export async function deleteProjectTask(id: number): Promise<void> {
   await db.execute({ sql: "DELETE FROM project_task WHERE id=?", args: [id] })
 }
 
+// 모든 task가 끝났을 때만 프로젝트를 완료. completeProject가 conditional이라
+// 동시 호출 시 한 쪽만 true를 받음 → 보너스 중복 지급 방지.
 export async function checkAndCompleteProject(projectId: number): Promise<boolean> {
   const db = getClient()
   const res = await db.execute({
@@ -114,8 +120,7 @@ export async function checkAndCompleteProject(projectId: number): Promise<boolea
   const total = Number(row.total)
   const done = Number(row.done)
   if (total > 0 && done === total) {
-    await completeProject(projectId)
-    return true
+    return await completeProject(projectId)
   }
   return false
 }

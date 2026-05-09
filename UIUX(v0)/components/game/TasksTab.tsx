@@ -23,7 +23,6 @@ interface TodoItem {
   ai_comment?: string
   notify_time?: string | null
   due_time?: string | null
-  penalty_applied?: number
 }
 
 interface RoutineItem {
@@ -1200,17 +1199,21 @@ export default function TasksTab({
                       </button>
                     )}
                   </div>
-                  {!done && item.due_time && (
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
-                        item.penalty_applied
-                          ? "text-red-600 bg-red-50 border-red-200"
-                          : "text-violet-600 bg-violet-50 border-violet-200"
-                      }`}>
-                        {item.penalty_applied ? "⚠️ 기한초과" : `⏰ ${item.due_time.slice(5, 16).replace(" ", " ")}`}
-                      </span>
-                    </div>
-                  )}
+                  {!done && item.due_time && (() => {
+                    const nowKstStr = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().replace("T", " ").slice(0, 19)
+                    const expired = item.due_time < nowKstStr
+                    return (
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
+                          expired
+                            ? "text-red-600 bg-red-50 border-red-200"
+                            : "text-violet-600 bg-violet-50 border-violet-200"
+                        }`}>
+                          {expired ? "⚠️ 기한초과" : `⏰ ${item.due_time.slice(5, 16).replace(" ", " ")}`}
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
             </div>

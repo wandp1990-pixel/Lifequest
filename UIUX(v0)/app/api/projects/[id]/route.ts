@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initDb } from "@/lib/db/schema"
-import { getProjects, updateProject, deleteProject, getProjectById } from "@/lib/db/queries/project"
+import { getProjects, updateProject, deleteProject, getProjectById, completeProject } from "@/lib/db/queries/project"
 import { gainExp } from "@/lib/game"
 import { addActivityLog } from "@/lib/db/queries/activity"
 
@@ -14,7 +14,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.status === "done") {
       const project = await getProjectById(projectId)
       if (!project) return NextResponse.json({ error: "없음" }, { status: 404 })
-      await updateProject(projectId, { status: "done" })
+      // 재완료 가드: completeProject가 conditional UPDATE라 false면 이미 완료된 것
+      const newlyCompleted = await completeProject(projectId)
+      if (!newlyCompleted) {
+        return NextResponse.json({ error: "이미 완료된 프로젝트입니다" }, { status: 400 })
+      }
       let levelResult = null
       if (project.bonus_exp > 0) {
         await addActivityLog(`[프로젝트 완료] ${project.name}`, "todo", project.bonus_exp, "프로젝트 완료 보너스!")

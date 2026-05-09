@@ -5,12 +5,12 @@ export { initDb, initDbSchemaOnly } from "./schema"
 export { getCharacter, updateCharacter, incrementTaskCount } from "./queries/character"
 export { addActivityLog, getRecentActivities } from "./queries/activity"
 export {
-  getChecklistItems, addChecklistLog, addChecklistItem,
-  deleteChecklistItem, getTodayCheckedItemIds,
+  getChecklistItems, addChecklistLog, claimChecklistLog, setChecklistLogExp,
+  addChecklistItem, deleteChecklistItem, getTodayCheckedItemIds,
   updateChecklistStreak, streakBonusExp, updateChecklistItemName,
   penaltyExpForMissedDays,
 } from "./queries/checklist"
-export { getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName, applyExpiredTodoPenalties } from "./queries/todo"
+export { getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName } from "./queries/todo"
 export {
   getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,

@@ -23,26 +23,14 @@ export async function addTodoItem(name: string, suggestedExp: number, dueTime?: 
   })
 }
 
-export async function applyExpiredTodoPenalties(): Promise<{ count: number; hpLost: number }> {
+// race/재완료 방어: 미완료 상태에서만 통과. true면 새로 완료된 것.
+export async function completeTodoItem(id: number, exp: number, comment: string): Promise<boolean> {
   const db = getClient()
-  const currentNow = now()
-  const expired = await db.execute({
-    sql: "SELECT id FROM todo_item WHERE is_completed=0 AND penalty_applied=0 AND due_time IS NOT NULL AND due_time < ?",
-    args: [currentNow],
-  })
-  if (expired.rows.length === 0) return { count: 0, hpLost: 0 }
-  for (const row of expired.rows) {
-    await db.execute({ sql: "UPDATE todo_item SET penalty_applied=1 WHERE id=?", args: [row.id] })
-  }
-  return { count: expired.rows.length, hpLost: 0 }
-}
-
-export async function completeTodoItem(id: number, exp: number, comment: string) {
-  const db = getClient()
-  await db.execute({
-    sql: "UPDATE todo_item SET is_completed=1, exp_gained=?, ai_comment=?, completed_at=? WHERE id=?",
+  const res = await db.execute({
+    sql: "UPDATE todo_item SET is_completed=1, exp_gained=?, ai_comment=?, completed_at=? WHERE id=? AND is_completed=0",
     args: [exp, comment, now(), id],
   })
+  return res.rowsAffected > 0
 }
 
 export async function updateTodoExp(id: number, suggestedExp: number) {

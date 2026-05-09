@@ -29,7 +29,9 @@ export async function PATCH(
 
     if (task.is_completed) return NextResponse.json({ error: "이미 완료됨" }, { status: 400 })
 
-    await completeProjectTask(taskIdNum)
+    // race 방어: completeProjectTask가 conditional. 동시 PATCH 시 한 쪽만 통과.
+    const claimed = await completeProjectTask(taskIdNum)
+    if (!claimed) return NextResponse.json({ error: "이미 완료됨" }, { status: 400 })
     await incrementTaskCount()
 
     const expReward = Number(task.exp_reward)
