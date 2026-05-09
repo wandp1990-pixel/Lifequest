@@ -41,7 +41,7 @@ export async function getChecklistItems() {
 // missedDays = days_since_last - 1 (어제 완료=miss 0, 2일 전=miss 1, ...)
 export function penaltyExpForMissedDays(missedDays: number, baseExp: number): number {
   if (missedDays <= 0) return 0
-  const pct = Math.min(missedDays * 0.2, 0.5)
+  const pct = Math.min(missedDays * 0.1, 0.5)
   return Math.floor(baseExp * pct)
 }
 
