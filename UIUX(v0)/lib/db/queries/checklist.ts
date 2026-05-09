@@ -46,7 +46,7 @@ export function streakBonusExp(streak: number, baseExp: number): number {
   return Math.floor(baseExp * pct)
 }
 
-export async function updateChecklistStreak(itemId: number): Promise<{ streak: number; bonusExp: number }> {
+export async function updateChecklistStreak(itemId: number): Promise<{ streak: number; bonusExp: number; isReturn: boolean }> {
   const db = getClient()
   const yesterday = yesterdayKST()
 

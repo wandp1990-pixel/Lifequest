@@ -928,7 +928,8 @@ export default function TasksTab({
                           "text-muted-foreground bg-muted border-border"
         const streakLabel =
           streak >= 100 ? "🏆 완전 습관" :
-          streak >= 66  ? `🔥 ${streak}일 (거의 습관!)` :
+          streak >= 90  ? `💫 ${streak}일 (루틴 완성)` :
+          streak >= 60  ? `🔥 ${streak}일 (습관 완성!)` :
           streak >= 30  ? `🔥 ${streak}일 (자리잡는 중)` :
           streak >= 14  ? `🔥 ${streak}일 (유지 중)` :
           streak >= 7   ? `🔥 ${streak}일 (적응 중)` :
