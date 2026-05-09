@@ -232,44 +232,41 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
       </div>
 
       {/* 미니 스탯 그리드 */}
-      <div className="mx-4 mt-3 grid grid-cols-4 gap-2">
-        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#E5F4ED' }}>
-              <span className="text-[9px]">✓</span>
-            </div>
-            <p className="text-[9px] text-muted-foreground font-medium truncate">습관</p>
+      {(() => {
+        const doneTodos = todos.filter(t => !t.is_done).length
+        const stats = [
+          { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "✓" },
+          { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "↺" },
+          { label: "프로젝트", done: 0, total: urgentProjects.length, color: "#a78bfa", icon: "□" },
+          { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "✎" },
+        ]
+        const R = 22, C = 50, stroke = 4
+        const circ = 2 * Math.PI * R
+        return (
+          <div className="mx-4 mt-3 grid grid-cols-4 gap-2">
+            {stats.map(({ label, done, total, color, icon }) => {
+              const pct = total > 0 ? done / total : 0
+              const offset = circ * (1 - pct)
+              return (
+                <div key={label} className="rounded-xl border border-border bg-background py-3 flex flex-col items-center gap-1.5 shadow-sm">
+                  <div className="relative" style={{ width: C, height: C }}>
+                    <svg width={C} height={C} style={{ transform: "rotate(-90deg)" }}>
+                      <circle cx={C/2} cy={C/2} r={R} fill="none" stroke="#e5e7eb" strokeWidth={stroke} />
+                      <circle cx={C/2} cy={C/2} r={R} fill="none" stroke={color} strokeWidth={stroke}
+                        strokeDasharray={circ} strokeDashoffset={offset}
+                        strokeLinecap="round"
+                        style={{ transition: "stroke-dashoffset 0.4s ease" }}
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-base">{icon}</span>
+                  </div>
+                  <p className="text-[10px] font-bold text-foreground">{label} <span className="font-extrabold">{done}</span><span className="text-muted-foreground font-medium"> /{total}</span></p>
+                </div>
+              )
+            })}
           </div>
-          <p className="text-sm font-extrabold">{checkedHabitIds.size}/{habits.length}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#FFF1E0' }}>
-              <span className="text-[9px]">✓</span>
-            </div>
-            <p className="text-[9px] text-muted-foreground font-medium truncate">루틴</p>
-          </div>
-          <p className="text-sm font-extrabold">{bonusRoutineIds.size}/{routines.length}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#FEE3E3' }}>
-              <span className="text-[9px]">📋</span>
-            </div>
-            <p className="text-[9px] text-muted-foreground font-medium truncate">프로젝트</p>
-          </div>
-          <p className="text-sm font-extrabold">{urgentProjects.length}개</p>
-        </div>
-        <div className="rounded-xl border border-border bg-background px-2 py-2.5 flex flex-col gap-1 shadow-sm">
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ background: '#E3F2FD' }}>
-              <span className="text-[9px]">✎</span>
-            </div>
-            <p className="text-[9px] text-muted-foreground font-medium truncate">할 일</p>
-          </div>
-          <p className="text-sm font-extrabold">{todos.filter(t => !t.is_done).length}/{todos.length}</p>
-        </div>
-      </div>
+        )
+      })()}
 
       {/* 마감 임박 프로젝트 */}
       {urgentProjects.length > 0 && (
