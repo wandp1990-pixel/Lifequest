@@ -46,9 +46,9 @@ export default function SkillDetailSheet({ skill, isUnlocked, onClose }: SkillDe
         className="fixed inset-0 bg-black/40 z-40"
         onClick={onClose}
       />
-      <div className="fixed inset-x-0 bottom-0 sm:inset-0 sm:flex sm:items-center sm:justify-center z-50 pointer-events-none">
+      <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none px-4">
         <div
-          className="pointer-events-auto bg-white w-full max-w-sm mx-auto rounded-t-3xl sm:rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[85dvh]"
+          className="pointer-events-auto bg-white w-full max-w-sm rounded-3xl shadow-xl overflow-hidden flex flex-col max-h-[85dvh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* 헤더 */}
