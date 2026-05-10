@@ -47,8 +47,9 @@ type CharacterData = {
     patk: number; matk: number; pdef: number; mdef: number
     dex: number; luk: number; vit: number; int: number
     max_hp: number; max_mp: number
-    crit_rate: number; accuracy_bonus: number; evasion_bonus: number
-    double_attack: boolean; life_steal: boolean; def_ignore: boolean; reflect: boolean
+    crit_rate: number; crit_dmg: number
+    accuracy_bonus: number; evasion_bonus: number
+    double_attack: number; life_steal: number; def_ignore: number; reflect: number
   }
   item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
   max_cleared_grade?: string | null

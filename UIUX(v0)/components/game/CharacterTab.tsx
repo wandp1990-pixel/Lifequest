@@ -74,8 +74,9 @@ interface CharacterTabProps {
   effectiveStats?: {
     patk: number; matk: number; pdef: number; mdef: number
     dex: number; luk: number; max_hp: number; max_mp: number
-    crit_rate: number; accuracy_bonus: number; evasion_bonus: number
-    double_attack: boolean; life_steal: boolean; def_ignore: boolean; reflect: boolean
+    crit_rate: number; crit_dmg: number
+    accuracy_bonus: number; evasion_bonus: number
+    double_attack: number; life_steal: number; def_ignore: number; reflect: number
   }
 }
 
@@ -440,6 +441,9 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
                   {effectiveStats.crit_rate > 0 && (
                     <CombatStatRow label="치명타율" value={`+${effectiveStats.crit_rate}%`} color="text-orange-500" />
                   )}
+                  {effectiveStats.crit_dmg > 0 && (
+                    <CombatStatRow label="치명타 피해" value={`+${effectiveStats.crit_dmg}%`} color="text-rose-500" />
+                  )}
                   {effectiveStats.accuracy_bonus > 0 && (
                     <CombatStatRow label="명중 보너스" value={`+${effectiveStats.accuracy_bonus}%`} color="text-teal-500" />
                   )}
@@ -447,12 +451,12 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
                     <CombatStatRow label="회피 보너스" value={`+${effectiveStats.evasion_bonus}%`} color="text-lime-500" />
                   )}
                 </div>
-                {(effectiveStats.double_attack || effectiveStats.life_steal || effectiveStats.def_ignore || effectiveStats.reflect) && (
+                {(effectiveStats.double_attack > 0 || effectiveStats.life_steal > 0 || effectiveStats.def_ignore > 0 || effectiveStats.reflect > 0) && (
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
-                    {effectiveStats.double_attack && <PassiveBadge label="더블어택" />}
-                    {effectiveStats.life_steal    && <PassiveBadge label="생명흡수" />}
-                    {effectiveStats.def_ignore    && <PassiveBadge label="방어무시" />}
-                    {effectiveStats.reflect       && <PassiveBadge label="반사" />}
+                    {effectiveStats.double_attack > 0 && <PassiveBadge label={`더블어택 ${effectiveStats.double_attack}%`} />}
+                    {effectiveStats.life_steal    > 0 && <PassiveBadge label={`생명흡수 ${effectiveStats.life_steal}%`} />}
+                    {effectiveStats.def_ignore    > 0 && <PassiveBadge label={`방어무시 ${effectiveStats.def_ignore}%`} />}
+                    {effectiveStats.reflect       > 0 && <PassiveBadge label={`반사 ${effectiveStats.reflect}%`} />}
                   </div>
                 )}
               </div>

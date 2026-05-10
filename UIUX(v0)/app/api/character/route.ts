@@ -48,12 +48,15 @@ export async function GET() {
         max_mp:        Math.round(cs.max_mp),
         // 치명타율/명중/회피: 소수점 1자리 %로 표시 (예: 12.5%)
         crit_rate:     Math.round(cs.bonus_crit_rate * 1000) / 10,
+        // 치명타 피해는 이미 % 단위 (예: "치명타피해 +50%" → 50)
+        crit_dmg:      Math.round(cs.bonus_crit_dmg * 10) / 10,
         accuracy_bonus: Math.round(cs.bonus_accuracy * 1000) / 10,
         evasion_bonus:  Math.round(cs.bonus_evasion * 1000) / 10,
-        double_attack: cs.double_attack_chance > 0,
-        life_steal:    cs.life_steal_ratio > 0,
-        def_ignore:    cs.defense_ignore_ratio > 0,
-        reflect:       cs.reflect_ratio > 0,
+        // 패시브 능력: ratio(0~1) → % 정수. 0이면 미보유
+        double_attack: Math.round(cs.double_attack_chance * 100),
+        life_steal:    Math.round(cs.life_steal_ratio * 100),
+        def_ignore:    Math.round(cs.defense_ignore_ratio * 100),
+        reflect:       Math.round(cs.reflect_ratio * 100),
       },
       item_stat_bonuses: itemStatBonuses,
     })
