@@ -36,11 +36,13 @@ export function recalcHpMp(
 // 1. 누적 EXP에 지급 EXP 더함
 // 2. 필요 EXP 체크하며 레벨업 (stat_points/skill_points/draw_tickets 지급)
 // 3. 레벨업 시 HP/MP 풀 회복 (아이템 보너스 포함)
+//
+// cfg/bcfg/skills는 변경 빈도가 낮아 트랜잭션 외부 read 유지.
+// equipment는 장착/뽑기로 자주 바뀌므로 트랜잭션 안에서 재read해 stale max_hp 방지.
 export async function gainExp(expAmount: number) {
-  const [cfg, bcfg, equipment, allSkills] = await Promise.all([
+  const [cfg, bcfg, allSkills] = await Promise.all([
     db.getGameConfig(),
     db.getBattleConfig(),
-    db.getEquipment(),
     db.getSkillsWithInvestment(),
   ])
 
@@ -87,9 +89,11 @@ export async function gainExp(expAmount: number) {
       updated_at: now(),
     }
 
-    // 레벨업 시: 장비 옵션(아이템 보너스) 포함해서 현재 HP/MP 풀 회복
+    // 레벨업 시: 장비 옵션(아이템 보너스) 포함해서 현재 HP/MP 풀 회복.
+    // 트랜잭션 안에서 equipment를 재read해 동시 장착 변경으로 인한 max_hp 부풀림 방지.
     if (leveledUp) {
-      const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
+      const equipRes = await tx.execute("SELECT is_equipped, options FROM equipment")
+      const equippedOptions = (equipRes.rows as unknown as { is_equipped: number; options: string }[])
         .filter((e) => e.is_equipped === 1)
         .map((e) => e.options)
       const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)
