@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Sword, Heart, Wind, Brain, Star, Lock, ChevronUp, ChevronDown, Zap, Save, Loader2 } from "lucide-react"
+import SkillDetailSheet from "@/components/game/SkillDetailSheet"
 
 // ─── 스탯 ────────────────────────────────────────────────────────────────────
 
@@ -85,10 +86,11 @@ interface CharacterTabProps {
 
 function SkillCard({
   skill, isUnlocked, availableSkp,
-  onInvest,
+  onInvest, onSelect,
 }: {
   skill: Skill; isUnlocked: boolean; availableSkp: number
   onInvest: (id: string, delta: number) => void
+  onSelect: (id: string) => void
 }) {
   const pct = (skill.invested / skill.max_skp) * 100
   const isPassive = skill.type === "passive"
@@ -97,7 +99,11 @@ function SkillCard({
 
   if (!isUnlocked) {
     return (
-      <div className="flex items-center gap-3 px-3.5 py-3.5 rounded-2xl border border-[#f1ece4] bg-white opacity-55">
+      <button
+        type="button"
+        onClick={() => onSelect(skill.id)}
+        className="flex items-center gap-3 px-3.5 py-3.5 rounded-2xl border border-[#f1ece4] bg-white opacity-55 text-left active:opacity-70 transition-opacity"
+      >
         <div className="w-9 h-9 rounded-full bg-white border border-[#ececec] flex items-center justify-center flex-shrink-0">
           <Lock className="w-3.5 h-3.5 text-gray-400" />
         </div>
@@ -112,22 +118,26 @@ function SkillCard({
             <div className="flex-1 h-[3px] bg-[#f3f0ea] rounded-full" />
           </div>
         </div>
-        <button disabled className="w-7 h-7 flex items-center justify-center opacity-30 text-gray-400">
+        <span className="w-7 h-7 flex items-center justify-center opacity-30 text-gray-400">
           <ChevronDown className="w-3.5 h-3.5" />
-        </button>
+        </span>
         <div className="w-5 text-center flex-shrink-0">
           <span className="text-[17px] font-extrabold text-[#cbd5e0]">0</span>
         </div>
-        <button disabled className="w-7 h-7 flex items-center justify-center opacity-30 text-gray-400">
+        <span className="w-7 h-7 flex items-center justify-center opacity-30 text-gray-400">
           <ChevronUp className="w-3.5 h-3.5" />
-        </button>
-      </div>
+        </span>
+      </button>
     )
   }
 
   return (
     <div
-      className={`flex items-center gap-3 px-3.5 py-3.5 rounded-2xl ${
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(skill.id)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(skill.id) }}
+      className={`flex items-center gap-3 px-3.5 py-3.5 rounded-2xl cursor-pointer active:scale-[0.99] transition-transform ${
         isHighlighted ? "bg-[#faf5ff] border-[#ddd6fe]" : "bg-white border-[#f1ece4]"
       }`}
       style={{ border: isHighlighted ? "1.5px solid #ddd6fe" : "1px solid #f1ece4" }}
@@ -163,7 +173,7 @@ function SkillCard({
 
       {/* ▽ 숫자 △ */}
       <button
-        onClick={() => onInvest(skill.id, -1)}
+        onClick={(e) => { e.stopPropagation(); onInvest(skill.id, -1) }}
         disabled={skill.invested <= 0}
         className="w-7 h-7 flex items-center justify-center disabled:opacity-30 text-gray-400"
       >
@@ -173,7 +183,7 @@ function SkillCard({
         <span className="text-[17px] font-extrabold text-gray-900">{skill.invested}</span>
       </div>
       <button
-        onClick={() => onInvest(skill.id, +1)}
+        onClick={(e) => { e.stopPropagation(); onInvest(skill.id, +1) }}
         disabled={skill.invested >= skill.max_skp || availableSkp <= 0}
         className="w-7 h-7 flex items-center justify-center disabled:opacity-30 text-gray-400"
       >
@@ -237,6 +247,7 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
   const [skillFilter, setSkillFilter] = useState<"all" | "active" | "passive">("all")
   const [pendingInvest, setPendingInvest] = useState<Record<string, number>>({})
   const [skillSaving, setSkillSaving] = useState(false)
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
 
   const fetchSkills = useCallback(async () => {
     try {
@@ -464,6 +475,19 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
         </div>
       )}
 
+      {/* 스킬 상세 시트 */}
+      {selectedSkillId && (() => {
+        const target = skillsView.find((s) => s.id === selectedSkillId)
+        if (!target) return null
+        return (
+          <SkillDetailSheet
+            skill={target}
+            isUnlocked={(char?.level ?? 1) >= target.unlock_level}
+            onClose={() => setSelectedSkillId(null)}
+          />
+        )
+      })()}
+
       {/* ── 스킬 뷰 ── */}
       {view === "skill" && (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -517,6 +541,7 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
                 isUnlocked={(char?.level ?? 1) >= skill.unlock_level}
                 availableSkp={availableSkp}
                 onInvest={handleSkillInvest}
+                onSelect={setSelectedSkillId}
               />
             ))}
           </div>
