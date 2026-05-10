@@ -169,8 +169,10 @@ UI(components/game/*.tsx)
 - **쿼리**: `lib/db/queries/skills.ts`
 - **API**: `/api/skills` (GET/PUT 보유 스킬), `/api/skill-db` (정의 CRUD)
 - **로직**: `lib/battle.ts` `computePassiveBonuses`, `getActiveSkills`
-- **UI**: `SkillsTab.tsx`, `CharacterTab.tsx`
+- **도감 텍스트**: `lib/skills/skill-info.ts` (id 기준으로 `concept` / `trigger_explanation` / `effect_explanation` 정의)
+- **UI**: `CharacterTab.tsx` (스킬 투자 뷰 + 카드), `SkillDetailSheet.tsx` (스킬 카드 탭 시 뜨는 도감 모달)
 - 패시브(violet)와 액티브(purple) 구분 — DESIGN_GUIDE §4.9
+- **규칙 (필독)**: `skill_table` 항목을 추가/수정/삭제할 때마다 `lib/skills/skill-info.ts` 의 같은 id 항목도 함께 갱신한다. id가 누락되면 도감 모달에 "설명이 작성되지 않았습니다" 폴백이 노출됨. 효과 수치는 DB가 SoT, 도감 텍스트는 `skill-info.ts` 가 SoT — 두 곳을 분리해 둔 이유는 수치 튜닝과 문구 수정의 흐름이 다르기 때문이다.
 
 ### 5.11 출석
 
