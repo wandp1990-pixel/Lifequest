@@ -20,7 +20,7 @@ export async function GET() {
     const nextExp = requiredExp(char.level, cfg)
 
     // 장착된 장비의 옵션 문자열 추출
-    const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+    const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
       .filter((e) => e.is_equipped === 1)
       .map((e) => e.options)
 
@@ -139,7 +139,7 @@ export async function PUT(req: NextRequest) {
 
       // 장비 + 패시브 스킬 포함 effective max 계산
       // current_hp가 새로운 max를 초과하지 않도록 캡 (단, 아이템으로 부풀린 HP는 보존)
-      const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+      const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
         .filter((e) => e.is_equipped === 1)
         .map((e) => e.options)
       const cs = buildPlayerCombatStats(merged, equippedOptions, bcfg, allSkills)

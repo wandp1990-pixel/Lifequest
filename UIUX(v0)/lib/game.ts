@@ -76,7 +76,7 @@ export async function gainExp(expAmount: number) {
 
     const { maxHp, maxMp } = recalcHpMp({ ...char, level }, bcfg)
 
-    const updates: Record<string, unknown> = {
+    const updates: Record<string, string | number | null> = {
       level,
       total_exp: totalExp,
       stat_points: statPts,
@@ -89,7 +89,7 @@ export async function gainExp(expAmount: number) {
 
     // 레벨업 시: 장비 옵션(아이템 보너스) 포함해서 현재 HP/MP 풀 회복
     if (leveledUp) {
-      const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+      const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
         .filter((e) => e.is_equipped === 1)
         .map((e) => e.options)
       const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)

@@ -113,7 +113,7 @@ export async function updateSkillDb(id: string, data: Partial<Omit<SkillDbRow, "
   const fields = Object.keys(data)
   if (fields.length === 0) return
   const sets = fields.map((f) => `${f} = ?`).join(", ")
-  const vals = fields.map((f) => (data as Record<string, unknown>)[f])
+  const vals = fields.map((f) => (data as Record<string, string | number | null>)[f])
   await db.execute({ sql: `UPDATE skill_table SET ${sets} WHERE id = ?`, args: [...vals, id] })
 }
 

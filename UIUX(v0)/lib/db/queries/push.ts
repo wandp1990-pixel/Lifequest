@@ -18,7 +18,7 @@ export async function deletePushSubscription(endpoint: string) {
 export async function getAllPushSubscriptions() {
   const db = getClient()
   const res = await db.execute("SELECT endpoint, p256dh, auth FROM push_subscription")
-  return res.rows as { endpoint: string; p256dh: string; auth: string }[]
+  return res.rows as unknown as { endpoint: string; p256dh: string; auth: string }[]
 }
 
 export async function updateChecklistNotifyTime(id: number, notifyTime: string | null) {
@@ -42,7 +42,7 @@ export async function getPendingHabitNotifications(timeKST: string, dateKST: str
             )`,
     args: [timeKST, `${dateKST}%`],
   })
-  return res.rows as { id: number; name: string }[]
+  return res.rows as unknown as { id: number; name: string }[]
 }
 
 export async function getPendingTodoNotifications(timeKST: string) {
@@ -51,5 +51,5 @@ export async function getPendingTodoNotifications(timeKST: string) {
     sql: "SELECT id, name FROM todo_item WHERE is_completed = 0 AND notify_time = ?",
     args: [timeKST],
   })
-  return res.rows as { id: number; name: string }[]
+  return res.rows as unknown as { id: number; name: string }[]
 }

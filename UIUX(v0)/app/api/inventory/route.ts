@@ -111,7 +111,7 @@ export async function PATCH(req: NextRequest) {
     const [char, bcfg, equipment, allSkills] = await Promise.all([
       getCharacter(), getBattleConfig(), getEquipment(), getSkillsWithInvestment(),
     ])
-    const equippedOptions = (equipment as { is_equipped: number; options: string }[])
+    const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
       .filter((e) => e.is_equipped === 1)
       .map((e) => e.options)
     const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, allSkills)

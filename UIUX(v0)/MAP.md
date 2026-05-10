@@ -113,6 +113,8 @@ UI(components/game/*.tsx)
 - **쿼리**: `lib/db/queries/routine.ts`
 - **API**: `/api/routines` (GET/POST)
 - **UI**: `TasksTab.tsx` 루틴 섹션 (아코디언)
+- **보상 산식 (의도된 디자인)**: 항목별 `fixed_exp` 1배 + 모든 항목 완수 시 합계만큼 추가 보너스. `deadline_time` 내 완료면 합계의 **2배** 추가 → 마감 외 총 **2배** / 마감 내 총 **3배** 적립. 루틴 완수 보상을 강하게 설계한 것이라 산식 변경 금지.
+- **자정 넘김 마감**: `deadline_time < "06:00"`이고 `currentTimeKST() >= "18:00"`이면 통과(전날 저녁 시작 → 다음날 새벽 마감 의도). 그 외엔 `currentTimeKST() <= deadline_time`.
 
 ### 5.4 데일리 — 할 일(투두)
 
