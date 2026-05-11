@@ -40,9 +40,10 @@ interface TodoItem {
 interface HomeTabProps {
   onExpGained: () => void
   refreshTick?: number
+  onTabChange?: (tab: "home" | "tasks" | "battle" | "items" | "skills") => void
 }
 
-export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
+export default function HomeTab({ onExpGained, refreshTick, onTabChange }: HomeTabProps) {
   const [actText, setActText] = useState("")
   const [actSubmitting, setActSubmitting] = useState(false)
   const [actLogs, setActLogs] = useState<ActivityLog[]>([])
@@ -251,7 +252,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
               const pct = total > 0 ? done / total : 0
               const offset = circ * (1 - pct)
               return (
-                <div key={label} className={`rounded-xl border ${bg} ${border} py-3 flex flex-col items-center gap-1.5 shadow-sm`}>
+                <button key={label} onClick={() => onTabChange?.("tasks")} className={`rounded-xl border ${bg} ${border} py-3 flex flex-col items-center gap-1.5 shadow-sm active:scale-95 transition-transform`}>
                   <div className="relative" style={{ width: C, height: C }}>
                     <svg width={C} height={C} style={{ transform: "rotate(-90deg)" }}>
                       <circle cx={C/2} cy={C/2} r={R} fill="none" stroke={trackColor} strokeWidth={stroke} />
@@ -264,7 +265,7 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
                     <span className="absolute inset-0 flex items-center justify-center text-base">{icon}</span>
                   </div>
                   <p className="text-[10px] font-bold text-foreground">{label} <span className="font-extrabold">{done}</span><span className="text-muted-foreground font-medium"> /{total}</span></p>
-                </div>
+                </button>
               )
             })}
           </div>

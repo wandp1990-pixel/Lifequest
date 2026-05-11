@@ -118,7 +118,7 @@ export default function GamePage() {
   const renderTabContent = () => {
     return (
       <>
-        {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} />}
+        {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} onTabChange={setActiveTab} />}
         {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} questTotal={questTotal} questRewardMin={questRewardMin} questRewardMax={questRewardMax} />}
         {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} itemStatBonuses={char?.item_stat_bonuses} effectiveStats={char?.effective} />}
         {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} refreshTick={refreshTick} />}
@@ -162,7 +162,7 @@ export default function GamePage() {
             nextExp={char?.next_exp ?? 100}
             tick={tick}
           />
-          {activeTab !== "home" && activeTab !== "skills" && activeTab !== "battle" && activeTab !== "tasks" && (
+          {activeTab !== "home" && (
             <QuestBanner
               title="데일리 완료"
               progress={Math.min(dailyCompleted, questTotal)}
