@@ -105,6 +105,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   const [chName,          setChName]          = useState("")
   const [chEnd,           setChEnd]           = useState("")
   const [chTickets,       setChTickets]       = useState(3)
+  const [chProjectIds,    setChProjectIds]    = useState<number[]>([])
   const [completingChapter, setCompletingChapter] = useState<number | null>(null)
 
   const fetchAll = useCallback(async () => {
@@ -235,8 +236,22 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     })
     if (res.ok) {
       const data = await res.json()
-      setChapters(data.chapters ?? [])
-      setAddingChapter(false); setChName(""); setChEnd(""); setChTickets(3)
+      const newChapter = (data.chapters ?? []).at(-1)
+      if (newChapter && chProjectIds.length > 0) {
+        await Promise.all(
+          chProjectIds.map((pid) =>
+            fetch(`/api/projects/${pid}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chapter_id: newChapter.id }),
+            })
+          )
+        )
+        await fetchAll()
+      } else {
+        setChapters(data.chapters ?? [])
+      }
+      setAddingChapter(false); setChName(""); setChEnd(""); setChTickets(3); setChProjectIds([])
     }
   }
 
@@ -714,7 +729,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
             })}
 
             {addingChapter ? (
-              <div className="space-y-2 border border-border rounded-lg p-2">
+              <div className="space-y-2 border border-border rounded-lg p-3">
                 <input
                   autoFocus
                   className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
@@ -743,9 +758,31 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                     />
                   </div>
                 </div>
+                {projects.filter((p) => p.status !== "done").length > 0 && (
+                  <div>
+                    <label className="text-[11px] text-muted-foreground block mb-1.5">프로젝트 선택 (선택)</label>
+                    <div className="space-y-1 max-h-36 overflow-y-auto">
+                      {projects.filter((p) => p.status !== "done").map((p) => (
+                        <label key={p.id} className="flex items-center gap-2 cursor-pointer py-0.5">
+                          <input
+                            type="checkbox"
+                            checked={chProjectIds.includes(p.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) setChProjectIds((prev) => [...prev, p.id])
+                              else setChProjectIds((prev) => prev.filter((id) => id !== p.id))
+                            }}
+                            className="w-3.5 h-3.5 accent-violet-500"
+                          />
+                          <div className={`w-1.5 h-1.5 rounded-full ${COLOR_CLS[p.color] ?? "bg-violet-500"}`} />
+                          <span className="text-[11px] text-foreground truncate">{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button onClick={handleAddChapter} disabled={!chName.trim()} className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40">추가</button>
-                  <button onClick={() => setAddingChapter(false)} className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground">취소</button>
+                  <button onClick={() => { setAddingChapter(false); setChProjectIds([]) }} className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground">취소</button>
                 </div>
               </div>
             ) : (
