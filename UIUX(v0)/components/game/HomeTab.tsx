@@ -190,7 +190,7 @@ export default function HomeTab({ onExpGained, refreshTick, onTabChange }: HomeT
         <div className="flex items-start justify-between relative">
           <div>
             <p className="text-[11px] font-bold tracking-wider" style={{ color: '#B5651D', letterSpacing: '0.04em' }}>{todayStr}</p>
-            <p className="text-[17px] font-extrabold text-foreground mt-0.5 leading-tight">{questTitle}</p>
+            <p className="text-[17px] font-extrabold text-gray-900 mt-0.5 leading-tight">{questTitle}</p>
             {attendToast && attendToast.bonusTickets > 0 && (
               <p className="text-xs font-black text-violet-500 mt-1">🎉 뽑기권 +{attendToast.bonusTickets} 보너스!</p>
             )}
@@ -239,10 +239,10 @@ export default function HomeTab({ onExpGained, refreshTick, onTabChange }: HomeT
       {(() => {
         const doneTodos = todos.filter(t => t.is_completed).length
         const stats = [
-          { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "☀️", bg: "bg-green-50",  border: "border-green-200",  trackColor: "#bbf7d0" },
-          { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "🔁", bg: "bg-indigo-50", border: "border-indigo-200", trackColor: "#c7d2fe" },
-          { label: "프로젝트", done: projectsDone, total: projectsTotal, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50", border: "border-violet-200", trackColor: "#ddd6fe" },
-          { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "📋", bg: "bg-amber-50",  border: "border-amber-200",  trackColor: "#fde68a" },
+          { label: "습관", done: checkedHabitIds.size, total: habits.length, color: "#22c55e", icon: "☀️", bg: "bg-green-50 dark:bg-green-950/40",  border: "border-green-200 dark:border-green-800",  trackColor: "#bbf7d0" },
+          { label: "루틴", done: bonusRoutineIds.size, total: routines.length, color: "#818cf8", icon: "🔁", bg: "bg-indigo-50 dark:bg-indigo-950/40", border: "border-indigo-200 dark:border-indigo-800", trackColor: "#c7d2fe" },
+          { label: "프로젝트", done: projectsDone, total: projectsTotal, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", trackColor: "#ddd6fe" },
+          { label: "할 일", done: doneTodos, total: todos.length, color: "#fbbf24", icon: "📋", bg: "bg-amber-50 dark:bg-amber-950/40",  border: "border-amber-200 dark:border-amber-800",  trackColor: "#fde68a" },
         ]
         const R = 22, C = 50, stroke = 4
         const circ = 2 * Math.PI * R
