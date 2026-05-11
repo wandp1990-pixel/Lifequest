@@ -246,7 +246,7 @@ export default function RoutineSection({
             onChange={(e) => setNewRoutineName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addRoutine()}
             placeholder="루틴 이름 (예: 아침 루틴)"
-            className="flex-1 text-sm text-gray-900 bg-teal-50 border border-teal-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
+            className="flex-1 text-sm text-gray-900 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-700 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
           />
           <button onClick={addRoutine} className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-bold active:scale-95">추가</button>
         </div>
@@ -278,7 +278,7 @@ export default function RoutineSection({
                 <input autoFocus type="text" value={editingRoutineNameVal}
                   onChange={(e) => setEditingRoutineNameVal(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") saveRoutineName(r.id); if (e.key === "Escape") setEditingRoutineNameId(null) }}
-                  className="flex-1 min-w-0 text-sm text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
+                  className="flex-1 min-w-0 text-sm text-gray-900 bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-700 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
                 />
                 <button onClick={() => saveRoutineName(r.id)} className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0">저장</button>
                 <button onClick={() => setEditingRoutineNameId(null)} className="text-muted-foreground flex-shrink-0"><X className="w-3 h-3" /></button>
@@ -296,7 +296,7 @@ export default function RoutineSection({
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {bonusGranted && (
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">🎉 완수!</span>
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-800">🎉 완수!</span>
                     )}
                     <span className="text-sm font-extrabold" style={{ color: '#5BA888' }}>{checked}/{total}</span>
                     <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
@@ -356,11 +356,11 @@ export default function RoutineSection({
                             <input autoFocus type="text" value={editingItemName}
                               onChange={(e) => setEditingItemName(e.target.value)}
                               onKeyDown={(e) => { if (e.key === "Enter") saveItemName(item.id); if (e.key === "Escape") setEditingItemId(null) }}
-                              className="flex-1 min-w-0 text-sm text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
+                              className="flex-1 min-w-0 text-sm text-gray-900 bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-700 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-teal-300"
                             />
                             <input type="number" value={editingItemExp}
                               onChange={(e) => setEditingItemExp(Number(e.target.value))}
-                              className="w-14 text-xs text-center text-gray-900 bg-teal-50 border border-teal-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                              className="w-14 text-xs text-center text-gray-900 bg-teal-50 dark:bg-teal-950/40 border border-teal-300 dark:border-teal-700 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                               min={1}
                             />
                             <button onClick={() => saveItemName(item.id)} className="px-2.5 py-1 rounded-full text-xs font-bold text-teal-600 bg-teal-100 active:scale-95 flex-shrink-0">저장</button>
@@ -393,7 +393,7 @@ export default function RoutineSection({
                 })}
 
                 {isAddingItem ? (
-                  <div className="px-4 py-2 flex gap-1.5 bg-teal-50/50">
+                  <div className="px-4 py-2 flex gap-1.5 bg-teal-50/50 dark:bg-teal-950/30">
                     <input autoFocus type="text" value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && addRoutineItem(r.id)}

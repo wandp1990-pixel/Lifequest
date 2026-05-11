@@ -120,7 +120,7 @@ export default function TodoSection({
       </div>
 
       {adding && (
-        <div className="px-4 py-2 flex flex-col gap-1.5 border-t border-violet-100 bg-violet-50/50">
+        <div className="px-4 py-2 flex flex-col gap-1.5 border-t border-violet-100 bg-violet-50/50 dark:bg-violet-950/30">
           <div className="flex gap-1.5">
             <input autoFocus type="text" value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -165,11 +165,11 @@ export default function TodoSection({
                   <input autoFocus type="text" value={editingName}
                     onChange={(e) => setEditingName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") saveTodoName(item.id); if (e.key === "Escape") setEditingId(null) }}
-                    className="flex-1 min-w-0 text-sm text-gray-900 bg-violet-50 border border-violet-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
+                    className="flex-1 min-w-0 text-sm text-gray-900 bg-violet-50 dark:bg-violet-950/40 border border-violet-300 dark:border-violet-700 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-violet-300"
                   />
                   <input type="number" value={editingExp}
                     onChange={(e) => setEditingExp(Number(e.target.value))}
-                    className="w-14 text-xs text-center text-gray-900 bg-violet-50 border border-violet-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                    className="w-14 text-xs text-center text-gray-900 bg-violet-50 dark:bg-violet-950/40 border border-violet-300 dark:border-violet-700 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                     min={0}
                   />
                   <button onClick={() => saveTodoName(item.id)} className="px-2.5 py-1 rounded-full text-xs font-bold text-violet-600 bg-violet-100 active:scale-95 flex-shrink-0">저장</button>
@@ -191,7 +191,7 @@ export default function TodoSection({
                     const expired = item.due_time < nowKstStr
                     return (
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border self-start ${
-                        expired ? "text-red-600 bg-red-50 border-red-200" : "text-violet-600 bg-violet-50 border-violet-200"
+                        expired ? "text-red-600 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800" : "text-violet-600 bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-800"
                       }`}>
                         {expired ? "⚠️ 기한초과" : `⏰ ${item.due_time.slice(5, 16).replace(" ", " ")}`}
                       </span>

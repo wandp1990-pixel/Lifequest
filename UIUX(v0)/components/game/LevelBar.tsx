@@ -22,7 +22,7 @@ export default function LevelBar({ level, totalExp, nextExp, drawTickets, statPo
           <span className="text-sm font-bold text-foreground">{drawTickets}</span>
         </div>
         {statPoints > 0 && (
-          <div className="flex items-center gap-0.5 bg-amber-50 border border-amber-300 rounded-lg px-2 py-0.5">
+          <div className="flex items-center gap-0.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg px-2 py-0.5">
             <span className="text-[11px]">⭐</span>
             <span className="text-[11px] font-bold text-amber-600">{statPoints} SP</span>
           </div>

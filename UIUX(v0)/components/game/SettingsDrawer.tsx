@@ -523,7 +523,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                 <p className="text-xs text-muted-foreground py-4 text-center">불러오는 중...</p>
               ) : (
                 <>
-                  <div className="mb-3 flex items-center justify-between bg-yellow-50 rounded-xl px-3 py-2">
+                  <div className="mb-3 flex items-center justify-between bg-yellow-50 dark:bg-yellow-950/40 rounded-xl px-3 py-2">
                     <span className="text-xs text-yellow-800 font-bold">잔여 스킬 포인트</span>
                     <span className="text-sm font-bold text-yellow-600">
                       {(char?.skill_points ?? 0) - Object.entries(skillEdits).reduce((acc, [id, pts]) => {
@@ -614,7 +614,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                     const expanded = skillDbExpanded[skill.id] ?? false
                     const isDirty = JSON.stringify(edit) !== JSON.stringify(skill)
                     return (
-                      <div key={skill.id} className={`rounded-xl border ${edit.is_active ? "border-emerald-200 bg-emerald-50" : "border-border bg-muted"}`}>
+                      <div key={skill.id} className={`rounded-xl border ${edit.is_active ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40" : "border-border bg-muted"}`}>
                         {/* 헤더 */}
                         <div className="flex items-center gap-2 px-3 py-2.5">
                           <button
@@ -705,7 +705,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                 새 스킬 추가
               </button>
               {showAddSkill && (
-                <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 flex flex-col gap-2">
+                <div className="mt-2 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-3 flex flex-col gap-2">
                   {([
                     ["id", "ID (고유값)", "text"],
                     ["name", "이름", "text"],
@@ -813,7 +813,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
                     const val = battleConfigEdits[cfg.config_key] ?? cfg.config_value
                     const numVal = parseFloat(val)
                     return (
-                      <div key={cfg.config_key} className="bg-blue-50 rounded-xl px-3 py-2.5">
+                      <div key={cfg.config_key} className="bg-blue-50 dark:bg-blue-950/40 rounded-xl px-3 py-2.5">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-bold text-blue-800">{cfg.label}</span>
                           <input
@@ -875,7 +875,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
             <div className="px-4 pt-3 pb-4 flex flex-col gap-3">
 
               {/* 소프트 초기화 */}
-              <div className="rounded-xl border border-orange-200 bg-orange-50 px-3 py-3">
+              <div className="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 px-3 py-3">
                 <p className="text-xs font-bold text-orange-700 mb-0.5">소프트 초기화</p>
                 <p className="text-[10px] text-orange-500 mb-3">레벨·스탯·기록·장비·스킬을 초기화합니다.<br/>할일·습관·루틴 항목은 유지됩니다.</p>
                 {!confirmPartialReset ? (
@@ -906,7 +906,7 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
               </div>
 
               {/* 완전 초기화 */}
-              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-3">
+              <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-3">
                 <p className="text-xs font-bold text-red-600 mb-0.5">완전 초기화</p>
                 <p className="text-[10px] text-red-400 mb-3">모든 데이터를 초기화합니다.<br/>할일·습관·루틴 항목도 삭제됩니다. 복구 불가.</p>
                 {!confirmReset ? (

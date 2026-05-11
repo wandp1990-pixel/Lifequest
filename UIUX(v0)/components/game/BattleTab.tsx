@@ -326,7 +326,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         </div>
 
         {error && (
-          <div className="mx-4 mt-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+          <div className="mx-4 mt-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2">
             <p className="text-xs text-red-500">{error}</p>
           </div>
         )}
@@ -334,7 +334,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         {/* 저장된 몬스터 카드 */}
         {savedMonster && phase !== "loading" && (
           <div className="px-4 pt-3">
-            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+            <div className="bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-2xl p-4">
               <p className="text-[10px] text-orange-400 font-bold mb-2">마지막 상대</p>
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -464,7 +464,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
         <div className="px-4 pt-3 pb-4 flex flex-col gap-2">
           {winner === "플레이어" ? (
             <>
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
                 <div className="text-amber-600 font-bold text-base mb-3">🏆 승리!</div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground text-sm">🎫 뽑기권</span>
@@ -480,7 +480,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
             </>
           ) : winner === "몬스터" ? (
             <>
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+              <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-2xl p-4">
                 <div className="text-red-500 font-bold text-base mb-1">💀 패배</div>
                 <div className="text-muted-foreground text-sm">
                   {restoreMode === "full"
@@ -499,7 +499,7 @@ export default function BattleTab({ char, onExpGained }: BattleTabProps) {
             </>
           ) : (
             <>
-              <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+              <div className="bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-2xl p-4">
                 <div className="text-orange-500 font-bold text-base mb-1">⏰ 시간 초과</div>
                 <div className="text-muted-foreground text-sm">전투가 끝나지 않았습니다.</div>
               </div>

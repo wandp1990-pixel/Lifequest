@@ -124,7 +124,7 @@ export default function HabitSection({
       </div>
 
       {adding && (
-        <div className="px-4 py-2 flex gap-1.5 border-t border-amber-100 bg-amber-50/50">
+        <div className="px-4 py-2 flex gap-1.5 border-t border-amber-100 bg-amber-50/50 dark:bg-amber-950/30">
           <input autoFocus type="text" value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addHabit()}
@@ -149,10 +149,10 @@ export default function HabitSection({
         const isLoading = completing === item.id
         const streak = item.streak ?? 0
         const streakColor =
-          streak >= 100 ? "text-yellow-600 bg-yellow-50 border-yellow-200" :
-          streak >= 30  ? "text-red-600 bg-red-50 border-red-200" :
-          streak >= 7   ? "text-orange-600 bg-orange-50 border-orange-200" :
-          streak >= 1   ? "text-orange-500 bg-orange-50 border-orange-100" :
+          streak >= 100 ? "text-yellow-600 bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800" :
+          streak >= 30  ? "text-red-600 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800" :
+          streak >= 7   ? "text-orange-600 bg-orange-50 dark:bg-orange-950/40 border-orange-200 dark:border-orange-800" :
+          streak >= 1   ? "text-orange-500 bg-orange-50 dark:bg-orange-950/40 border-orange-100 dark:border-orange-800" :
                           "text-muted-foreground bg-muted border-border"
         const streakLabel =
           streak >= 100 ? "🏆 완전 습관" :
@@ -172,11 +172,11 @@ export default function HabitSection({
                   <input autoFocus type="text" value={editingName}
                     onChange={(e) => setEditingName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") saveHabitName(item.id); if (e.key === "Escape") setEditingId(null) }}
-                    className="flex-1 min-w-0 text-sm text-gray-900 bg-amber-50 border border-amber-300 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
+                    className="flex-1 min-w-0 text-sm text-gray-900 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
                   />
                   <input type="number" value={editingExp}
                     onChange={(e) => setEditingExp(Number(e.target.value))}
-                    className="w-14 text-xs text-center text-gray-900 bg-amber-50 border border-amber-300 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                    className="w-14 text-xs text-center text-gray-900 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                     min={1}
                   />
                   <button onClick={() => saveHabitName(item.id)} className="px-2.5 py-1 rounded-full text-xs font-bold text-amber-600 bg-amber-100 active:scale-95 flex-shrink-0">저장</button>
