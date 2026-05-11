@@ -129,11 +129,11 @@ export default function HabitSection({
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addHabit()}
             placeholder="예: 아침 식사 후 물 한 잔"
-            className="flex-1 min-w-0 text-sm text-gray-900 bg-background border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
+            className="flex-1 min-w-0 text-sm text-gray-900 dark:text-gray-100 bg-background border border-amber-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-amber-300"
           />
           <input type="number" value={newExp}
             onChange={(e) => setNewExp(Number(e.target.value))}
-            className="w-14 text-sm text-center text-gray-900 bg-background border border-amber-200 rounded-xl px-1 py-2 outline-none"
+            className="w-14 text-sm text-center text-gray-900 dark:text-gray-100 bg-background border border-amber-200 rounded-xl px-1 py-2 outline-none"
             min={1}
           />
           <button onClick={addHabit} className="px-3 py-2 bg-amber-400 text-white rounded-xl text-sm font-bold active:scale-95">추가</button>
@@ -172,11 +172,11 @@ export default function HabitSection({
                   <input autoFocus type="text" value={editingName}
                     onChange={(e) => setEditingName(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") saveHabitName(item.id); if (e.key === "Escape") setEditingId(null) }}
-                    className="flex-1 min-w-0 text-sm text-gray-900 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
+                    className="flex-1 min-w-0 text-sm text-gray-900 dark:text-gray-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg px-2 py-0.5 outline-none focus:ring-2 focus:ring-amber-300"
                   />
                   <input type="number" value={editingExp}
                     onChange={(e) => setEditingExp(Number(e.target.value))}
-                    className="w-14 text-xs text-center text-gray-900 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
+                    className="w-14 text-xs text-center text-gray-900 dark:text-gray-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-lg px-1 py-0.5 outline-none flex-shrink-0"
                     min={1}
                   />
                   <button onClick={() => saveHabitName(item.id)} className="px-2.5 py-1 rounded-full text-xs font-bold text-amber-600 bg-amber-100 active:scale-95 flex-shrink-0">저장</button>
