@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ projects, bonusExp: project.bonus_exp, ...(levelResult ?? {}) })
     }
 
-    const allowed = ["name", "description", "status", "priority", "due_date", "bonus_exp", "color"] as const
+    const allowed = ["name", "description", "status", "priority", "due_date", "bonus_exp", "color", "chapter_id"] as const
     const fields: Record<string, unknown> = {}
     for (const key of allowed) {
       if (key in body) fields[key] = body[key]

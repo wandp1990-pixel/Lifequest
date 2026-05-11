@@ -100,6 +100,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
 
   // 챕터 UI
   const [chapterExpanded, setChapterExpanded] = useState(false)
+  const [editingChapterFor, setEditingChapterFor] = useState<number | null>(null)
   const [addingChapter,   setAddingChapter]   = useState(false)
   const [chName,          setChName]          = useState("")
   const [chEnd,           setChEnd]           = useState("")
@@ -191,6 +192,20 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       await fetchAll()
     }
     setConfirmDelete(null)
+  }
+
+  const handleChapterChange = async (id: number, chapterId: number | null) => {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chapter_id: chapterId }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setProjects(data.projects ?? [])
+      await fetchAll()
+    }
+    setEditingChapterFor(null)
   }
 
   const handleStatusChange = async (id: number, status: "todo" | "in_progress" | "done") => {
@@ -342,6 +357,35 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               <button onClick={() => setConfirmDelete({ id: project.id, name: project.name })} className="text-[10px] text-red-400 px-1">
                 <Trash2 size={12} />
               </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground flex-shrink-0">묶음</span>
+              {editingChapterFor === project.id ? (
+                <>
+                  <select
+                    autoFocus
+                    value={project.chapter_id ?? ""}
+                    onChange={(e) => handleChapterChange(project.id, e.target.value ? Number(e.target.value) : null)}
+                    className="flex-1 text-[11px] bg-muted border border-border rounded-lg px-2 py-0.5 outline-none focus:border-violet-500"
+                  >
+                    <option value="">없음</option>
+                    {activeChapters.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button onClick={() => setEditingChapterFor(null)} className="text-muted-foreground shrink-0"><X size={12} /></button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setEditingChapterFor(project.id)}
+                  className="text-[11px] text-violet-400 active:scale-95"
+                >
+                  {project.chapter_id
+                    ? (chapters.find((c) => c.id === project.chapter_id)?.name ?? "묶음")
+                    : "없음 (탭해서 변경)"}
+                </button>
+              )}
             </div>
 
             {project.bonus_exp > 0 && (
@@ -607,6 +651,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
             {chapters.map((ch) => {
               const pct = ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
               const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
+              const chProjects = projects.filter((p) => p.chapter_id === ch.id)
               return (
                 <div key={ch.id} className={`rounded-lg border p-3 space-y-2 ${ch.status === "done" ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
                   <div className="flex items-center gap-2">
@@ -629,6 +674,22 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                     </div>
                     <span className="text-[10px] text-muted-foreground shrink-0">{ch.done_projects}/{ch.total_projects}</span>
                   </div>
+
+                  {chProjects.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-border/50">
+                      {chProjects.map((p) => (
+                        <div key={p.id} className="flex items-center gap-2">
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${COLOR_CLS[p.color] ?? "bg-violet-500"} ${p.status === "done" ? "opacity-40" : ""}`} />
+                          <span className={`text-[11px] flex-1 truncate ${p.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>{p.name}</span>
+                          <span className={`text-[10px] shrink-0 ${p.status === "done" ? "text-emerald-500" : "text-muted-foreground"}`}>{STATUS_LABEL[p.status]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {chProjects.length === 0 && ch.status === "active" && (
+                    <p className="text-[10px] text-muted-foreground">프로젝트를 열어 묶음을 선택하면 여기에 표시됩니다</p>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">
