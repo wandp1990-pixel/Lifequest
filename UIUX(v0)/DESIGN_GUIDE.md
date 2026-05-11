@@ -469,7 +469,25 @@ style={{ background: '#FFF1E0', color: '#B5651D', border: '1px solid #FFE3C7' }}
 </div>
 ```
 
-### 10.3 자주 쓰는 카드 bg 다크모드 쌍
+### 10.3 입력 필드(input) 다크모드 주의
+
+`text-gray-900`은 고정된 어두운 색이라 다크모드에서 어두운 배경(`bg-background`)과 겹치면 글씨가 안 보입니다.
+
+```tsx
+// ❌ 다크모드에서 글씨 안 보임
+<input className="text-gray-900 bg-background" />
+
+// ✅ dark: 변형 추가
+<input className="text-gray-900 dark:text-gray-100 bg-background" />
+
+// ✅ 고정 배경(amber-50)도 동일하게 처리
+<input className="text-gray-900 dark:text-gray-100 bg-amber-50 dark:bg-amber-950/40" />
+```
+
+> **2026-05-11 수정**: HabitSection.tsx의 모든 input에 `dark:text-gray-100` 추가.  
+> 습관 추가/편집/알림시간 입력 필드 전부 해당.
+
+### 10.4 자주 쓰는 카드 bg 다크모드 쌍
 
 | 라이트 | 다크 변형 | 테두리 다크 |
 |--------|---------|------------|
@@ -492,3 +510,4 @@ style={{ background: '#FFF1E0', color: '#B5651D', border: '1px solid #FFE3C7' }}
 - [ ] 토스트/피드백 색상이 공통 패턴을 따르는가?
 - [ ] **다크모드**: `bg-*-50` 계열에 `dark:bg-*-950/40` 추가했는가?
 - [ ] **다크모드**: 하드코딩 밝은 배경(`#FFF...`) 위에 `text-foreground` 쓰지 않았는가?
+- [ ] **다크모드**: `input`에 `text-gray-900` 사용 시 `dark:text-gray-100` 쌍으로 추가했는가?
