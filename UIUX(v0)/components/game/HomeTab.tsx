@@ -202,9 +202,13 @@ export default function HomeTab({ onExpGained, refreshTick }: HomeTabProps) {
 
         {/* 스트릭 바 (7칸) */}
         <div className="flex gap-1.5 mt-3 relative">
-          {Array.from({ length: 7 }, (_, i) => (
-            <div key={i} className="flex-1 h-1.5 rounded-full transition-all" style={{ background: i < Math.min(streak, 7) ? '#FFB87A' : 'rgba(255,138,61,0.18)' }} />
-          ))}
+          {Array.from({ length: 7 }, (_, i) => {
+            const cycleStart = nextMilestone - 7
+            const progressInCycle = Math.min(streak - cycleStart, 7)
+            return (
+              <div key={i} className="flex-1 h-1.5 rounded-full transition-all" style={{ background: i < progressInCycle ? '#FFB87A' : 'rgba(255,138,61,0.18)' }} />
+            )
+          })}
         </div>
 
         {/* 하단: 안내 + 버튼 */}
