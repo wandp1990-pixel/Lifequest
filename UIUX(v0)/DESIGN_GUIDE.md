@@ -430,11 +430,65 @@ style={{ background: '#FFF1E0', color: '#B5651D', border: '1px solid #FFE3C7' }}
 
 ---
 
-## 10. 신규 컴포넌트 체크리스트
+## 10. 다크모드 규칙
+
+`globals.css` 기준:
+- 라이트: `--foreground: oklch(0.145)` (거의 검정), `--background: oklch(1)` (흰색)
+- 다크: `--foreground: oklch(0.985)` (거의 흰색), `--background: oklch(0.145)` (거의 검정)
+
+### 10.1 위험 패턴 (다크모드에서 텍스트 안 보임)
+
+```tsx
+// ❌ 밝은 배경 + text-foreground → 다크모드에서 흰 글씨가 밝은 배경 위에 = 안 보임
+<div style={{ background: '#FFF8EE' }}>
+  <p className="text-foreground">텍스트</p>
+</div>
+
+// ❌ bg-*-50 계열 카드 + text-foreground (dark: 변형 없이)
+<div className="bg-green-50">
+  <p className="text-foreground">텍스트</p>
+</div>
+```
+
+### 10.2 안전 패턴
+
+```tsx
+// ✅ 방법 A: 하드코딩 밝은 배경 → 텍스트도 어둡게 고정
+<div style={{ background: '#FFF8EE' }}>
+  <p className="text-gray-900">텍스트</p>
+</div>
+
+// ✅ 방법 B: 카드 bg에 dark: 변형 추가 → text-foreground가 자동으로 맞춰짐
+<div className="bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800">
+  <p className="text-foreground">텍스트</p>
+</div>
+
+// ✅ 방법 C: Tailwind 시맨틱 토큰만 사용
+<div className="bg-background border-border">
+  <p className="text-foreground">텍스트</p>
+</div>
+```
+
+### 10.3 자주 쓰는 카드 bg 다크모드 쌍
+
+| 라이트 | 다크 변형 | 테두리 다크 |
+|--------|---------|------------|
+| `bg-green-50` | `dark:bg-green-950/40` | `dark:border-green-800` |
+| `bg-indigo-50` | `dark:bg-indigo-950/40` | `dark:border-indigo-800` |
+| `bg-violet-50` | `dark:bg-violet-950/40` | `dark:border-violet-800` |
+| `bg-amber-50` | `dark:bg-amber-950/40` | `dark:border-amber-800` |
+| `bg-teal-50` | `dark:bg-teal-950/40` | `dark:border-teal-800` |
+| `bg-red-50` | `dark:bg-red-950/40` | `dark:border-red-800` |
+| `bg-orange-50` | `dark:bg-orange-950/40` | `dark:border-orange-800` |
+
+---
+
+## 11. 신규 컴포넌트 체크리스트
 
 - [ ] 해당 섹션의 **공식 색상**을 사용했는가? (이 문서 기준)
 - [ ] **이모지**가 같은 기능에 이미 쓰이는 것과 일치하는가?
 - [ ] 상태별 색상이 올바른가? (성공=emerald, 경고=red, 보너스=amber)
 - [ ] 아이콘은 **Lucide React**를 사용했는가? (텍스트 이모지 혼용 주의)
 - [ ] 토스트/피드백 색상이 공통 패턴을 따르는가?
-- [ ] 다크모드(`dark:`) 처리가 되어 있는가?
+- [ ] **다크모드**: `bg-*-50` 계열에 `dark:bg-*-950/40` 추가했는가?
+- [ ] **다크모드**: 하드코딩 밝은 배경(`#FFF...`) 위에 `text-foreground` 쓰지 않았는가?
