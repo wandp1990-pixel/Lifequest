@@ -91,7 +91,7 @@ export default function HomeTab({ onExpGained, refreshTick, onTabChange }: HomeT
     const res = await fetch("/api/routines")
     if (res.ok) {
       const data = await res.json()
-      setRoutines((data.routines ?? []).filter((r: RoutineItem) => r.deadline_time))
+      setRoutines(data.routines ?? [])
       setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
     }
   }, [])
