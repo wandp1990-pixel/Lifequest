@@ -4,6 +4,7 @@ import {
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
   reorderRoutineItems, addActivityLog, incrementTaskCount,
   updateRoutineDeadline, updateRoutineName, updateRoutineItemName,
+  updateRoutineChapter,
 } from "@/lib/db"
 import { gainExp } from "@/lib/game"
 
@@ -62,8 +63,17 @@ export async function PUT(req: NextRequest) {
     if (action === "addRoutine") {
       const name = (body.name ?? "").trim()
       if (!name) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
-      const id = await addRoutine(name)
+      const chapterId = body.chapterId != null ? Number(body.chapterId) : null
+      const id = await addRoutine(name, chapterId)
       return NextResponse.json({ ...(await getRoutines()), createdRoutineId: id })
+    }
+    if (action === "updateChapter") {
+      if (typeof body.routineId !== "number") {
+        return NextResponse.json({ error: "routineId 필요" }, { status: 400 })
+      }
+      const chapterId = body.chapterId != null ? Number(body.chapterId) : null
+      await updateRoutineChapter(body.routineId, chapterId)
+      return NextResponse.json(await getRoutines())
     }
     if (action === "addItem") {
       const routineId = body.routineId

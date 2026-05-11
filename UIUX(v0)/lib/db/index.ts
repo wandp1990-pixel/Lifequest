@@ -15,7 +15,7 @@ export {
   getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
   reorderRoutineItems, updateRoutineDeadline,
-  updateRoutineName, updateRoutineItemName,
+  updateRoutineName, updateRoutineItemName, updateRoutineChapter,
 } from "./queries/routine"
 export { getEquipment, addEquipment, equipItem, unequipItem, deleteEquipment } from "./queries/equipment"
 export { addBattleLog } from "./queries/battle"

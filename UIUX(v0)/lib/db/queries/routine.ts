@@ -13,6 +13,7 @@ export interface RoutineRow {
   name: string
   sort_order: number
   deadline_time: string | null
+  chapter_id: number | null
   items: RoutineItemRow[]
 }
 
@@ -40,7 +41,7 @@ export async function getRoutines(): Promise<{
   const today = todayKST()
 
   const rRes = await db.execute(
-    "SELECT id, name, sort_order, deadline_time FROM routine WHERE is_active = 1 ORDER BY sort_order, id"
+    "SELECT id, name, sort_order, deadline_time, chapter_id FROM routine WHERE is_active = 1 ORDER BY sort_order, id"
   )
   const iRes = await db.execute(
     "SELECT id, routine_id, name, fixed_exp, sort_order FROM routine_item WHERE is_active = 1 ORDER BY sort_order, id"
@@ -73,6 +74,7 @@ export async function getRoutines(): Promise<{
     name: r.name as string,
     sort_order: r.sort_order as number,
     deadline_time: (r.deadline_time as string | null) ?? null,
+    chapter_id: (r.chapter_id as number | null) ?? null,
     items: itemsByRoutine.get(r.id as number) ?? [],
   }))
 
@@ -83,13 +85,21 @@ export async function getRoutines(): Promise<{
   }
 }
 
-export async function addRoutine(name: string): Promise<number> {
+export async function addRoutine(name: string, chapterId?: number | null): Promise<number> {
   const db = getClient()
   const res = await db.execute({
-    sql: "INSERT INTO routine (name, is_active, sort_order, created_at) VALUES (?,1,0,?)",
-    args: [name, now()],
+    sql: "INSERT INTO routine (name, is_active, sort_order, chapter_id, created_at) VALUES (?,1,0,?,?)",
+    args: [name, chapterId ?? null, now()],
   })
   return Number(res.lastInsertRowid)
+}
+
+export async function updateRoutineChapter(routineId: number, chapterId: number | null) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE routine SET chapter_id=? WHERE id=?",
+    args: [chapterId, routineId],
+  })
 }
 
 export async function updateRoutineDeadline(routineId: number, deadlineTime: string | null) {

@@ -14,7 +14,13 @@ export interface Routine {
   id: number
   name: string
   deadline_time: string | null
+  chapter_id: number | null
   items: RoutineItem[]
+}
+
+export interface RoutineChapter {
+  id: number
+  name: string
 }
 
 type DeleteTarget =
@@ -31,6 +37,7 @@ interface RoutineSectionProps {
   onToast: (exp: number, comment: string, bonus?: number) => void
   onConfirmDelete: (target: DeleteTarget) => void
   onExpGained?: () => void
+  chapters?: RoutineChapter[]
 }
 
 export default function RoutineSection({
@@ -43,6 +50,7 @@ export default function RoutineSection({
   onToast,
   onConfirmDelete,
   onExpGained,
+  chapters = [],
 }: RoutineSectionProps) {
   const [completing, setCompleting] = useState<number | null>(null)
   const [expandedRoutineIds, setExpandedRoutineIds] = useState<Set<number>>(new Set())
@@ -60,6 +68,8 @@ export default function RoutineSection({
   const [editingItemExp, setEditingItemExp] = useState(10)
   const [draggingItemId, setDraggingItemId] = useState<number | null>(null)
   const [dragOverItemId, setDragOverItemId] = useState<number | null>(null)
+  const [newRoutineChapterId, setNewRoutineChapterId] = useState<number | null>(null)
+  const [editingChapterFor, setEditingChapterFor] = useState<number | null>(null)
 
   const refreshRoutines = async () => {
     const res = await fetch("/api/routines")
@@ -76,7 +86,7 @@ export default function RoutineSection({
     const res = await fetch("/api/routines", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "addRoutine", name: newRoutineName.trim() }),
+      body: JSON.stringify({ action: "addRoutine", name: newRoutineName.trim(), chapterId: newRoutineChapterId }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -88,7 +98,21 @@ export default function RoutineSection({
       }
     }
     setNewRoutineName("")
+    setNewRoutineChapterId(null)
     setAddingRoutine(false)
+  }
+
+  const saveRoutineChapter = async (routineId: number, chapterId: number | null) => {
+    const res = await fetch("/api/routines", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "updateChapter", routineId, chapterId }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setRoutines(data.routines ?? [])
+    }
+    setEditingChapterFor(null)
   }
 
   const addRoutineItem = async (routineId: number) => {
@@ -241,14 +265,26 @@ export default function RoutineSection({
       </div>
 
       {addingRoutine && (
-        <div className="mx-4 mt-2 mb-2 flex gap-1.5">
-          <input autoFocus type="text" value={newRoutineName}
-            onChange={(e) => setNewRoutineName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addRoutine()}
-            placeholder="루틴 이름 (예: 아침 루틴)"
-            className="flex-1 text-sm text-gray-900 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-700 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
-          />
-          <button onClick={addRoutine} className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-bold active:scale-95">추가</button>
+        <div className="mx-4 mt-2 mb-2 space-y-1.5">
+          <div className="flex gap-1.5">
+            <input autoFocus type="text" value={newRoutineName}
+              onChange={(e) => setNewRoutineName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addRoutine()}
+              placeholder="루틴 이름 (예: 아침 루틴)"
+              className="flex-1 text-sm text-gray-900 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-700 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-300"
+            />
+            <button onClick={addRoutine} className="px-3 py-2 bg-teal-500 text-white rounded-xl text-sm font-bold active:scale-95">추가</button>
+          </div>
+          <select
+            value={newRoutineChapterId ?? ""}
+            onChange={(e) => setNewRoutineChapterId(e.target.value ? Number(e.target.value) : null)}
+            className="w-full text-xs bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-700 rounded-xl px-3 py-2 outline-none text-gray-600"
+          >
+            <option value="">묶음 없음</option>
+            {chapters.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -295,6 +331,11 @@ export default function RoutineSection({
                     </button>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {r.chapter_id && chapters.find((c) => c.id === r.chapter_id) && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 font-medium">
+                        {chapters.find((c) => c.id === r.chapter_id)!.name}
+                      </span>
+                    )}
                     {bonusGranted && (
                       <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-800">🎉 완수!</span>
                     )}
@@ -425,22 +466,52 @@ export default function RoutineSection({
                         <button onClick={() => setEditingDeadlineFor(null)} className="text-muted-foreground active:scale-95"><X className="w-3 h-3" /></button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between px-4 py-2">
-                        <div className="flex items-center gap-3">
-                          <button onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }}
-                            className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95">
-                            <Plus className="w-3 h-3" /> 항목 추가
-                          </button>
-                          <button
-                            onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }}
-                            className={`flex-shrink-0 flex items-center gap-0.5 transition-colors active:scale-95 ${r.deadline_time ? "text-sky-500" : "text-gray-300 hover:text-sky-400"}`}
-                            aria-label="마감 시간 설정">
-                            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                            {r.deadline_time && <span className="text-[10px] font-bold">{r.deadline_time}</span>}
-                          </button>
+                      <div className="space-y-0">
+                        <div className="flex items-center justify-between px-4 py-2">
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => { setAddingItemFor(r.id); setNewItemName(""); setNewItemExp(10) }}
+                              className="text-xs font-bold text-teal-600 flex items-center gap-1 active:scale-95">
+                              <Plus className="w-3 h-3" /> 항목 추가
+                            </button>
+                            <button
+                              onClick={() => { setEditingDeadlineFor(r.id); setDeadlineInputVal(r.deadline_time ?? "") }}
+                              className={`flex-shrink-0 flex items-center gap-0.5 transition-colors active:scale-95 ${r.deadline_time ? "text-sky-500" : "text-gray-300 hover:text-sky-400"}`}
+                              aria-label="마감 시간 설정">
+                              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                              {r.deadline_time && <span className="text-[10px] font-bold">{r.deadline_time}</span>}
+                            </button>
+                          </div>
+                          <button onClick={() => onConfirmDelete({ type: "routine", id: r.id, name: r.name })}
+                            className="text-xs text-red-400 hover:text-red-500 active:scale-95">루틴 삭제</button>
                         </div>
-                        <button onClick={() => onConfirmDelete({ type: "routine", id: r.id, name: r.name })}
-                          className="text-xs text-red-400 hover:text-red-500 active:scale-95">루틴 삭제</button>
+                        <div className="px-4 pb-2 flex items-center gap-2">
+                          <span className="text-[10px] text-muted-foreground flex-shrink-0">묶음</span>
+                          {editingChapterFor === r.id ? (
+                            <>
+                              <select
+                                autoFocus
+                                value={r.chapter_id ?? ""}
+                                onChange={(e) => saveRoutineChapter(r.id, e.target.value ? Number(e.target.value) : null)}
+                                className="flex-1 text-[11px] bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-700 rounded-lg px-2 py-0.5 outline-none"
+                              >
+                                <option value="">없음</option>
+                                {chapters.map((c) => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                              <button onClick={() => setEditingChapterFor(null)} className="text-muted-foreground flex-shrink-0"><X className="w-3 h-3" /></button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setEditingChapterFor(r.id)}
+                              className="text-[11px] text-teal-500 flex items-center gap-1 active:scale-95"
+                            >
+                              {r.chapter_id
+                                ? chapters.find((c) => c.id === r.chapter_id)?.name ?? "묶음"
+                                : "없음 (탭해서 변경)"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

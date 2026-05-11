@@ -464,6 +464,10 @@ export async function initDb() {
     try { await db.execute("ALTER TABLE equipment ADD COLUMN roll_level INTEGER DEFAULT 1") } catch {}
   })
 
+  await runMigration("routine_chapter_v1", async () => {
+    try { await db.execute("ALTER TABLE routine ADD COLUMN chapter_id INTEGER REFERENCES chapter(id)") } catch {}
+  })
+
   await runMigration("chapter_v1", async () => {
     await db.execute(`CREATE TABLE IF NOT EXISTS chapter (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

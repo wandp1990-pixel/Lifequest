@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import ProjectsTab from "./ProjectsTab"
 import HabitSection, { DailyItem } from "./HabitSection"
 import TodoSection, { TodoItem } from "./TodoSection"
-import RoutineSection, { Routine } from "./RoutineSection"
+import RoutineSection, { Routine, RoutineChapter } from "./RoutineSection"
 
 type DeleteTarget =
   | { type: "daily"; id: number; name: string }
@@ -39,6 +39,8 @@ export default function TasksTab({
   const [routines, setRoutines] = useState<Routine[]>([])
   const [checkedRoutineItemIds, setCheckedRoutineItemIds] = useState<Set<number>>(new Set())
   const [bonusRoutineIds, setBonusRoutineIds] = useState<Set<number>>(new Set())
+  const [chapters, setChapters] = useState<RoutineChapter[]>([])
+  const [projectCount, setProjectCount] = useState<number | null>(null)
 
   // ── 공유 UI 상태 ──────────────────────────────────────────────────────────
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number; penalty?: boolean; penaltyExp?: number } | null>(null)
@@ -49,10 +51,12 @@ export default function TasksTab({
   // ── 초기 데이터 로드 ──────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
-      const [checkRes, todoRes, routineRes] = await Promise.all([
+      const [checkRes, todoRes, routineRes, chapterRes, projectRes] = await Promise.all([
         fetch("/api/checklist"),
         fetch("/api/todos"),
         fetch("/api/routines"),
+        fetch("/api/chapters"),
+        fetch("/api/projects"),
       ])
       if (checkRes.ok) {
         const data = await checkRes.json()
@@ -70,6 +74,14 @@ export default function TasksTab({
         setRoutines(data.routines ?? [])
         setCheckedRoutineItemIds(new Set(data.checkedItemIds ?? []))
         setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
+      }
+      if (chapterRes.ok) {
+        const data = await chapterRes.json()
+        setChapters((data.chapters ?? []).filter((c: { status: string }) => c.status === "active"))
+      }
+      if (projectRes.ok) {
+        const data = await projectRes.json()
+        setProjectCount((data.projects ?? []).filter((p: { status: string }) => p.status !== "done").length)
       }
     } catch {}
     setLoading(false)
@@ -196,7 +208,7 @@ export default function TasksTab({
           ["routine", "루틴",    routines.length],
           ["habit",   "습관",    dailyItems.length],
           ["todo",    "할일",    todoItems.filter(t => !t.is_completed).length],
-          ["project", "프로젝트", null],
+          ["project", "프로젝트", projectCount],
         ] as [string, string, number | null][]).map(([k, label, count]) => (
           <button key={k}
             onClick={() => setTaskFilter(k as typeof taskFilter)}
@@ -222,6 +234,7 @@ export default function TasksTab({
           onToast={showToast}
           onConfirmDelete={setConfirmDelete}
           onExpGained={onExpGained}
+          chapters={chapters}
         />
       )}
 
