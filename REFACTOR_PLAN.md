@@ -10,8 +10,8 @@
 
 ### Phase 0 — 준비
 - [x] 마스터 플랜 작성 (2026-05-13)
-- [ ] `git tag pre-refactor-baseline` 찍기 (Phase 1 시작 직전)
-- [ ] 핵심 시나리오 5개 baseline 응답 캡처 (`verification/baseline/*.json`)
+- [x] `git tag pre-refactor-baseline` 찍기 (Phase 2 시작 직전, commit 43c1ae6 / 2026-05-14)
+- [~] 핵심 시나리오 5개 baseline 응답 캡처 (`verification/baseline/*.json`) — 캡처 가이드 README 작성, 실제 캡처는 사용자 환경(DB 필요)에서 수행
 
 ### Phase 1 — 상수/시간 헬퍼 추출 (위험도 0)
 - [x] 1.1 `lib/constants/{exp,battle,gacha,ai,time,quest,ui}.ts` 7개 파일 작성 (2026-05-13)
@@ -20,13 +20,13 @@
 - [x] 1.4 typecheck + build + 시나리오 검증 (2026-05-13)
 
 ### Phase 2 — DB 헬퍼 & 비즈니스 로직 추출
-- [ ] 2.1 `lib/db/queries/_helpers.ts` 작성
-- [ ] 2.2 `lib/game/exp-bonus.ts` 순수 함수 작성
-- [ ] 2.3 `lib/game/rewards.ts` `applyReward()` 작성
-- [ ] 2.4 `lib/api/respond.ts`, `validate.ts` 작성
-- [ ] 2.5 `lib/game/gacha.ts` 순수 로직 분리
-- [ ] 2.6 route.ts 리팩토링 (todos → checklist → routines → projects → inventory → 나머지)
-- [ ] 2.7 시나리오 5개 baseline diff 검증
+- [x] 2.1 `lib/db/queries/_helpers.ts` 작성 (2026-05-14)
+- [x] 2.2 `lib/game/exp-bonus.ts` 순수 함수 작성 (2026-05-14)
+- [x] 2.3 `lib/game/rewards.ts` `applyReward()` 작성 (2026-05-14)
+- [x] 2.4 `lib/api/respond.ts`, `validate.ts` 작성 (2026-05-14)
+- [x] 2.5 `lib/game/gacha.ts` 순수 로직 분리 (2026-05-14)
+- [x] 2.6 route.ts 리팩토링 (todos → checklist → routines → projects → inventory + attendance/quest/reward) (2026-05-14)
+- [~] 2.7 시나리오 5개 baseline diff 검증 — typecheck/build pass, baseline curl 비교는 사용자 환경에서 수행 (`verification/baseline/README.md` 참조)
 
 ### Phase 3 — UI Primitives & Hooks
 - [ ] 3.1 `npx shadcn@latest init` + primitives 추가
@@ -462,3 +462,70 @@ export function useFoo() {
 - Phase 2 시작 직전: `git tag pre-refactor-baseline` 찍고 핵심 시나리오 5개 응답을 `verification/baseline/*.json` 으로 저장
 - Phase 2.2 작성 시: `STREAK_THRESHOLDS`, `STREAK_BONUS_RATIOS`, `MISS_PENALTY_PER_DAY/CAP`, `DUE_BONUS_RATIO`, `DUE_PENALTY_RATIO`, `ROUTINE_DEADLINE_BONUS_MULT`, `STREAK_MAX` 를 `lib/constants/exp.ts` 에서 import 해 사용
 - Phase 2.5 작성 시: `SUB_RATIOS`, `COMBAT_RATIOS`, `STAT_MIN_RATIO`, `STAT_MAX_RATIO`, `LEVEL_BONUS_PER_LEVEL`, `MAX_GACHA_COUNT` 를 `lib/constants/gacha.ts` 에서 import 해 사용
+
+---
+
+### Phase 2 — 완료 (2026-05-14)
+
+**범위**: DB helper + 게임 비즈니스 로직 + API 응답 표준화 추출. 7개 핵심 route 슬림화. 응답 shape 무변동.
+
+**baseline**: `git tag pre-refactor-baseline` (commit `43c1ae6`, push 완료)
+
+**2.1 `lib/db/queries/_helpers.ts` 신규**
+- `exec(sql, args?)` — InArgs undefined 시 단일 문자열, 있으면 객체 형식. 기존 `db.execute(...)` 호출 표준화
+- `execOne<T>(sql, args?)` / `execMany<T>(sql, args?)` — SELECT 단일/다중 row 헬퍼
+- `claimOnce(sql, args)` — INSERT OR IGNORE 패턴. lastInsertRowid 또는 null
+- `claimUpdate(sql, args)` — conditional UPDATE 패턴. rowsAffected > 0
+- `tx(fn)` — 쓰기 트랜잭션 래퍼. throw 시 자동 rollback, 정상 종료 시 commit
+- 타입은 `@libsql/client` 에서 (pnpm 격리 환경 호환). SQL 문자열 절대 변경 금지
+
+**2.2 `lib/game/exp-bonus.ts` 신규 (순수 함수)**
+- `calcStreakBonus(streak, baseExp)` → `{ bonus, tier }` — `STREAK_THRESHOLDS` 역순 스캔으로 기존 streakBonusExp 와 동일 출력 보장
+- `calcMissPenalty(missedDays, baseExp)` — `MISS_PENALTY_PER_DAY`, `MISS_PENALTY_CAP` 사용. 기존 penaltyExpForMissedDays 와 동일
+- `calcDueBonus(dueTime, nowStr, baseExp)` → `{ exp, bonus, penalty }` — todos route 의 due_time 인라인 계산 통합 (`DUE_BONUS_RATIO`, `DUE_PENALTY_RATIO`)
+- `calcRoutineDeadlineBonus(nowHHMM, deadline, baseBonus)` → `{ exp, deadlineBonus }` — `ROUTINE_DEADLINE_BONUS_MULT`(=2) 적용. `isWithinRoutineDeadline` 호출
+- DB·async 없음. lib/constants/exp 와 lib/time/kst 만 의존
+
+**2.3 `lib/game/rewards.ts` 신규**
+- `applyReward({source, label, exp, comment})` → `addActivityLog → incrementTaskCount → gainExp` 시퀀스 통합
+- 호출 순서·SQL 트랜잭션 경계 보존. 기존 route 들의 동일 3-call 패턴 7회 제거
+- `RewardSource` union: daily|todo|routine|project|quest|battle
+- gainExp 트랜잭션 본문 무수정 (lib/game.ts:42-123 그대로)
+
+**2.4 `lib/api/respond.ts` + `validate.ts` 신규**
+- `respond.ts`: `ok(data)`, `err(msg, status=500)`, `badRequest`, `notFound`, `withInit(handler)`
+- `withInit` 가 자동 `initDb()` + try/catch → `{ error: String(e) }, 500` 변환. 기존 route 22곳의 try/catch 보일러 제거
+- `validate.ts`: `requireNumber`, `requireString`, `requireBoolean`, `requireOneOf`, `ValidationError`. 도메인별 입력 검증 표준화 (route 들이 점진적으로 채택)
+
+**2.5 `lib/game/gacha.ts` 신규 (순수 함수)**
+- `pickGrade`, `pickSlot`, `randBetween`, `parseCount`, `formatOpt`, `rollAbilityValue`, `rollGachaItems`
+- inventory route 의 라인 29-83, 156-223 의 순수 로직 전부 이동. route 는 DB read + 트랜잭션 INSERT 만 남김
+- 매직넘버는 `lib/constants/gacha.ts` 에서 import: `SUB_RATIOS`, `COMBAT_RATIOS`, `*_RATIO_FALLBACK`, `STAT_MIN/MAX_RATIO`, `LEVEL_BONUS_PER_LEVEL`, `PARSE_COUNT_PROB`
+- 타입(`GradeRow`, `SlotRow`, `AbilityRow`, `PassiveRow`, `GachaPools`, `RolledItem`) export — 호출자 재사용 용이
+
+**2.6 route 리팩토링 (응답 shape 보존)**
+- `app/api/todos/route.ts` — `calcDueBonus` 적용, `applyReward({source:"todo"})`. PATCH 의 due_time 인라인 계산 제거
+- `app/api/checklist/route.ts` — `calcMissPenalty` 적용, `applyReward({source:"daily"})`. comment 분기 그대로 (시각적 동등성). 그룹 보너스 두 번째 gainExp 는 의도된 raw 시퀀스 유지 (incrementTaskCount 미호출 — 동작 보존)
+- `app/api/routines/route.ts` — `applyReward({source:"routine"})`. checkRoutineItem 안의 deadline 계산은 그대로 (이미 lib/time/kst.isWithinRoutineDeadline 호출)
+- `app/api/projects/route.ts`, `[id]/route.ts`, `[id]/tasks/route.ts`, `[id]/tasks/[taskId]/route.ts` — `withInit` + `ok`/`badRequest`/`notFound` 적용. `[taskId]/route.ts` 는 incrementTaskCount 가 AI judge 전 호출되는 기존 순서 유지 (다른 route 와 다른 의도된 차이)
+- `app/api/inventory/route.ts` — `rollGachaItems` 호출로 슬림화. 트랜잭션은 `tx()` 헬퍼로 래핑 (rollback 보존). `MAX_GACHA_COUNT` 상수 적용. count 검증 에러 메시지에 상수 값 보간
+- `app/api/attendance/route.ts` — `withInit` + `ok`/`badRequest` 적용
+- `app/api/quest/reward/route.ts` — `execOne`/`exec` 헬퍼 사용. `QUEST_REWARD_MIN/MAX` 폴백 상수 적용. 기존 cfg 우선순위(`cfg.daily_quest_exp_min ?? ...`) 보존
+
+**2.7 검증 결과**
+- `npx tsc --noEmit` ✅ (오류 0개; 초기 `@libsql/core/api` import 가 pnpm 격리로 실패 → `@libsql/client` 에서 import 로 수정)
+- `npx next build` ✅ (Turbopack, 23개 라우트 생성 성공)
+- diff stat: 10개 route 파일 538 ins / 806 del = **순감소 268줄**
+- 응답 JSON shape: 모든 필드명·구조 동일성 코드 리뷰로 확인 (todos: `{exp, comment, bonusExp, penaltyApplied, ...levelResult}`, checklist: `{exp, baseExp, bonusExp, penaltyExp, streak, comment, groupBonus, groupName, ...levelResult}`, routines/inventory/attendance/quest 동일)
+- 실제 baseline diff 검증은 사용자 환경에서 `verification/baseline/README.md` 가이드대로 curl 응답 캡처 후 수행
+
+**Phase 2 에서 의도적으로 보류 (Phase 3/4 에서 합류)**
+- 나머지 route 파일들(activities/battle/battle-config/chapters/character/config/cron/prompt/push/skills/skill-db/todo-templates/projects/ai-judge — 총 14개)의 `withInit` 적용은 보일러 정리만 남음. **Phase 4 컴포넌트 분할** 시 도메인별 PR 안에서 자연스럽게 합류 (예: SettingsDrawer 분할 PR 에 config/prompt/push/skill-db 보일러 정리 포함)
+- `lib/db/queries/*.ts` 의 `db.execute({sql, args})` 호출들도 `exec`/`execOne` 헬퍼로 마이그레이션 가능 — 가시적 이득이 작아 Phase 3 의 hooks 추출 작업과 묶어 정리 예정 (race-guard 패턴인 INSERT OR IGNORE 6곳, conditional UPDATE 2곳은 시맨틱 보존 위해 신중하게)
+- `streakBonusExp`/`penaltyExpForMissedDays` 함수는 `lib/db/queries/checklist.ts` 에 그대로 남아있음 (`updateChecklistStreak` 내부에서 호출). 외부 import 사이트가 사라졌으므로 다음 PR에서 제거 가능
+
+**다음 작업자에게 (Phase 3)**
+- shadcn init 전: `package.json` 의 Radix UI/cva/sonner/cmdk/vaul 의존성이 이미 설치돼 있는지 재확인
+- `hooks/useApi.ts` 작성 시: `lib/api/respond.ts` 가 항상 `{ error: string }` 형식으로 에러를 반환하므로 fetcher 에서 그 필드를 throw 로 변환
+- `hooks/useChecklist.ts` 등 도메인 훅 작성 시: 위 route 들의 응답 shape (`{ items, checkedIds, groups, bonusGroupIds }` 등) 이 그대로 유지됨을 활용
+- 테스트 도입(`vitest`) 결정 보류 중. 작성한다면 `lib/game/exp-bonus.test.ts` 우선 — 5가지 streak 임계값, miss penalty 캡, due bonus on/off, routine deadline bonus 자정 넘김 케이스

@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
-import { initDb } from "@/lib/db/schema"
+import { NextRequest } from "next/server"
 import {
   getProjects,
   completeProjectTask,
@@ -11,82 +10,73 @@ import {
 import { gainExp } from "@/lib/game"
 import { addActivityLog } from "@/lib/db/queries/activity"
 import { incrementTaskCount } from "@/lib/db/queries/character"
-import { getClient } from "@/lib/db/client"
+import { execOne } from "@/lib/db/queries/_helpers"
 import { judgeActivity } from "@/lib/ai"
+import { ok, badRequest, notFound, withInit } from "@/lib/api/respond"
 
-export async function PATCH(
+export const PATCH = withInit(async (
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string; taskId: string }> }
-) {
-  try {
-    await initDb()
-    const { id, taskId } = await params
-    const projectId = Number(id)
-    const taskIdNum = Number(taskId)
+  ctx: { params: Promise<{ id: string; taskId: string }> },
+) => {
+  const { id, taskId } = await ctx.params
+  const projectId = Number(id)
+  const taskIdNum = Number(taskId)
 
-    const db = getClient()
-    const taskRes = await db.execute({ sql: "SELECT * FROM project_task WHERE id=?", args: [taskIdNum] })
-    if (taskRes.rows.length === 0) return NextResponse.json({ error: "없음" }, { status: 404 })
-    const task = taskRes.rows[0]
+  const task = await execOne<{ name: unknown; exp_reward: unknown; is_completed: unknown }>(
+    "SELECT * FROM project_task WHERE id=?",
+    [taskIdNum],
+  )
+  if (!task) return notFound("없음")
+  if (task.is_completed) return badRequest("이미 완료됨")
 
-    if (task.is_completed) return NextResponse.json({ error: "이미 완료됨" }, { status: 400 })
+  // race 방어: completeProjectTask 가 conditional. 동시 PATCH 시 한 쪽만 통과.
+  const claimed = await completeProjectTask(taskIdNum)
+  if (!claimed) return badRequest("이미 완료됨")
+  await incrementTaskCount()
 
-    // race 방어: completeProjectTask가 conditional. 동시 PATCH 시 한 쪽만 통과.
-    const claimed = await completeProjectTask(taskIdNum)
-    if (!claimed) return NextResponse.json({ error: "이미 완료됨" }, { status: 400 })
-    await incrementTaskCount()
-
-    let expReward = Number(task.exp_reward)
-    let project = await getProjectById(projectId)
-    let aiComment: string | null = null
-    if (expReward === 0) {
-      const aiInput = `${project?.name ?? "프로젝트"} - ${String(task.name)}`
-      const aiResult = await judgeActivity(aiInput)
-      expReward = aiResult.exp
-      aiComment = aiResult.comment
-      await updateProjectTaskExp(taskIdNum, expReward)
-      project = await getProjectById(projectId)
-    }
-    const taskComment = `[${project?.name ?? "프로젝트"}] ${task.name} 완료`
-    await addActivityLog(String(task.name), "todo", expReward, aiComment ?? taskComment)
-    const levelResult = await gainExp(expReward)
-
-    const projectCompleted = await checkAndCompleteProject(projectId)
-    let bonusExp = 0
-    let bonusLevelResult = null
-    if (projectCompleted && project && project.bonus_exp > 0) {
-      bonusExp = project.bonus_exp
-      await addActivityLog(`[프로젝트 완료] ${project.name}`, "todo", bonusExp, "프로젝트 완료 보너스!")
-      bonusLevelResult = await gainExp(bonusExp)
-    }
-
-    const projects = await getProjects()
-    return NextResponse.json({
-      exp: expReward,
-      comment: aiComment ?? taskComment,
-      usedAi: aiComment !== null,
-      projectCompleted,
-      bonusExp,
-      ...levelResult,
-      ...(bonusLevelResult ? { bonusLevelResult } : {}),
-      projects,
-    })
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+  let expReward = Number(task.exp_reward)
+  let project = await getProjectById(projectId)
+  let aiComment: string | null = null
+  if (expReward === 0) {
+    const aiInput = `${project?.name ?? "프로젝트"} - ${String(task.name)}`
+    const aiResult = await judgeActivity(aiInput)
+    expReward = aiResult.exp
+    aiComment = aiResult.comment
+    await updateProjectTaskExp(taskIdNum, expReward)
+    project = await getProjectById(projectId)
   }
-}
+  const taskComment = `[${project?.name ?? "프로젝트"}] ${task.name} 완료`
+  await addActivityLog(String(task.name), "todo", expReward, aiComment ?? taskComment)
+  const levelResult = await gainExp(expReward)
 
-export async function DELETE(
+  const projectCompleted = await checkAndCompleteProject(projectId)
+  let bonusExp = 0
+  let bonusLevelResult = null
+  if (projectCompleted && project && project.bonus_exp > 0) {
+    bonusExp = project.bonus_exp
+    await addActivityLog(`[프로젝트 완료] ${project.name}`, "todo", bonusExp, "프로젝트 완료 보너스!")
+    bonusLevelResult = await gainExp(bonusExp)
+  }
+
+  const projects = await getProjects()
+  return ok({
+    exp: expReward,
+    comment: aiComment ?? taskComment,
+    usedAi: aiComment !== null,
+    projectCompleted,
+    bonusExp,
+    ...levelResult,
+    ...(bonusLevelResult ? { bonusLevelResult } : {}),
+    projects,
+  })
+})
+
+export const DELETE = withInit(async (
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string; taskId: string }> }
-) {
-  try {
-    await initDb()
-    const { taskId } = await params
-    await deleteProjectTask(Number(taskId))
-    const projects = await getProjects()
-    return NextResponse.json({ projects })
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
-  }
-}
+  ctx: { params: Promise<{ id: string; taskId: string }> },
+) => {
+  const { taskId } = await ctx.params
+  await deleteProjectTask(Number(taskId))
+  const projects = await getProjects()
+  return ok({ projects })
+})
