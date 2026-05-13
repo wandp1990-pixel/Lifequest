@@ -298,9 +298,21 @@ export default function RoutineSection({
         const bonusGranted = bonusRoutineIds.has(r.id)
         const expanded = expandedRoutineIds.has(r.id)
         const isAddingItem = addingItemFor === r.id
-        const nowMins = new Date().getHours() * 60 + new Date().getMinutes()
+        // 현재가 (마감 + 30분) 이전이면 active 강조.
+        // 자정 넘김 마감(<06:00)은 18:00 이후 ~ 다음날 (마감+30분) 까지 active.
+        const nowDate = new Date()
+        const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes()
         const isActive = r.deadline_time
-          ? (() => { const [h, m] = r.deadline_time.split(':').map(Number); return (h * 60 + m) >= nowMins - 30 })()
+          ? (() => {
+              const [h, m] = r.deadline_time.split(':').map(Number)
+              const deadlineMins = h * 60 + m
+              const isOvernight = deadlineMins < 6 * 60
+              if (isOvernight) {
+                if (nowMins >= 18 * 60) return true
+                return nowMins <= deadlineMins + 30
+              }
+              return nowMins <= deadlineMins + 30
+            })()
           : rIdx === 0
         const progressPct = total > 0 ? (checked / total) * 100 : 0
 

@@ -223,6 +223,7 @@ export async function getHabitGroups(): Promise<HabitGroup[]> {
     groupMap.set(g.id as number, { id: g.id as number, name: g.name as string, sort_order: g.sort_order as number, items: [] })
   }
 
+  const staleIds: number[] = []
   for (const item of itemRes.rows) {
     const itemId = item.id as number
     const lastChecked = lastCheckMap.get(itemId)
@@ -232,7 +233,9 @@ export async function getHabitGroups(): Promise<HabitGroup[]> {
       const diffMs = new Date(today + "T00:00:00Z").getTime() - new Date(lastDate + "T00:00:00Z").getTime()
       daysSinceLast = Math.floor(diffMs / (1000 * 60 * 60 * 24))
     }
-    const streak = (!lastChecked || lastChecked.slice(0, 10) < sevenDaysAgo) ? 0 : (item.streak as number) ?? 0
+    const isStale = !lastChecked || lastChecked.slice(0, 10) < sevenDaysAgo
+    if (isStale && ((item.streak as number) ?? 0) > 0) staleIds.push(itemId)
+    const streak = isStale ? 0 : (item.streak as number) ?? 0
     const group = groupMap.get(item.group_id as number)
     if (group) {
       group.items.push({
@@ -246,6 +249,16 @@ export async function getHabitGroups(): Promise<HabitGroup[]> {
         group_id: item.group_id as number,
       })
     }
+  }
+
+  // getChecklistItems 와 동일하게 stale streak 는 DB 도 0 으로 동기화.
+  // 두 함수가 다른 결과를 주지 않도록 일관성 유지.
+  if (staleIds.length > 0) {
+    const stalePlaceholders = staleIds.map(() => "?").join(",")
+    await db.execute({
+      sql: `UPDATE checklist_item SET streak=0 WHERE id IN (${stalePlaceholders})`,
+      args: staleIds,
+    })
   }
 
   return [...groupMap.values()]

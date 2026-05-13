@@ -94,14 +94,22 @@ export default function TasksTab({
 
   useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
 
-  // KST 자정에 재조회
+  // KST 자정마다 재조회 — 재귀적으로 다음 자정 timer를 다시 예약해
+  // 사용자가 앱을 24h+ 켜놓아도 매일 자정에 새 날짜 데이터로 갱신된다.
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
     const kstNow = () => new Date(Date.now() + 9 * 60 * 60 * 1000)
     const msUntilMidnight = () => {
       const n = kstNow()
       return (24 * 60 * 60 * 1000) - (n.getUTCHours() * 3600 + n.getUTCMinutes() * 60 + n.getUTCSeconds()) * 1000 - n.getUTCMilliseconds()
     }
-    const timer = setTimeout(() => { fetchAll() }, msUntilMidnight())
+    const schedule = () => {
+      timer = setTimeout(() => {
+        fetchAll()
+        schedule()
+      }, msUntilMidnight())
+    }
+    schedule()
     return () => clearTimeout(timer)
   }, [fetchAll])
 

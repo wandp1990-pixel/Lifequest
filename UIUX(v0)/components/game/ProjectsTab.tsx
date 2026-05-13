@@ -237,6 +237,9 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         showToast(`프로젝트 완료 보너스 +${data.bonusExp}XP`, data.bonusExp)
         onExpGained?.()
       }
+    } else {
+      const data = await res.json().catch(() => ({}))
+      showToast(data.error ?? "상태 변경 실패")
     }
   }
 

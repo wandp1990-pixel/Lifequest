@@ -50,7 +50,7 @@ export async function addProject(
 
 export async function updateProject(
   id: number,
-  fields: Partial<Pick<Project, 'name' | 'description' | 'status' | 'priority' | 'due_date' | 'bonus_exp' | 'color'>>
+  fields: Partial<Pick<Project, 'name' | 'description' | 'status' | 'priority' | 'due_date' | 'bonus_exp' | 'color' | 'chapter_id'>>
 ): Promise<void> {
   const db = getClient()
   const entries = Object.entries(fields).filter(([, v]) => v !== undefined)
@@ -138,7 +138,7 @@ export async function checkAndCompleteProject(projectId: number): Promise<boolea
   return false
 }
 
-export async function getProjectById(id: number): Promise<Project | null> {
+export async function getProjectById(id: number): Promise<(Project & { tasks: ProjectTask[] }) | null> {
   const db = getClient()
   const res = await db.execute({ sql: "SELECT * FROM project WHERE id=?", args: [id] })
   if (res.rows.length === 0) return null
@@ -148,5 +148,5 @@ export async function getProjectById(id: number): Promise<Project | null> {
     args: [id],
   })
   const tasks = tasksRes.rows as unknown as ProjectTask[]
-  return { ...project, bonus_exp: calcProjectBonusExp(tasks) }
+  return { ...project, bonus_exp: calcProjectBonusExp(tasks), tasks }
 }

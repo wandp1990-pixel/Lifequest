@@ -92,8 +92,10 @@ export async function PUT(req: NextRequest) {
     } else if ("name" in body) {
       if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
       await updateTodoName(id, body.name.trim(), body.suggested_exp !== undefined ? Number(body.suggested_exp) : undefined)
+    } else if ("suggested_exp" in body) {
+      await updateTodoExp(id, Number(body.suggested_exp) || 0)
     } else {
-      await updateTodoExp(id, body.suggested_exp ?? 0)
+      return NextResponse.json({ error: "수정할 필드가 없습니다" }, { status: 400 })
     }
     return NextResponse.json(await getTodoItems())
   } catch (e) {

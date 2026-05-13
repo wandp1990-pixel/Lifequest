@@ -202,31 +202,31 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
   let deadlineBonus = false
 
   if (allDone) {
-    // 보너스도 atomic claim — 동시 마지막 체크 race 방어
-    const bonusClaimRes = await db.execute({
-      sql: "INSERT OR IGNORE INTO routine_bonus_log (routine_id, bonus_exp, granted_at) VALUES (?,0,?)",
-      args: [routineId, now()],
+    // bonus_exp 먼저 계산. 그 후 INSERT OR IGNORE로 race/중복 한 번에 차단.
+    // (계산→INSERT 순서가 INSERT→UPDATE 보다 안전: 중간에 죽어도 0 적립이 영구화되지 않음.
+    //  UNIQUE 인덱스 idx_routine_bonus_log_routine_date 가 동시 INSERT를 막아준다.)
+    const rRes = await db.execute({
+      sql: "SELECT deadline_time FROM routine WHERE id=?",
+      args: [routineId],
     })
-    if (bonusClaimRes.rowsAffected > 0) {
-      const bonusLogId = Number(bonusClaimRes.lastInsertRowid)
-      const rRes = await db.execute({
-        sql: "SELECT deadline_time FROM routine WHERE id=?",
-        args: [routineId],
-      })
-      const deadlineTime = rRes.rows[0]?.deadline_time as string | null
-      const baseBonus = allItems.rows.reduce((sum, r) => sum + (r.fixed_exp as number), 0)
+    const deadlineTime = rRes.rows[0]?.deadline_time as string | null
+    const baseBonus = allItems.rows.reduce((sum, r) => sum + (r.fixed_exp as number), 0)
 
-      if (deadlineTime && isWithinRoutineDeadline(currentTimeKST(), deadlineTime)) {
-        bonusExp = baseBonus * 2
-        deadlineBonus = true
-      } else {
-        bonusExp = baseBonus
-      }
+    if (deadlineTime && isWithinRoutineDeadline(currentTimeKST(), deadlineTime)) {
+      bonusExp = baseBonus * 2
+      deadlineBonus = true
+    } else {
+      bonusExp = baseBonus
+    }
 
-      await db.execute({
-        sql: "UPDATE routine_bonus_log SET bonus_exp=? WHERE id=?",
-        args: [bonusExp, bonusLogId],
-      })
+    const bonusClaimRes = await db.execute({
+      sql: "INSERT OR IGNORE INTO routine_bonus_log (routine_id, bonus_exp, granted_at) VALUES (?,?,?)",
+      args: [routineId, bonusExp, now()],
+    })
+    if (bonusClaimRes.rowsAffected === 0) {
+      // 이미 오늘 보너스가 지급됨 (race로 다른 트랜잭션이 선점)
+      bonusExp = 0
+      deadlineBonus = false
     }
   }
 
