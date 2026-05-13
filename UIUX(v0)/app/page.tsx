@@ -187,7 +187,8 @@ export default function GamePage() {
           <SettingsDrawer
             char={char}
             onCharUpdated={fetchChar}
-            onClose={() => { setShowSettings(false); fetchQuestTotal() }}
+            onDataChanged={() => setRefreshTick((t) => t + 1)}
+            onClose={() => { setShowSettings(false); fetchQuestTotal(); setRefreshTick((t) => t + 1) }}
           />
         )}
       </div>

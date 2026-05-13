@@ -80,7 +80,63 @@ const EMPTY_SKILL_DB: Omit<SkillDbRow, "id"> = {
 interface SettingsDrawerProps {
   char: CharacterData | null
   onCharUpdated: () => void
+  onDataChanged?: () => void
   onClose: () => void
+}
+
+interface TodoTemplateRow {
+  id: number
+  name: string
+  suggested_exp: number
+  repeat_type: "weekly" | "monthly"
+  weekly_days: string | null
+  monthly_mode: "weekday" | "day" | null
+  month_week: number | null
+  month_weekday: number | null
+  month_day: number | null
+  notify_time: string | null
+}
+
+type TodoTemplateForm = {
+  name: string
+  suggested_exp: number
+  repeat_type: "weekly" | "monthly"
+  weekly_days: number[]
+  monthly_mode: "weekday" | "day"
+  month_week: number
+  month_weekday: number
+  month_day: number
+  notify_time: string
+}
+
+const WEEKDAY_OPTIONS = [
+  { value: 0, label: "일" },
+  { value: 1, label: "월" },
+  { value: 2, label: "화" },
+  { value: 3, label: "수" },
+  { value: 4, label: "목" },
+  { value: 5, label: "금" },
+  { value: 6, label: "토" },
+]
+
+const MONTH_WEEK_OPTIONS = [
+  { value: 1, label: "1주" },
+  { value: 2, label: "2주" },
+  { value: 3, label: "3주" },
+  { value: 4, label: "4주" },
+  { value: 5, label: "5주" },
+]
+
+const EMPTY_TODO_TEMPLATE_FORM: TodoTemplateForm = {
+  name: "",
+  suggested_exp: 0,
+  repeat_type: "weekly",
+  weekly_days: [1],
+  monthly_mode: "weekday",
+  month_week: 1,
+  month_weekday: 1,
+  month_day: 1,
+  notify_time: "",
 }
 
 const CHAR_FIELDS = [
@@ -103,7 +159,7 @@ const RESET_VALUES = {
   clear_count: "0", task_count: "0",
 }
 
-export default function SettingsDrawer({ char, onCharUpdated, onClose }: SettingsDrawerProps) {
+export default function SettingsDrawer({ char, onCharUpdated, onDataChanged, onClose }: SettingsDrawerProps) {
   const [charEdits, setCharEdits] = useState<Record<string, string>>({})
   const [nameEdit, setNameEdit] = useState<string>("")
   const [charSaving, setCharSaving] = useState(false)
@@ -145,6 +201,12 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
   const [confirmReset, setConfirmReset] = useState(false)
   const [confirmPartialReset, setConfirmPartialReset] = useState(false)
   const [partialResetting, setPartialResetting] = useState(false)
+  const [todoTemplates, setTodoTemplates] = useState<TodoTemplateRow[]>([])
+  const [showTodoTemplates, setShowTodoTemplates] = useState(false)
+  const [editingTodoTemplateId, setEditingTodoTemplateId] = useState<number | null>(null)
+  const [todoTemplateForm, setTodoTemplateForm] = useState<TodoTemplateForm>(EMPTY_TODO_TEMPLATE_FORM)
+  const [todoTemplateSaving, setTodoTemplateSaving] = useState(false)
+  const [deletingTodoTemplateId, setDeletingTodoTemplateId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!char) return
@@ -277,15 +339,123 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
     }
   }, [])
 
+  const fetchTodoTemplates = useCallback(async () => {
+    const res = await fetch("/api/todo-templates")
+    if (res.ok) {
+      const data = await res.json()
+      setTodoTemplates(data.templates ?? [])
+    }
+  }, [])
+
   useEffect(() => {
     fetchConfig()
     fetchBattleConfig()
     fetchSkills()
     fetchSkillDb()
+    fetchTodoTemplates()
     fetch("/api/prompt").then((r) => r.ok && r.json()).then((d) => {
       if (d) { setPromptContent(d.content ?? ""); setPromptInput(d.content ?? "") }
     })
-  }, [fetchConfig, fetchBattleConfig, fetchSkills, fetchSkillDb])
+  }, [fetchConfig, fetchBattleConfig, fetchSkills, fetchSkillDb, fetchTodoTemplates])
+
+  const resetTodoTemplateForm = () => {
+    setEditingTodoTemplateId(null)
+    setTodoTemplateForm(EMPTY_TODO_TEMPLATE_FORM)
+  }
+
+  const fillTodoTemplateForm = (template: TodoTemplateRow) => {
+    setEditingTodoTemplateId(template.id)
+    setTodoTemplateForm({
+      name: template.name,
+      suggested_exp: template.suggested_exp,
+      repeat_type: template.repeat_type,
+      weekly_days: template.weekly_days
+        ? template.weekly_days.split(",").map((value) => Number(value.trim())).filter((value) => Number.isInteger(value))
+        : [1],
+      monthly_mode: template.monthly_mode ?? "weekday",
+      month_week: template.month_week ?? 1,
+      month_weekday: template.month_weekday ?? 1,
+      month_day: template.month_day ?? 1,
+      notify_time: template.notify_time ?? "",
+    })
+  }
+
+  const formatTodoTemplateRule = (template: TodoTemplateRow) => {
+    if (template.repeat_type === "weekly") {
+      const labels = (template.weekly_days ?? "")
+        .split(",")
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isInteger(value))
+        .map((value) => WEEKDAY_OPTIONS.find((option) => option.value === value)?.label)
+        .filter(Boolean)
+      return `매주 ${labels.join(", ")}요일`
+    }
+    if (template.monthly_mode === "day") {
+      return `매달 ${template.month_day}일`
+    }
+    const weekLabel = MONTH_WEEK_OPTIONS.find((option) => option.value === template.month_week)?.label ?? `${template.month_week}주`
+    const dayLabel = WEEKDAY_OPTIONS.find((option) => option.value === template.month_weekday)?.label ?? ""
+    return `매달 ${weekLabel} ${dayLabel}요일`
+  }
+
+  const toggleWeeklyDay = (day: number) => {
+    setTodoTemplateForm((prev) => {
+      const exists = prev.weekly_days.includes(day)
+      const nextDays = exists ? prev.weekly_days.filter((value) => value !== day) : [...prev.weekly_days, day].sort((a, b) => a - b)
+      return { ...prev, weekly_days: nextDays }
+    })
+  }
+
+  const saveTodoTemplate = async () => {
+    if (!todoTemplateForm.name.trim()) return
+    if (todoTemplateForm.repeat_type === "weekly" && todoTemplateForm.weekly_days.length === 0) return
+    setTodoTemplateSaving(true)
+    try {
+      const payload = {
+        name: todoTemplateForm.name.trim(),
+        suggested_exp: todoTemplateForm.suggested_exp,
+        repeat_type: todoTemplateForm.repeat_type,
+        weekly_days: todoTemplateForm.weekly_days,
+        monthly_mode: todoTemplateForm.repeat_type === "monthly" ? todoTemplateForm.monthly_mode : null,
+        month_week: todoTemplateForm.repeat_type === "monthly" && todoTemplateForm.monthly_mode === "weekday" ? todoTemplateForm.month_week : null,
+        month_weekday: todoTemplateForm.repeat_type === "monthly" && todoTemplateForm.monthly_mode === "weekday" ? todoTemplateForm.month_weekday : null,
+        month_day: todoTemplateForm.repeat_type === "monthly" && todoTemplateForm.monthly_mode === "day" ? todoTemplateForm.month_day : null,
+        notify_time: todoTemplateForm.notify_time || null,
+      }
+      const res = await fetch("/api/todo-templates", {
+        method: editingTodoTemplateId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingTodoTemplateId ? { id: editingTodoTemplateId, ...payload } : payload),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTodoTemplates(data.templates ?? [])
+        resetTodoTemplateForm()
+        onDataChanged?.()
+      }
+    } finally {
+      setTodoTemplateSaving(false)
+    }
+  }
+
+  const removeTodoTemplate = async (id: number) => {
+    setDeletingTodoTemplateId(id)
+    try {
+      const res = await fetch("/api/todo-templates", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTodoTemplates(data.templates ?? [])
+        if (editingTodoTemplateId === id) resetTodoTemplateForm()
+        onDataChanged?.()
+      }
+    } finally {
+      setDeletingTodoTemplateId(null)
+    }
+  }
 
   const saveChar = async () => {
     setCharSaving(true)
@@ -423,6 +593,198 @@ export default function SettingsDrawer({ char, onCharUpdated, onClose }: Setting
           <div className="px-4 py-1 border-b border-border">
             <PushSetup />
           </div>
+
+          {/* 반복 할 일 자동 생성 */}
+          <button
+            onClick={() => setShowTodoTemplates(!showTodoTemplates)}
+            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-border active:bg-muted"
+          >
+            <span className="text-sm font-bold text-foreground">반복 할 일 자동 생성</span>
+            {showTodoTemplates ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {showTodoTemplates && (
+            <div className="px-4 pt-3 pb-4 space-y-3">
+              <p className="text-[11px] text-muted-foreground">
+                저장한 규칙은 해당 날짜에 앱이 열릴 때 자동으로 할 일로 생성됩니다.
+              </p>
+
+              <div className="space-y-2">
+                {todoTemplates.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                    아직 반복 할 일 규칙이 없습니다
+                  </div>
+                ) : (
+                  todoTemplates.map((template) => (
+                    <div key={template.id} className="rounded-xl border border-border bg-muted/40 px-3 py-3">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{template.name}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{formatTodoTemplateRule(template)}</p>
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            XP {template.suggested_exp === 0 ? "AI 산정" : template.suggested_exp}
+                            {template.notify_time ? ` · 알림 ${template.notify_time}` : ""}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => fillTodoTemplateForm(template)}
+                          className="px-2 py-1 rounded-lg bg-background border border-border text-[10px] font-bold text-foreground active:scale-95"
+                        >
+                          수정
+                        </button>
+                        <button
+                          onClick={() => removeTodoTemplate(template.id)}
+                          disabled={deletingTodoTemplateId === template.id}
+                          className="px-2 py-1 rounded-lg bg-red-50 text-red-500 text-[10px] font-bold active:scale-95 disabled:opacity-40"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/40 px-3 py-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-violet-700">
+                    {editingTodoTemplateId ? "반복 규칙 수정" : "반복 규칙 추가"}
+                  </p>
+                  {editingTodoTemplateId !== null && (
+                    <button onClick={resetTodoTemplateForm} className="text-[10px] text-muted-foreground">새로 작성</button>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  value={todoTemplateForm.name}
+                  onChange={(e) => setTodoTemplateForm((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="할 일 이름"
+                  className="w-full text-sm text-gray-900 dark:text-gray-100 bg-background border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-1">경험치</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={todoTemplateForm.suggested_exp}
+                      onChange={(e) => setTodoTemplateForm((prev) => ({ ...prev, suggested_exp: Number(e.target.value) }))}
+                      className="w-full text-sm text-gray-900 dark:text-gray-100 bg-background border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-1">알림 시간</label>
+                    <input
+                      type="time"
+                      value={todoTemplateForm.notify_time}
+                      onChange={(e) => setTodoTemplateForm((prev) => ({ ...prev, notify_time: e.target.value }))}
+                      className="w-full text-sm text-gray-900 dark:text-gray-100 bg-background border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-muted-foreground mb-1">반복 방식</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setTodoTemplateForm((prev) => ({ ...prev, repeat_type: "weekly" }))}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold ${todoTemplateForm.repeat_type === "weekly" ? "bg-violet-500 text-white" : "bg-background border border-violet-200 dark:border-violet-800 text-muted-foreground"}`}
+                    >
+                      주간 반복
+                    </button>
+                    <button
+                      onClick={() => setTodoTemplateForm((prev) => ({ ...prev, repeat_type: "monthly" }))}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold ${todoTemplateForm.repeat_type === "monthly" ? "bg-violet-500 text-white" : "bg-background border border-violet-200 dark:border-violet-800 text-muted-foreground"}`}
+                    >
+                      월간 반복
+                    </button>
+                  </div>
+                </div>
+
+                {todoTemplateForm.repeat_type === "weekly" && (
+                  <div>
+                    <label className="block text-[10px] text-muted-foreground mb-1">생성 요일</label>
+                    <div className="grid grid-cols-7 gap-1">
+                      {WEEKDAY_OPTIONS.map((option) => {
+                        const active = todoTemplateForm.weekly_days.includes(option.value)
+                        return (
+                          <button
+                            key={option.value}
+                            onClick={() => toggleWeeklyDay(option.value)}
+                            className={`py-2 rounded-lg text-xs font-bold ${active ? "bg-violet-500 text-white" : "bg-background border border-violet-200 dark:border-violet-800 text-muted-foreground"}`}
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {todoTemplateForm.repeat_type === "monthly" && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setTodoTemplateForm((prev) => ({ ...prev, monthly_mode: "weekday" }))}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold ${todoTemplateForm.monthly_mode === "weekday" ? "bg-violet-500 text-white" : "bg-background border border-violet-200 dark:border-violet-800 text-muted-foreground"}`}
+                      >
+                        n주차 요일
+                      </button>
+                      <button
+                        onClick={() => setTodoTemplateForm((prev) => ({ ...prev, monthly_mode: "day" }))}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold ${todoTemplateForm.monthly_mode === "day" ? "bg-violet-500 text-white" : "bg-background border border-violet-200 dark:border-violet-800 text-muted-foreground"}`}
+                      >
+                        날짜
+                      </button>
+                    </div>
+
+                    {todoTemplateForm.monthly_mode === "weekday" ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={todoTemplateForm.month_week}
+                          onChange={(e) => setTodoTemplateForm((prev) => ({ ...prev, month_week: Number(e.target.value) }))}
+                          className="w-full text-sm text-gray-900 dark:text-gray-100 bg-background border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-2 outline-none"
+                        >
+                          {MONTH_WEEK_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={todoTemplateForm.month_weekday}
+                          onChange={(e) => setTodoTemplateForm((prev) => ({ ...prev, month_weekday: Number(e.target.value) }))}
+                          className="w-full text-sm text-gray-900 dark:text-gray-100 bg-background border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-2 outline-none"
+                        >
+                          {WEEKDAY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}요일</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={todoTemplateForm.month_day}
+                        onChange={(e) => setTodoTemplateForm((prev) => ({ ...prev, month_day: Number(e.target.value) }))}
+                        className="w-full text-sm text-gray-900 dark:text-gray-100 bg-background border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-violet-300"
+                      />
+                    )}
+                  </div>
+                )}
+
+                <p className="text-[10px] text-muted-foreground">XP를 0으로 두면 생성된 할 일은 완료 시 AI가 경험치를 산정합니다.</p>
+
+                <button
+                  onClick={saveTodoTemplate}
+                  disabled={todoTemplateSaving || !todoTemplateForm.name.trim() || (todoTemplateForm.repeat_type === "weekly" && todoTemplateForm.weekly_days.length === 0)}
+                  className="w-full py-2.5 bg-violet-500 text-white rounded-xl text-sm font-bold disabled:opacity-40 active:scale-95"
+                >
+                  {todoTemplateSaving ? "저장 중..." : editingTodoTemplateId ? "규칙 저장" : "규칙 추가"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* AI 판정 프롬프트 */}
           <button

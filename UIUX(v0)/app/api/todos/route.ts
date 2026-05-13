@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import {
   initDb, getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem,
   updateTodoExp, updateTodoName, addActivityLog, incrementTaskCount, updateTodoNotifyTime,
+  generateRecurringTodosIfNeeded,
 } from "@/lib/db"
 import { now } from "@/lib/db/client"
 import { gainExp } from "@/lib/game"
@@ -11,6 +12,7 @@ export async function GET() {
   try {
     await initDb()
     await cleanupCompletedTodos()
+    await generateRecurringTodosIfNeeded(addTodoItem)
     const items = await getTodoItems()
     return NextResponse.json({ items })
   } catch (e) {

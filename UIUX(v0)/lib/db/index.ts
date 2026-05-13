@@ -16,6 +16,14 @@ export {
 export type { HabitGroup } from "./queries/checklist"
 export { getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName } from "./queries/todo"
 export {
+  getTodoTemplates,
+  addTodoTemplate,
+  updateTodoTemplate,
+  deleteTodoTemplate,
+  generateRecurringTodosIfNeeded,
+} from "./queries/todo-template"
+export type { TodoTemplate } from "./queries/todo-template"
+export {
   getRoutines, addRoutine, addRoutineItem,
   deleteRoutine, deleteRoutineItem, checkRoutineItem,
   reorderRoutineItems, updateRoutineDeadline,

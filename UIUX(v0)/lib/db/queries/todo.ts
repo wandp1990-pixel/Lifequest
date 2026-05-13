@@ -15,12 +15,13 @@ export async function getTodoItems() {
   return res.rows
 }
 
-export async function addTodoItem(name: string, suggestedExp: number, dueTime?: string | null) {
+export async function addTodoItem(name: string, suggestedExp: number, dueTime?: string | null, notifyTime?: string | null) {
   const db = getClient()
-  await db.execute({
-    sql: "INSERT INTO todo_item (name, suggested_exp, is_completed, created_at, due_time) VALUES (?,?,0,?,?)",
-    args: [name, suggestedExp, now(), dueTime ?? null],
+  const res = await db.execute({
+    sql: "INSERT INTO todo_item (name, suggested_exp, is_completed, created_at, due_time, notify_time) VALUES (?,?,0,?,?,?)",
+    args: [name, suggestedExp, now(), dueTime ?? null, notifyTime ?? null],
   })
+  return Number(res.lastInsertRowid)
 }
 
 // race/재완료 방어: 미완료 상태에서만 통과. true면 새로 완료된 것.

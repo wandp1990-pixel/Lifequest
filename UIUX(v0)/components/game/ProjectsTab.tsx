@@ -36,6 +36,7 @@ interface Chapter {
   start_date: string | null
   end_date: string | null
   bonus_tickets: number
+  bonus_exp: number
   status: "active" | "done"
   total_projects: number
   done_projects: number
@@ -96,6 +97,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   // 하위 작업 추가
   const [addingTaskFor, setAddingTaskFor] = useState<number | null>(null)
   const [newTaskName,   setNewTaskName]   = useState("")
+  const [newTaskExp,    setNewTaskExp]    = useState("0")
   const [completing,    setCompleting]    = useState<number | null>(null)
 
   // 프로젝트 카드 내 챕터 편집
@@ -168,12 +170,12 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     const res = await fetch(`/api/projects/${projectId}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newTaskName.trim() }),
+      body: JSON.stringify({ name: newTaskName.trim(), exp_reward: Number(newTaskExp) || 0 }),
     })
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
-      setAddingTaskFor(null); setNewTaskName("")
+      setAddingTaskFor(null); setNewTaskName(""); setNewTaskExp("0")
     }
   }
 
@@ -185,8 +187,11 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       const data = await res.json()
       setProjects(data.projects ?? [])
       await fetchAll()
-      if (data.projectCompleted) showToast(`프로젝트 완료! 보너스 +${data.bonusExp}XP`, data.bonusExp)
-      else showToast(`+${data.exp}XP`, data.exp)
+      if (data.projectCompleted) {
+        showToast(`${data.usedAi ? "AI 산정 " : ""}작업 +${data.exp}XP · 프로젝트 완료 보너스 +${data.bonusExp}XP`, data.exp + data.bonusExp)
+      } else {
+        showToast(`${data.usedAi ? "AI 산정 " : ""}작업 완료 +${data.exp}XP`, data.exp)
+      }
       onExpGained?.()
     }
     setCompleting(null)
@@ -231,7 +236,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       setProjects(data.projects ?? [])
       await fetchAll()
       if (status === "done" && data.bonusExp > 0) {
-        showToast(`프로젝트 완료! +${data.bonusExp}XP`, data.bonusExp)
+        showToast(`프로젝트 완료 보너스 +${data.bonusExp}XP`, data.bonusExp)
         onExpGained?.()
       }
     }
@@ -265,7 +270,10 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setChapters(data.chapters ?? [])
-      showToast(`챕터 완료! 뽑기권 +${data.ticketsAwarded}`)
+      const parts: string[] = []
+      if (data.bonusExp > 0) parts.push(`묶음 완료 보너스 +${data.bonusExp}XP`)
+      if (data.ticketsAwarded > 0) parts.push(`뽑기권 +${data.ticketsAwarded}`)
+      showToast(parts.join(" · ") || "묶음 완료!")
       onExpGained?.()
     }
     setCompletingChapter(null)
@@ -452,7 +460,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
 
             {project.bonus_exp > 0 && (
               <div className="text-[11px] text-muted-foreground">
-                완료 보너스: <span className="text-amber-400 font-bold">+{project.bonus_exp}XP</span>
+                프로젝트 완료 보너스: <span className="text-amber-400 font-bold">+{project.bonus_exp}XP</span>
               </div>
             )}
 
@@ -473,7 +481,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                     )}
                   </button>
                   <span className={`flex-1 text-xs ${task.is_completed ? "line-through" : ""}`}>{task.name}</span>
-                  <span className="text-[10px] text-amber-400 shrink-0">+{task.exp_reward}XP</span>
+                  <span className="text-[10px] text-amber-400 shrink-0">{task.exp_reward === 0 ? "AI 산정" : `+${task.exp_reward}XP`}</span>
                   {!task.is_completed && (
                     <button onClick={() => handleDeleteTask(project.id, task.id)} className="text-muted-foreground shrink-0">
                       <X size={12} />
@@ -490,24 +498,35 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
             )}
 
             {addingTaskFor === project.id ? (
-              <div className="flex gap-2 mt-1">
-                <input
-                  autoFocus
-                  className="flex-1 text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
-                  placeholder="작업 이름"
-                  value={newTaskName}
-                  onChange={(e) => setNewTaskName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddTask(project.id)
-                    if (e.key === "Escape") { setAddingTaskFor(null); setNewTaskName("") }
-                  }}
-                />
-                <button onClick={() => handleAddTask(project.id)} className="px-3 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold">추가</button>
-                <button onClick={() => { setAddingTaskFor(null); setNewTaskName("") }} className="text-muted-foreground"><X size={14} /></button>
+              <div className="mt-1 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    className="flex-1 text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
+                    placeholder="작업 이름"
+                    value={newTaskName}
+                    onChange={(e) => setNewTaskName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddTask(project.id)
+                      if (e.key === "Escape") { setAddingTaskFor(null); setNewTaskName(""); setNewTaskExp("0") }
+                    }}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-20 text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none focus:border-violet-500"
+                    placeholder="XP"
+                    value={newTaskExp}
+                    onChange={(e) => setNewTaskExp(e.target.value)}
+                  />
+                  <button onClick={() => handleAddTask(project.id)} className="px-3 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold">추가</button>
+                  <button onClick={() => { setAddingTaskFor(null); setNewTaskName(""); setNewTaskExp("0") }} className="text-muted-foreground"><X size={14} /></button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">XP를 `0`으로 두면 완료 시 AI가 경험치를 산정합니다.</p>
               </div>
             ) : (
               <button
-                onClick={() => { setAddingTaskFor(project.id); setNewTaskName("") }}
+                onClick={() => { setAddingTaskFor(project.id); setNewTaskName(""); setNewTaskExp("0") }}
                 className="flex items-center gap-1 text-xs text-muted-foreground mt-1"
                 disabled={project.status === "done"}
               >
@@ -671,7 +690,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 </button>
                 <div className="flex-1" />
                 <span className="text-[10px] text-muted-foreground">
-                  보상: <span className="text-violet-400 font-bold">뽑기권 +{ch.bonus_tickets}</span>
+                  보상: <span className="text-violet-400 font-bold">XP +{ch.bonus_exp}</span>{ch.bonus_tickets > 0 ? ` · 뽑기권 +${ch.bonus_tickets}` : ""}
                 </span>
               </div>
             )}
@@ -761,7 +780,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
             <button onClick={() => setAdding(false)}><X size={16} className="text-muted-foreground" /></button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            프로젝트는 큰 목표이고, 세부 단계는 만든 뒤 안에서 작업으로 추가합니다.
+            작업 완료 시 고정 XP를 받고, 프로젝트 완료 시 작업 XP 합계만큼 추가 보너스를 받습니다.
           </p>
           <input
             autoFocus

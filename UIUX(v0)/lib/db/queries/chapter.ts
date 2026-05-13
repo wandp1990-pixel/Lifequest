@@ -10,11 +10,18 @@ export async function getChapters(): Promise<ChapterWithProgress[]> {
   for (const row of chapters.rows) {
     const chapterId = Number(row.id)
     const stats = await db.execute({
-      sql: "SELECT COUNT(*) as total, SUM(CASE WHEN status='done' THEN 1 ELSE 0 END) as done FROM project WHERE chapter_id=?",
+      sql: `SELECT
+              COUNT(DISTINCT p.id) as total,
+              COUNT(DISTINCT CASE WHEN p.status='done' THEN p.id END) as done,
+              COALESCE(SUM(pt.exp_reward), 0) as bonus_exp
+            FROM project p
+            LEFT JOIN project_task pt ON pt.project_id = p.id
+            WHERE p.chapter_id=?`,
       args: [chapterId],
     })
     const total = Number(stats.rows[0].total)
     const done  = Number(stats.rows[0].done)
+    const bonusExp = Number(stats.rows[0].bonus_exp)
     result.push({
       id:            chapterId,
       name:          String(row.name),
@@ -26,6 +33,7 @@ export async function getChapters(): Promise<ChapterWithProgress[]> {
       completed_at:  row.completed_at ? String(row.completed_at) : null,
       total_projects: total,
       done_projects:  done,
+      bonus_exp:      bonusExp,
     })
   }
   return result

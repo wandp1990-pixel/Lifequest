@@ -1,6 +1,10 @@
 import { getClient, now } from "../client"
 import type { Project, ProjectTask, ProjectWithTasks } from "../types"
 
+function calcProjectBonusExp(tasks: ProjectTask[]): number {
+  return tasks.reduce((sum, task) => sum + Number(task.exp_reward ?? 0), 0)
+}
+
 export async function getProjects(): Promise<ProjectWithTasks[]> {
   const db = getClient()
   const projectsRes = await db.execute(
@@ -18,8 +22,9 @@ export async function getProjects(): Promise<ProjectWithTasks[]> {
   }
 
   return projectsRes.rows.map((row) => {
-    const project = row as unknown as Project
-    const tasks = tasksByProject.get(project.id) ?? []
+    const rawProject = row as unknown as Project
+    const tasks = tasksByProject.get(rawProject.id) ?? []
+    const project = { ...rawProject, bonus_exp: calcProjectBonusExp(tasks) }
     const total = tasks.length
     const done = tasks.filter((t) => t.is_completed).length
     const progress = total === 0 ? 0 : Math.round((done / total) * 100)
@@ -93,6 +98,14 @@ export async function addProjectTask(
   })
 }
 
+export async function updateProjectTaskExp(id: number, expReward: number): Promise<void> {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE project_task SET exp_reward=? WHERE id=?",
+    args: [expReward, id],
+  })
+}
+
 // race 방어: 미완료 상태일 때만 통과.
 export async function completeProjectTask(id: number): Promise<boolean> {
   const db = getClient()
@@ -129,5 +142,11 @@ export async function getProjectById(id: number): Promise<Project | null> {
   const db = getClient()
   const res = await db.execute({ sql: "SELECT * FROM project WHERE id=?", args: [id] })
   if (res.rows.length === 0) return null
-  return res.rows[0] as unknown as Project
+  const project = res.rows[0] as unknown as Project
+  const tasksRes = await db.execute({
+    sql: "SELECT * FROM project_task WHERE project_id=? ORDER BY sort_order ASC, id ASC",
+    args: [id],
+  })
+  const tasks = tasksRes.rows as unknown as ProjectTask[]
+  return { ...project, bonus_exp: calcProjectBonusExp(tasks) }
 }

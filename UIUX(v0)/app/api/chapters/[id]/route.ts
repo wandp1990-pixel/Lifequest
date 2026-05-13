@@ -3,6 +3,8 @@ import { initDb } from "@/lib/db/schema"
 import { getChapters, completeChapter, deleteChapter } from "@/lib/db/queries/chapter"
 import { getCharacter, updateCharacter } from "@/lib/db/queries/character"
 import { getProjects } from "@/lib/db/queries/project"
+import { addActivityLog } from "@/lib/db/queries/activity"
+import { gainExp } from "@/lib/game"
 
 export async function PATCH(
   req: NextRequest,
@@ -28,13 +30,27 @@ export async function PATCH(
         return NextResponse.json({ error: "이미 완료된 챕터입니다" }, { status: 400 })
       }
 
+      const chapters = await getChapters()
+      const chapter = chapters.find((item) => item.id === chapterId)
+      const bonusExp = Number(chapter?.bonus_exp ?? 0)
+      let levelResult = null
+      if (bonusExp > 0) {
+        await addActivityLog(`[묶음 완료] ${chapter?.name ?? "프로젝트 묶음"}`, "todo", bonusExp, "묶음 완료 보너스!")
+        levelResult = await gainExp(bonusExp)
+      }
+
       const tickets = Number(bonus_tickets ?? 0)
       if (tickets > 0) {
         const char = await getCharacter()
         if (char) await updateCharacter({ draw_tickets: char.draw_tickets + tickets })
       }
-      const chapters = await getChapters()
-      return NextResponse.json({ chapters, ticketsAwarded: tickets })
+      const refreshedChapters = await getChapters()
+      return NextResponse.json({
+        chapters: refreshedChapters,
+        ticketsAwarded: tickets,
+        bonusExp,
+        ...(levelResult ?? {}),
+      })
     }
 
     return NextResponse.json({ error: "알 수 없는 action" }, { status: 400 })

@@ -118,11 +118,12 @@ UI(components/game/*.tsx)
 
 ### 5.4 데일리 — 할 일(투두)
 
-- **DB**: `todo_item`
-- **쿼리**: `lib/db/queries/todo.ts`
-- **API**: `/api/todos` (GET/POST/PATCH/PUT/DELETE)
-- **UI**: `TasksTab.tsx` 할일 섹션
+- **DB**: `todo_item`, `todo_template`, `todo_template_log`
+- **쿼리**: `lib/db/queries/todo.ts`, `todo-template.ts`
+- **API**: `/api/todos` (GET/POST/PATCH/PUT/DELETE), `/api/todo-templates` (반복 규칙 CRUD)
+- **UI**: `TasksTab.tsx` 할일 섹션, `SettingsDrawer.tsx` 반복 할 일 자동 생성 섹션
 - 완료 시 `suggested_exp`가 0이면 AI 판정. 마감 내 완료 +50% 보너스.
+- 반복 할 일은 사이드 메뉴에서 **주간/월간 규칙**으로 저장한다. 앱이 열릴 때 오늘 날짜에 맞는 템플릿이 있으면 `todo_item`으로 자동 생성되며, 같은 날짜에는 `todo_template_log`로 중복 생성 방지.
 
 ### 5.5 프로젝트 (대형 퀘스트)
 
@@ -131,6 +132,7 @@ UI(components/game/*.tsx)
 - **API**: `/api/projects` (CRUD), `/api/projects/[id]` (단건), `/api/projects/[id]/tasks` (서브태스크), `/api/projects/ai-judge` (완료 EXP 판정)
 - **로직**: `lib/ai.ts` `judgeProjectExp`
 - **UI**: `ProjectsTab.tsx` (TasksTab 안에 임베드, 색상 violet)
+- **보상 산식 (현재 기준)**: 하위 작업은 생성 시 EXP를 직접 지정할 수 있다. `0`이면 할 일과 동일하게 **완료 시점 AI 산정**을 사용하고, 산정된 값이 해당 작업 EXP로 저장된다. 프로젝트 완료 보너스는 **해당 프로젝트 작업 EXP 합계와 동일**하게 지급한다. 즉 작업을 모두 끝내면 프로젝트는 총 `2배` 적립 구조다. 루틴/습관의 `개별 적립 + 완주 보너스` 철학을 그대로 따른다.
 
 ### 5.6 챕터 (프로젝트 묶음 진행도)
 
@@ -138,6 +140,7 @@ UI(components/game/*.tsx)
 - **쿼리**: `lib/db/queries/chapter.ts`
 - **API**: `/api/chapters`, `/api/chapters/[id]`
 - **UI**: `ProjectsTab.tsx` 상단 챕터 헤더
+- **보상 산식 (현재 기준)**: 묶음 완료 보너스 EXP는 **묶음 안 프로젝트들의 완료 보너스 합계**와 동일하다. 결과적으로 묶음 전체의 모든 작업 EXP 총합만큼 추가 EXP를 지급하며, 기존 뽑기권 보상은 그대로 유지한다.
 
 ### 5.7 활동 로그 / AI 판정
 
@@ -210,6 +213,7 @@ UI(components/game/*.tsx)
 | `activity_log` | 활동 기록, 30개 cap |
 | `checklist_item` / `checklist_log` | 습관 정의 / 완료 기록 |
 | `todo_item` | 투두 |
+| `todo_template` / `todo_template_log` | 반복 투두 규칙 / 생성 이력 |
 | `routine` / `routine_item` / `routine_log` / `routine_bonus_log` | 루틴 그룹·하위·완료·보너스 |
 | `project` / `project_task` | 프로젝트·서브태스크 |
 | `chapter` | 프로젝트 묶음 진행도 |

@@ -106,6 +106,27 @@ CREATE TABLE IF NOT EXISTS todo_item (
     created_at    TEXT,
     completed_at  TEXT
 );
+CREATE TABLE IF NOT EXISTS todo_template (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    suggested_exp INTEGER DEFAULT 0,
+    repeat_type   TEXT NOT NULL,
+    weekly_days   TEXT,
+    monthly_mode  TEXT,
+    month_week    INTEGER,
+    month_weekday INTEGER,
+    month_day     INTEGER,
+    notify_time   TEXT,
+    is_active     INTEGER DEFAULT 1,
+    created_at    TEXT
+);
+CREATE TABLE IF NOT EXISTS todo_template_log (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id    INTEGER NOT NULL REFERENCES todo_template(id),
+    scheduled_date TEXT NOT NULL,
+    todo_id        INTEGER,
+    created_at     TEXT
+);
 CREATE TABLE IF NOT EXISTS battle_log (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     monster_name  TEXT,
@@ -294,6 +315,7 @@ export async function initDbSchemaOnly() {
   try { await db.execute("ALTER TABLE todo_item ADD COLUMN notify_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE todo_item ADD COLUMN due_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE todo_item ADD COLUMN penalty_applied INTEGER DEFAULT 0") } catch {}
+  try { await db.execute("ALTER TABLE todo_template ADD COLUMN notify_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE routine_item ADD COLUMN time_limit_minutes INTEGER") } catch {}
   try { await db.execute("ALTER TABLE routine ADD COLUMN deadline_time TEXT") } catch {}
   try { await db.execute("ALTER TABLE character ADD COLUMN last_regen_at TEXT") } catch {}
@@ -527,6 +549,33 @@ export async function initDb() {
   await runMigration("todo_deadline_v1", async () => {
     try { await db.execute("ALTER TABLE todo_item ADD COLUMN due_time TEXT") } catch {}
     try { await db.execute("ALTER TABLE todo_item ADD COLUMN penalty_applied INTEGER DEFAULT 0") } catch {}
+  })
+
+  await runMigration("todo_template_v1", async () => {
+    await db.batch([
+      `CREATE TABLE IF NOT EXISTS todo_template (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        suggested_exp INTEGER DEFAULT 0,
+        repeat_type TEXT NOT NULL,
+        weekly_days TEXT,
+        monthly_mode TEXT,
+        month_week INTEGER,
+        month_weekday INTEGER,
+        month_day INTEGER,
+        notify_time TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS todo_template_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        template_id INTEGER NOT NULL REFERENCES todo_template(id),
+        scheduled_date TEXT NOT NULL,
+        todo_id INTEGER,
+        created_at TEXT
+      )`,
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_todo_template_log_template_date ON todo_template_log(template_id, scheduled_date)",
+    ], "write")
   })
 
   await runMigration("project_system_v1", async () => {

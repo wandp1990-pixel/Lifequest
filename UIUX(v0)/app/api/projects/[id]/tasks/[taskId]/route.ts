@@ -6,11 +6,13 @@ import {
   deleteProjectTask,
   checkAndCompleteProject,
   getProjectById,
+  updateProjectTaskExp,
 } from "@/lib/db/queries/project"
 import { gainExp } from "@/lib/game"
 import { addActivityLog } from "@/lib/db/queries/activity"
 import { incrementTaskCount } from "@/lib/db/queries/character"
 import { getClient } from "@/lib/db/client"
+import { judgeActivity } from "@/lib/ai"
 
 export async function PATCH(
   _req: NextRequest,
@@ -34,10 +36,19 @@ export async function PATCH(
     if (!claimed) return NextResponse.json({ error: "이미 완료됨" }, { status: 400 })
     await incrementTaskCount()
 
-    const expReward = Number(task.exp_reward)
-    const project = await getProjectById(projectId)
+    let expReward = Number(task.exp_reward)
+    let project = await getProjectById(projectId)
+    let aiComment: string | null = null
+    if (expReward === 0) {
+      const aiInput = `${project?.name ?? "프로젝트"} - ${String(task.name)}`
+      const aiResult = await judgeActivity(aiInput)
+      expReward = aiResult.exp
+      aiComment = aiResult.comment
+      await updateProjectTaskExp(taskIdNum, expReward)
+      project = await getProjectById(projectId)
+    }
     const taskComment = `[${project?.name ?? "프로젝트"}] ${task.name} 완료`
-    await addActivityLog(String(task.name), "todo", expReward, taskComment)
+    await addActivityLog(String(task.name), "todo", expReward, aiComment ?? taskComment)
     const levelResult = await gainExp(expReward)
 
     const projectCompleted = await checkAndCompleteProject(projectId)
@@ -52,7 +63,8 @@ export async function PATCH(
     const projects = await getProjects()
     return NextResponse.json({
       exp: expReward,
-      comment: taskComment,
+      comment: aiComment ?? taskComment,
+      usedAi: aiComment !== null,
       projectCompleted,
       bonusExp,
       ...levelResult,

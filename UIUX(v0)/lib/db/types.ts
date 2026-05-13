@@ -12,6 +12,7 @@ export type Chapter = {
 export type ChapterWithProgress = Chapter & {
   total_projects: number
   done_projects: number
+  bonus_exp: number
 }
 
 export type Project = {

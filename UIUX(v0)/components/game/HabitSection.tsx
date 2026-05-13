@@ -313,12 +313,15 @@ export default function HabitSection({
 
         {!isEditingName && !isMoving && (
           <div className="flex items-center gap-1.5 flex-shrink-0 self-start">
-            <span
-              className="px-2.5 py-1 rounded-full text-xs font-bold"
+            <button
+              onClick={() => completeHabit(item)}
+              disabled={done || completing !== null}
+              className="px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95"
               style={done ? { background: "#F3F4F6", color: "#9CA3AF" } : { background: "#FFF4D6", color: "#D97706" }}
+              aria-label={done ? "완료됨" : "경험치 받고 완료"}
             >
-              {done ? "✓ 완료" : `+${item.fixed_exp} EXP`}
-            </span>
+              {done ? "✓ 완료" : isLoading ? "처리 중..." : `+${item.fixed_exp} EXP`}
+            </button>
             {!done && (
               <>
                 <button onClick={() => { setEditingId(item.id); setEditingName(item.name); setEditingExp(item.fixed_exp) }}
