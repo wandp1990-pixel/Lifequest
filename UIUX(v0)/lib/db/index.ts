@@ -9,7 +9,11 @@ export {
   addChecklistItem, deleteChecklistItem, getTodayCheckedItemIds,
   updateChecklistStreak, streakBonusExp, updateChecklistItemName,
   penaltyExpForMissedDays,
+  getHabitGroups, getTodayBonusGroupIds, claimHabitGroupBonus,
+  addHabitGroup, updateHabitGroupName, deleteHabitGroup,
+  setItemGroup, reorderHabitGroups,
 } from "./queries/checklist"
+export type { HabitGroup } from "./queries/checklist"
 export { getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName } from "./queries/todo"
 export {
   getRoutines, addRoutine, addRoutineItem,

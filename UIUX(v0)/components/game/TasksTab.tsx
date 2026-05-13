@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import ProjectsTab from "./ProjectsTab"
 import HabitSection, { DailyItem } from "./HabitSection"
+import type { HabitGroup } from "@/lib/db"
 import TodoSection, { TodoItem } from "./TodoSection"
 import RoutineSection, { Routine, RoutineChapter } from "./RoutineSection"
 
@@ -34,6 +35,8 @@ export default function TasksTab({
   // ── 데이터 상태 (카운터 집계용) ──────────────────────────────────────────
   const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
   const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
+  const [habitGroups, setHabitGroups] = useState<HabitGroup[]>([])
+  const [bonusGroupIds, setBonusGroupIds] = useState<Set<number>>(new Set())
   const [todoItems, setTodoItems] = useState<TodoItem[]>([])
   const [completedTodoCount, setCompletedTodoCount] = useState(0)
   const [routines, setRoutines] = useState<Routine[]>([])
@@ -62,6 +65,8 @@ export default function TasksTab({
         const data = await checkRes.json()
         setDailyItems(data.items ?? [])
         setCheckedDailyIds(new Set(data.checkedIds ?? []))
+        setHabitGroups(data.groups ?? [])
+        setBonusGroupIds(new Set(data.bonusGroupIds ?? []))
       }
       if (todoRes.ok) {
         const data = await todoRes.json()
@@ -133,6 +138,8 @@ export default function TasksTab({
       if (res.ok) {
         const data = await res.json()
         setDailyItems(data.items ?? [])
+        setHabitGroups(data.groups ?? [])
+        setBonusGroupIds(new Set(data.bonusGroupIds ?? []))
       }
     } else if (type === "todo") {
       const res = await fetch("/api/todos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
@@ -245,6 +252,10 @@ export default function TasksTab({
           setDailyItems={setDailyItems}
           checkedDailyIds={checkedDailyIds}
           setCheckedDailyIds={setCheckedDailyIds}
+          habitGroups={habitGroups}
+          setHabitGroups={setHabitGroups}
+          bonusGroupIds={bonusGroupIds}
+          setBonusGroupIds={setBonusGroupIds}
           onToast={showToast}
           onConfirmDelete={setConfirmDelete}
           onExpGained={onExpGained}
