@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, BookOpen, Trophy } from "lucide-react"
+import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, BookOpen, Trophy, FolderPlus } from "lucide-react"
 
 interface ProjectTask {
   id: number
@@ -98,15 +98,28 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   const [newTaskName,   setNewTaskName]   = useState("")
   const [completing,    setCompleting]    = useState<number | null>(null)
 
-  // 챕터 UI
-  const [chapterExpanded, setChapterExpanded] = useState(false)
+  // 프로젝트 카드 내 챕터 편집
   const [editingChapterFor, setEditingChapterFor] = useState<number | null>(null)
-  const [addingChapter,   setAddingChapter]   = useState(false)
-  const [chName,          setChName]          = useState("")
-  const [chEnd,           setChEnd]           = useState("")
-  const [chTickets,       setChTickets]       = useState(3)
-  const [chProjectIds,    setChProjectIds]    = useState<number[]>([])
+
+  // 묶음(챕터) 관련
+  const [addingBundle,      setAddingBundle]      = useState(false)
+  const [chName,            setChName]            = useState("")
+  const [chEnd,             setChEnd]             = useState("")
+  const [chTickets,         setChTickets]         = useState(3)
   const [completingChapter, setCompletingChapter] = useState<number | null>(null)
+  const [expandedChapters,  setExpandedChapters]  = useState<Set<number>>(new Set())
+
+  // 묶음 안에서 새 프로젝트 생성
+  const [addingProjectToChapter,  setAddingProjectToChapter]  = useState<number | null>(null)
+  const [chapterNewProjName,      setChapterNewProjName]      = useState("")
+  const [chapterNewProjPriority,  setChapterNewProjPriority]  = useState<"low" | "medium" | "high">("medium")
+
+  // 기존 프로젝트를 묶음에 할당
+  const [assigningToChapter, setAssigningToChapter] = useState<number | null>(null)
+  const [assignProjectIds,   setAssignProjectIds]   = useState<number[]>([])
+
+  // 완료된 것들 표시 토글
+  const [showDone, setShowDone] = useState(false)
 
   const fetchAll = useCallback(async () => {
     const [pRes, cRes] = await Promise.all([
@@ -143,8 +156,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       }),
     })
     if (res.ok) {
-      const data = await res.json()
-      setProjects(data.projects ?? [])
       await fetchAll()
       setAdding(false)
       setNewName(""); setNewDesc(""); setNewPriority("medium")
@@ -236,22 +247,10 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     })
     if (res.ok) {
       const data = await res.json()
-      const newChapter = (data.chapters ?? []).at(-1)
-      if (newChapter && chProjectIds.length > 0) {
-        await Promise.all(
-          chProjectIds.map((pid) =>
-            fetch(`/api/projects/${pid}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ chapter_id: newChapter.id }),
-            })
-          )
-        )
-        await fetchAll()
-      } else {
-        setChapters(data.chapters ?? [])
-      }
-      setAddingChapter(false); setChName(""); setChEnd(""); setChTickets(3); setChProjectIds([])
+      setChapters(data.chapters ?? [])
+      const newest = (data.chapters ?? []).at(-1)
+      if (newest) setExpandedChapters((prev) => new Set([...prev, newest.id]))
+      setAddingBundle(false); setChName(""); setChEnd(""); setChTickets(3)
     }
   }
 
@@ -281,6 +280,46 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     }
   }
 
+  // ── 묶음 안 새 프로젝트 생성 ─────────────────────────
+  const handleAddProjectInChapter = async (chapterId: number) => {
+    if (!chapterNewProjName.trim()) return
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: chapterNewProjName.trim(),
+        description: "",
+        priority: chapterNewProjPriority,
+        due_date: null,
+        color: "violet",
+        chapter_id: chapterId,
+      }),
+    })
+    if (res.ok) {
+      await fetchAll()
+      setAddingProjectToChapter(null)
+      setChapterNewProjName("")
+      setChapterNewProjPriority("medium")
+    }
+  }
+
+  // ── 기존 프로젝트를 묶음에 할당 ──────────────────────
+  const handleAssignProjectsToChapter = async (chapterId: number) => {
+    if (assignProjectIds.length === 0) return
+    await Promise.all(
+      assignProjectIds.map((pid) =>
+        fetch(`/api/projects/${pid}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chapter_id: chapterId }),
+        })
+      )
+    )
+    await fetchAll()
+    setAssigningToChapter(null)
+    setAssignProjectIds([])
+  }
+
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) => {
       const next = new Set(prev)
@@ -289,15 +328,23 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     })
   }
 
-  const grouped = {
-    in_progress: projects.filter((p) => p.status === "in_progress"),
-    todo:        projects.filter((p) => p.status === "todo"),
-    done:        projects.filter((p) => p.status === "done"),
+  const toggleChapter = (id: number) => {
+    setExpandedChapters((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
+  // 해당 챕터에 추가 가능한 프로젝트 (다른 챕터 소속 포함, done 제외)
+  const availableForChapter = (chapterId: number) =>
+    projects.filter((p) => p.chapter_id !== chapterId && p.status !== "done")
+
   const activeChapters = chapters.filter((c) => c.status === "active")
+  const doneChapters   = chapters.filter((c) => c.status === "done")
+  const standaloneProjects     = projects.filter((p) => p.chapter_id === null && p.status !== "done")
+  const doneStandaloneProjects = projects.filter((p) => p.chapter_id === null && p.status === "done")
   const dueSoonProjects = projects.filter((p) => isDueSoon(p.due_date) && p.status !== "done")
-  const ungroupedProjects = projects.filter((p) => p.chapter_id === null && p.status !== "done")
 
   // ── 프로젝트 카드 렌더 ────────────────────────────────
   const renderProject = (project: Project) => {
@@ -328,7 +375,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               )}
               {chapter && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400">
-                  묶음 · {chapter.name}
+                  {chapter.name}
                 </span>
               )}
             </div>
@@ -384,7 +431,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                     onChange={(e) => handleChapterChange(project.id, e.target.value ? Number(e.target.value) : null)}
                     className="flex-1 text-[11px] bg-muted border border-border rounded-lg px-2 py-0.5 outline-none focus:border-violet-500"
                   >
-                    <option value="">없음</option>
+                    <option value="">없음 (단독)</option>
                     {activeChapters.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
@@ -473,329 +520,439 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     )
   }
 
+  // ── 챕터(묶음) 섹션 렌더 ─────────────────────────────
+  const renderChapterSection = (ch: Chapter) => {
+    const expanded = expandedChapters.has(ch.id)
+    const pct = ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
+    const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
+    const chProjects = projects.filter((p) => p.chapter_id === ch.id)
+    const available  = availableForChapter(ch.id)
+
+    return (
+      <div key={ch.id} className="rounded-xl border border-violet-500/30 bg-card overflow-hidden">
+        {/* 챕터 헤더 */}
+        <button
+          className="w-full flex items-center gap-2 px-3 py-2.5 active:bg-muted/40 transition-colors"
+          onClick={() => toggleChapter(ch.id)}
+        >
+          <BookOpen size={14} className="text-violet-400 shrink-0" />
+          <span className="text-xs font-bold text-violet-400 flex-1 text-left truncate">{ch.name}</span>
+          {ch.end_date && (
+            <span className={`text-[10px] shrink-0 ${isDueSoon(ch.end_date) ? "text-red-400 font-bold" : "text-muted-foreground"}`}>
+              {isDueSoon(ch.end_date) ? "⚠ " : ""}{formatDate(ch.end_date)}
+            </span>
+          )}
+          <span className="text-[10px] text-muted-foreground shrink-0">{ch.done_projects}/{ch.total_projects}</span>
+          {expanded ? <ChevronDown size={14} className="text-muted-foreground shrink-0" /> : <ChevronRight size={14} className="text-muted-foreground shrink-0" />}
+        </button>
+
+        {/* 진행률 바 */}
+        <div className="h-1 bg-muted">
+          <div className="h-full bg-violet-500 transition-all" style={{ width: `${pct}%` }} />
+        </div>
+
+        {expanded && (
+          <div className="px-3 pb-3 pt-2 space-y-2 border-t border-border/50">
+            {/* 챕터 내 프로젝트 목록 */}
+            {chProjects.length > 0 ? (
+              <div className="space-y-2">{chProjects.map(renderProject)}</div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground text-center py-2">프로젝트를 추가해보세요</p>
+            )}
+
+            {/* 기존 프로젝트 추가 인라인 피커 */}
+            {assigningToChapter === ch.id && (
+              <div className="border border-border rounded-lg p-2.5 space-y-2">
+                <p className="text-[11px] font-bold text-violet-400">기존 프로젝트 추가</p>
+                {available.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground">추가할 프로젝트가 없습니다</p>
+                ) : (
+                  <div className="space-y-1 max-h-36 overflow-y-auto">
+                    {available.map((p) => (
+                      <label key={p.id} className="flex items-center gap-2 cursor-pointer py-0.5">
+                        <input
+                          type="checkbox"
+                          checked={assignProjectIds.includes(p.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setAssignProjectIds((prev) => [...prev, p.id])
+                            else setAssignProjectIds((prev) => prev.filter((id) => id !== p.id))
+                          }}
+                          className="w-3.5 h-3.5 accent-violet-500"
+                        />
+                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${COLOR_CLS[p.color] ?? "bg-violet-500"}`} />
+                        <span className="text-[11px] flex-1 truncate">{p.name}</span>
+                        {p.chapter_id !== null && (
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {chapters.find((c) => c.id === p.chapter_id)?.name}에서 이동
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAssignProjectsToChapter(ch.id)}
+                    disabled={assignProjectIds.length === 0}
+                    className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40"
+                  >
+                    추가
+                  </button>
+                  <button
+                    onClick={() => { setAssigningToChapter(null); setAssignProjectIds([]) }}
+                    className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 묶음 안 새 프로젝트 생성 인라인 폼 */}
+            {addingProjectToChapter === ch.id && (
+              <div className="border border-border rounded-lg p-2.5 space-y-2">
+                <p className="text-[11px] font-bold text-violet-400">새 프로젝트 만들기</p>
+                <input
+                  autoFocus
+                  className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
+                  placeholder="프로젝트 이름 *"
+                  value={chapterNewProjName}
+                  onChange={(e) => setChapterNewProjName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddProjectInChapter(ch.id)
+                    if (e.key === "Escape") { setAddingProjectToChapter(null); setChapterNewProjName("") }
+                  }}
+                />
+                <div className="flex items-center gap-2">
+                  <label className="text-[11px] text-muted-foreground shrink-0">우선순위</label>
+                  <select
+                    className="flex-1 text-xs bg-muted border border-border rounded-lg px-2 py-1 outline-none"
+                    value={chapterNewProjPriority}
+                    onChange={(e) => setChapterNewProjPriority(e.target.value as "low" | "medium" | "high")}
+                  >
+                    <option value="high">높음</option>
+                    <option value="medium">보통</option>
+                    <option value="low">낮음</option>
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAddProjectInChapter(ch.id)}
+                    disabled={!chapterNewProjName.trim()}
+                    className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40"
+                  >
+                    생성
+                  </button>
+                  <button
+                    onClick={() => { setAddingProjectToChapter(null); setChapterNewProjName("") }}
+                    className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 하단 액션 버튼 행 */}
+            {assigningToChapter !== ch.id && addingProjectToChapter !== ch.id && (
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => { setAssigningToChapter(ch.id); setAddingProjectToChapter(null); setAssignProjectIds([]) }}
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground active:text-violet-400 transition-colors"
+                >
+                  <Plus size={11} /> 기존 추가
+                </button>
+                <span className="text-[11px] text-muted-foreground">·</span>
+                <button
+                  onClick={() => { setAddingProjectToChapter(ch.id); setAssigningToChapter(null); setChapterNewProjName(""); setChapterNewProjPriority("medium") }}
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground active:text-violet-400 transition-colors"
+                >
+                  <Plus size={11} /> 새 프로젝트
+                </button>
+                <div className="flex-1" />
+                <span className="text-[10px] text-muted-foreground">
+                  보상: <span className="text-violet-400 font-bold">뽑기권 +{ch.bonus_tickets}</span>
+                </span>
+              </div>
+            )}
+
+            {/* 완료 / 삭제 */}
+            <div className="flex items-center justify-between pt-1 border-t border-border/50">
+              <button onClick={() => handleDeleteChapter(ch.id)} className="text-muted-foreground p-0.5">
+                <Trash2 size={12} />
+              </button>
+              {allDone ? (
+                <button
+                  onClick={() => handleCompleteChapter(ch)}
+                  disabled={completingChapter === ch.id}
+                  className="text-[10px] px-2.5 py-1 bg-emerald-500 text-white rounded-full font-bold active:scale-95 transition-transform disabled:opacity-60"
+                >
+                  {completingChapter === ch.id ? "..." : "묶음 완료"}
+                </button>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">
+                  {ch.total_projects - ch.done_projects}개 남음
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (loading) {
     return <div className="flex justify-center items-center py-10 text-muted-foreground text-sm">불러오는 중...</div>
   }
 
+  const totalDone = doneChapters.length + doneStandaloneProjects.length
+
   return (
     <div className="px-4 pb-4 space-y-4">
+
+      {/* ── 요약 카드 ── */}
       <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-card to-card p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold">🗂️ 프로젝트</p>
-          </div>
-        </div>
+        <p className="text-sm font-bold">🗂️ 프로젝트</p>
         <div className="mt-3 grid grid-cols-3 gap-2">
           <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground">진행 중</p>
-            <p className="mt-1 text-base font-bold text-violet-400">{grouped.in_progress.length}</p>
+            <p className="text-[10px] text-muted-foreground">묶음</p>
+            <p className="mt-1 text-base font-bold text-violet-400">{activeChapters.length}</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground">단독</p>
+            <p className="mt-1 text-base font-bold text-amber-400">{standaloneProjects.length}</p>
           </div>
           <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2">
             <p className="text-[10px] text-muted-foreground">마감 임박</p>
             <p className="mt-1 text-base font-bold text-red-400">{dueSoonProjects.length}</p>
           </div>
-          <div className="rounded-xl border border-border/70 bg-background/80 px-3 py-2">
-            <p className="text-[10px] text-muted-foreground">묶음 없음</p>
-            <p className="mt-1 text-base font-bold text-amber-400">{ungroupedProjects.length}</p>
-          </div>
         </div>
       </div>
 
-      {/* ── 새 프로젝트 추가 ── */}
-      <div>
-        {adding ? (
-          <div className="border border-border rounded-xl p-3 space-y-2 bg-card">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-bold">새 프로젝트</span>
-              <button onClick={() => setAdding(false)}><X size={16} className="text-muted-foreground" /></button>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              프로젝트는 큰 목표이고, 세부 단계는 만든 뒤 안에서 작업으로 추가합니다.
-            </p>
-
-            <input
-              autoFocus
-              className="w-full text-sm bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
-              placeholder="프로젝트 이름 *"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <input
-              className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
-              placeholder="설명 (선택)"
-              value={newDesc}
-              onChange={(e) => setNewDesc(e.target.value)}
-            />
-
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-[11px] text-muted-foreground block mb-1">우선순위</label>
-                <select
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                  value={newPriority}
-                  onChange={(e) => setNewPriority(e.target.value as "low" | "medium" | "high")}
-                >
-                  <option value="high">높음</option>
-                  <option value="medium">보통</option>
-                  <option value="low">낮음</option>
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
-                <input
-                  type="date"
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                  value={newDueDate}
-                  onChange={(e) => setNewDueDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {activeChapters.length > 0 && (
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">프로젝트 묶음 (선택)</label>
-                <select
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                  value={newChapterId ?? ""}
-                  onChange={(e) => setNewChapterId(e.target.value ? Number(e.target.value) : null)}
-                >
-                  <option value="">없음</option>
-                  {activeChapters.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  예: 5월 집중, 커리어, 건강. 없어도 프로젝트는 바로 쓸 수 있습니다.
-                </p>
-              </div>
-            )}
-
-            <div>
-              <label className="text-[11px] text-muted-foreground block mb-1">색상</label>
-              <div className="flex gap-2">
-                {COLOR_OPTIONS.map((c) => (
-                  <button
-                    key={c.value}
-                    onClick={() => setNewColor(c.value)}
-                    className={`w-6 h-6 rounded-full ${c.cls} ${newColor === c.value ? "ring-2 ring-white ring-offset-1 ring-offset-background" : ""}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={handleAddProject}
-              disabled={!newName.trim()}
-              className="w-full py-2 text-sm bg-violet-500 text-white rounded-xl font-bold disabled:opacity-40"
-            >
-              프로젝트 생성
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setAdding(true)}
-            className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl border border-dashed border-border text-sm text-muted-foreground hover:border-violet-500 hover:text-violet-400 transition-colors"
-          >
-            <Plus size={15} /> 새 프로젝트 추가
-          </button>
-        )}
-      </div>
-
-      {/* ── 프로젝트 목록 ── */}
-      {grouped.in_progress.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-violet-400">진행 중</span>
-            <span className="text-xs text-muted-foreground">{grouped.in_progress.length}</span>
-          </div>
-          {grouped.in_progress.map(renderProject)}
-        </div>
-      )}
-
-      {grouped.todo.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-muted-foreground">시작 전</span>
-            <span className="text-xs text-muted-foreground">{grouped.todo.length}</span>
-          </div>
-          {grouped.todo.map(renderProject)}
-        </div>
-      )}
-
-      {grouped.done.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-emerald-500">완료</span>
-            <span className="text-xs text-muted-foreground">{grouped.done.length}</span>
-          </div>
-          {grouped.done.map(renderProject)}
-        </div>
-      )}
-
-      {projects.length === 0 && !adding && (
-        <div className="text-center py-10 text-muted-foreground text-sm">
-          <p className="text-2xl mb-2">📋</p>
-          <p>아직 프로젝트가 없습니다</p>
-          <p className="text-xs mt-1">큰 목표 하나를 만들고, 안에 작업을 쪼개서 진행해보세요.</p>
-        </div>
-      )}
-
-      {/* ── 프로젝트 묶음 섹션 ── */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      {/* ── 상단 버튼 두 개 ── */}
+      <div className="flex gap-2">
         <button
-          className="w-full flex items-center gap-2 px-3 py-2.5 active:bg-muted/40 transition-colors"
-          onClick={() => setChapterExpanded((v) => !v)}
+          onClick={() => { setAdding((v) => !v); setAddingBundle(false) }}
+          className={`flex items-center gap-1.5 flex-1 py-2.5 px-3 rounded-xl border text-sm transition-colors ${
+            adding
+              ? "border-violet-500 text-violet-400 bg-violet-500/10"
+              : "border-dashed border-border text-muted-foreground"
+          }`}
         >
-          <BookOpen size={14} className="text-violet-400" />
-          <span className="text-xs font-bold text-violet-400">프로젝트 묶음</span>
-          <span className="text-xs text-muted-foreground ml-1">{activeChapters.length}개 진행 중</span>
-          <div className="flex-1" />
-          {chapterExpanded ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
+          <Plus size={14} /> 새 프로젝트
         </button>
+        <button
+          onClick={() => { setAddingBundle((v) => !v); setAdding(false) }}
+          className={`flex items-center gap-1.5 flex-1 py-2.5 px-3 rounded-xl border text-sm transition-colors ${
+            addingBundle
+              ? "border-violet-500 text-violet-400 bg-violet-500/10"
+              : "border-dashed border-border text-muted-foreground"
+          }`}
+        >
+          <FolderPlus size={14} /> 새 묶음
+        </button>
+      </div>
 
-        {chapterExpanded && (
-          <div className="border-t border-border px-3 pb-3 pt-2 space-y-3">
-            <p className="text-[11px] leading-5 text-muted-foreground">
-              프로젝트 묶음은 비슷한 프로젝트를 한 덩어리로 관리할 때만 쓰세요. 필수 기능은 아니고, 프로젝트를 더 보기 쉽게 분류하는 보조 기능입니다.
-            </p>
-
-            {chapters.length === 0 && !addingChapter && (
-              <p className="text-xs text-muted-foreground text-center py-2">만든 프로젝트 묶음이 없습니다</p>
-            )}
-
-            {chapters.map((ch) => {
-              const pct = ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
-              const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
-              const chProjects = projects.filter((p) => p.chapter_id === ch.id)
-              return (
-                <div key={ch.id} className={`rounded-lg border p-3 space-y-2 ${ch.status === "done" ? "border-emerald-500/30 bg-emerald-500/5" : "border-border"}`}>
-                  <div className="flex items-center gap-2">
-                    {ch.status === "done" ? <Trophy size={13} className="text-emerald-500 shrink-0" /> : <BookOpen size={13} className="text-violet-400 shrink-0" />}
-                    <span className={`text-xs font-bold flex-1 ${ch.status === "done" ? "line-through text-muted-foreground" : ""}`}>{ch.name}</span>
-                    {ch.end_date && (
-                      <span className="text-[10px] text-muted-foreground">{formatDate(ch.end_date)}</span>
-                    )}
-                    <button onClick={() => handleDeleteChapter(ch.id)} className="text-muted-foreground ml-1">
-                      <X size={12} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${ch.status === "done" ? "bg-emerald-500" : "bg-violet-500"}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground shrink-0">{ch.done_projects}/{ch.total_projects}</span>
-                  </div>
-
-                  {chProjects.length > 0 && (
-                    <div className="space-y-1 pt-1 border-t border-border/50">
-                      {chProjects.map((p) => (
-                        <div key={p.id} className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${COLOR_CLS[p.color] ?? "bg-violet-500"} ${p.status === "done" ? "opacity-40" : ""}`} />
-                          <span className={`text-[11px] flex-1 truncate ${p.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>{p.name}</span>
-                          <span className={`text-[10px] shrink-0 ${p.status === "done" ? "text-emerald-500" : "text-muted-foreground"}`}>{STATUS_LABEL[p.status]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {chProjects.length === 0 && ch.status === "active" && (
-                    <p className="text-[10px] text-muted-foreground">프로젝트를 열어 묶음을 선택하면 여기에 표시됩니다</p>
-                  )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">
-                      묶음 완료 보상: <span className="text-violet-400 font-bold">뽑기권 +{ch.bonus_tickets}</span>
-                    </span>
-                    {ch.status === "active" && (
-                      <button
-                        onClick={() => handleCompleteChapter(ch)}
-                        disabled={!allDone || completingChapter === ch.id}
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all ${
-                          allDone
-                            ? "bg-emerald-500 text-white active:scale-95"
-                            : "bg-muted text-muted-foreground opacity-50"
-                        }`}
-                      >
-                        {completingChapter === ch.id ? "..." : "묶음 완료"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-
-            {addingChapter ? (
-              <div className="space-y-2 border border-border rounded-lg p-3">
-                <input
-                  autoFocus
-                  className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
-                  placeholder="묶음 이름 *"
-                  value={chName}
-                  onChange={(e) => setChName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddChapter()}
-                />
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
-                    <input
-                      type="date"
-                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                      value={chEnd}
-                      onChange={(e) => setChEnd(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[11px] text-muted-foreground block mb-1">보상 뽑기권</label>
-                    <input
-                      type="number" min={1} max={30}
-                      className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                      value={chTickets}
-                      onChange={(e) => setChTickets(Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-                {projects.filter((p) => p.status !== "done").length > 0 && (
-                  <div>
-                    <label className="text-[11px] text-muted-foreground block mb-1.5">프로젝트 선택 (선택)</label>
-                    <div className="space-y-1 max-h-36 overflow-y-auto">
-                      {projects.filter((p) => p.status !== "done").map((p) => (
-                        <label key={p.id} className="flex items-center gap-2 cursor-pointer py-0.5">
-                          <input
-                            type="checkbox"
-                            checked={chProjectIds.includes(p.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) setChProjectIds((prev) => [...prev, p.id])
-                              else setChProjectIds((prev) => prev.filter((id) => id !== p.id))
-                            }}
-                            className="w-3.5 h-3.5 accent-violet-500"
-                          />
-                          <div className={`w-1.5 h-1.5 rounded-full ${COLOR_CLS[p.color] ?? "bg-violet-500"}`} />
-                          <span className="text-[11px] text-foreground truncate">{p.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <button onClick={handleAddChapter} disabled={!chName.trim()} className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40">추가</button>
-                  <button onClick={() => { setAddingChapter(false); setChProjectIds([]) }} className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground">취소</button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingChapter(true)}
-                className="flex items-center gap-1 text-xs text-muted-foreground"
+      {/* ── 새 프로젝트 폼 ── */}
+      {adding && (
+        <div className="border border-border rounded-xl p-3 space-y-2 bg-card">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-bold">새 프로젝트</span>
+            <button onClick={() => setAdding(false)}><X size={16} className="text-muted-foreground" /></button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            프로젝트는 큰 목표이고, 세부 단계는 만든 뒤 안에서 작업으로 추가합니다.
+          </p>
+          <input
+            autoFocus
+            className="w-full text-sm bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
+            placeholder="프로젝트 이름 *"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <input
+            className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
+            placeholder="설명 (선택)"
+            value={newDesc}
+            onChange={(e) => setNewDesc(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-[11px] text-muted-foreground block mb-1">우선순위</label>
+              <select
+                className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                value={newPriority}
+                onChange={(e) => setNewPriority(e.target.value as "low" | "medium" | "high")}
               >
-                <Plus size={12} /> 새 묶음 추가
-              </button>
-            )}
+                <option value="high">높음</option>
+                <option value="medium">보통</option>
+                <option value="low">낮음</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
+              <input
+                type="date"
+                className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                value={newDueDate}
+                onChange={(e) => setNewDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+          {activeChapters.length > 0 && (
+            <div>
+              <label className="text-[11px] text-muted-foreground block mb-1">묶음 (선택)</label>
+              <select
+                className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                value={newChapterId ?? ""}
+                onChange={(e) => setNewChapterId(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">없음 (단독)</option>
+                {activeChapters.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div>
+            <label className="text-[11px] text-muted-foreground block mb-1">색상</label>
+            <div className="flex gap-2">
+              {COLOR_OPTIONS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => setNewColor(c.value)}
+                  className={`w-6 h-6 rounded-full ${c.cls} ${newColor === c.value ? "ring-2 ring-white ring-offset-1 ring-offset-background" : ""}`}
+                />
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={handleAddProject}
+            disabled={!newName.trim()}
+            className="w-full py-2 text-sm bg-violet-500 text-white rounded-xl font-bold disabled:opacity-40"
+          >
+            프로젝트 생성
+          </button>
+        </div>
+      )}
+
+      {/* ── 새 묶음 폼 ── */}
+      {addingBundle && (
+        <div className="border border-border rounded-xl p-3 space-y-2 bg-card">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-bold">새 묶음</span>
+            <button onClick={() => setAddingBundle(false)}><X size={16} className="text-muted-foreground" /></button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            비슷한 프로젝트들을 한 묶음으로 관리하세요. 만든 뒤 묶음 안에서 프로젝트를 추가할 수 있습니다.
+          </p>
+          <input
+            autoFocus
+            className="w-full text-sm bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
+            placeholder="묶음 이름 *"
+            value={chName}
+            onChange={(e) => setChName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAddChapter()}
+          />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
+              <input
+                type="date"
+                className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                value={chEnd}
+                onChange={(e) => setChEnd(e.target.value)}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-[11px] text-muted-foreground block mb-1">보상 뽑기권</label>
+              <input
+                type="number" min={1} max={30}
+                className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                value={chTickets}
+                onChange={(e) => setChTickets(Number(e.target.value))}
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleAddChapter}
+            disabled={!chName.trim()}
+            className="w-full py-2 text-sm bg-violet-500 text-white rounded-xl font-bold disabled:opacity-40"
+          >
+            묶음 생성
+          </button>
+        </div>
+      )}
+
+      {/* ── 활성 묶음 섹션 ── */}
+      {activeChapters.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <BookOpen size={13} className="text-violet-400" />
+            <span className="text-xs font-bold text-violet-400">묶음</span>
+            <span className="text-xs text-muted-foreground">{activeChapters.length}</span>
+          </div>
+          {activeChapters.map(renderChapterSection)}
+        </div>
+      )}
+
+      {/* ── 단독 프로젝트 섹션 ── */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-muted-foreground">단독 프로젝트</span>
+          <span className="text-xs text-muted-foreground">{standaloneProjects.length}</span>
+        </div>
+        {standaloneProjects.map(renderProject)}
+        {standaloneProjects.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border px-4 py-5 text-center">
+            <p className="text-xs text-muted-foreground">단독 프로젝트가 없습니다</p>
+            <p className="text-[11px] text-muted-foreground mt-1">묶음에 속하지 않은 프로젝트가 여기에 표시됩니다</p>
           </div>
         )}
       </div>
+
+      {/* ── 완료된 것들 토글 ── */}
+      {totalDone > 0 && (
+        <div>
+          <button
+            onClick={() => setShowDone((v) => !v)}
+            className="flex items-center gap-2 text-xs text-muted-foreground"
+          >
+            {showDone ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            <Trophy size={13} className="text-emerald-500" />
+            완료된 항목 {totalDone}개
+          </button>
+          {showDone && (
+            <div className="mt-2 space-y-3 opacity-70">
+              {/* 완료된 묶음 */}
+              {doneChapters.map((ch) => {
+                const chProjects = projects.filter((p) => p.chapter_id === ch.id)
+                return (
+                  <div key={ch.id} className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Trophy size={13} className="text-emerald-500 shrink-0" />
+                      <span className="text-xs font-bold line-through text-muted-foreground flex-1">{ch.name}</span>
+                      <button onClick={() => handleDeleteChapter(ch.id)} className="text-muted-foreground"><X size={12} /></button>
+                    </div>
+                    {chProjects.map((p) => (
+                      <div key={p.id} className="flex items-center gap-2 pl-5">
+                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${COLOR_CLS[p.color] ?? "bg-violet-500"} opacity-40`} />
+                        <span className="text-[11px] line-through text-muted-foreground flex-1 truncate">{p.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+              {/* 완료된 단독 프로젝트 */}
+              {doneStandaloneProjects.length > 0 && (
+                <div className="space-y-2">
+                  {doneStandaloneProjects.map(renderProject)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── 삭제 확인 ── */}
       {confirmDelete && (
