@@ -1,5 +1,7 @@
 "use client"
 
+import { HP_MP_XP_COLORS } from "@/lib/constants/ui"
+
 interface CharacterPanelProps {
   name: string
   hp: number
@@ -23,9 +25,9 @@ export default function CharacterPanel({
   const expPct = nextExp > 0 ? Math.min((totalExp / nextExp) * 100, 100) : 0
 
   const bars = [
-    { label: 'HP', current: hp,       max: maxHp,   pct: hpPct,  color: '#F58FA8' },
-    { label: 'MP', current: mp,       max: maxMp,   pct: mpPct,  color: '#7FB3F5' },
-    { label: 'XP', current: totalExp, max: nextExp, pct: expPct, color: '#F5C879' },
+    { label: 'HP', current: hp,       max: maxHp,   pct: hpPct,  color: HP_MP_XP_COLORS.HP },
+    { label: 'MP', current: mp,       max: maxMp,   pct: mpPct,  color: HP_MP_XP_COLORS.MP },
+    { label: 'XP', current: totalExp, max: nextExp, pct: expPct, color: HP_MP_XP_COLORS.XP },
   ]
 
   return (

@@ -1,4 +1,5 @@
-import { getClient, now, todayKST } from "../client"
+import { getClient } from "../client"
+import { now, todayKST, yesterdayKST } from "@/lib/time/kst"
 
 export interface HabitGroup {
   id: number
@@ -74,12 +75,6 @@ export function penaltyExpForMissedDays(missedDays: number, baseExp: number): nu
   if (missedDays <= 0) return 0
   const pct = Math.min(missedDays * 0.1, 0.5)
   return Math.floor(baseExp * pct)
-}
-
-function yesterdayKST(): string {
-  const d = new Date(Date.now() + 9 * 60 * 60 * 1000)
-  d.setDate(d.getDate() - 1)
-  return d.toISOString().slice(0, 10)
 }
 
 export function streakBonusExp(streak: number, baseExp: number): number {

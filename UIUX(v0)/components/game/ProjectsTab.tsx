@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, BookOpen, Trophy, FolderPlus } from "lucide-react"
+import { PRIORITY_LABEL, PRIORITY_COLOR, STATUS_LABEL, PROJECT_COLOR_OPTIONS, PROJECT_COLOR_CLS } from "@/lib/constants/ui"
+import { DEADLINE_IMMINENT_DAYS } from "@/lib/constants/time"
 
 interface ProjectTask {
   id: number
@@ -46,24 +48,8 @@ interface ProjectsTabProps {
   refreshTick?: number
 }
 
-const PRIORITY_LABEL: Record<string, string> = { high: "높음", medium: "보통", low: "낮음" }
-const PRIORITY_COLOR: Record<string, string> = {
-  high: "text-red-400 bg-red-400/10",
-  medium: "text-yellow-400 bg-yellow-400/10",
-  low: "text-slate-400 bg-slate-400/10",
-}
-const STATUS_LABEL: Record<string, string> = { todo: "시작 전", in_progress: "진행 중", done: "완료" }
-const COLOR_OPTIONS = [
-  { value: "violet",  label: "보라",  cls: "bg-violet-500" },
-  { value: "blue",    label: "파랑",  cls: "bg-blue-500" },
-  { value: "emerald", label: "초록",  cls: "bg-emerald-500" },
-  { value: "amber",   label: "노랑",  cls: "bg-amber-500" },
-  { value: "rose",    label: "빨강",  cls: "bg-rose-500" },
-]
-const COLOR_CLS: Record<string, string> = {
-  violet: "bg-violet-500", blue: "bg-blue-500", emerald: "bg-emerald-500",
-  amber: "bg-amber-500", rose: "bg-rose-500",
-}
+const COLOR_OPTIONS = PROJECT_COLOR_OPTIONS
+const COLOR_CLS = PROJECT_COLOR_CLS
 
 function formatDate(d: string | null): string | null {
   if (!d) return null
@@ -73,7 +59,7 @@ function formatDate(d: string | null): string | null {
 function isDueSoon(due: string | null): boolean {
   if (!due) return false
   const diff = new Date(due).getTime() - Date.now()
-  return diff < 3 * 24 * 60 * 60 * 1000
+  return diff < DEADLINE_IMMINENT_DAYS * 24 * 60 * 60 * 1000
 }
 
 export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabProps) {

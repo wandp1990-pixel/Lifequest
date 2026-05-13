@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { GRADE_COLOR, GRADE_LABEL, GRADE_BG } from "@/lib/constants/ui"
 
 interface EquipmentItem {
   id: number
@@ -27,23 +28,6 @@ interface ItemsTabProps {
   drawTickets: number
   onTicketsChanged?: () => void
   refreshTick?: number
-}
-
-const GRADE_COLOR: Record<string, string> = {
-  C: "#9CA3AF", B: "#4FBF8F", A: "#4FA8E8",
-  S: "#F5A524", SR: "#9B7BE8", SSR: "#FFD700", UR: "#FF1493",
-}
-const GRADE_LABEL: Record<string, string> = {
-  C: "일반", B: "고급", A: "희귀", S: "영웅", SR: "전설", SSR: "고대", UR: "신화",
-}
-const GRADE_BG: Record<string, string> = {
-  C:   "#F3F4F6",
-  B:   "#E3F5EC",
-  A:   "#E1EFFB",
-  S:   "#FFF1D6",
-  SR:  "#ECE5FA",
-  SSR: "#FFFDE6",
-  UR:  "rgba(255,20,147,0.08)",
 }
 
 const SLOT_ORDER: { id: string; label: string; icon: string }[] = [

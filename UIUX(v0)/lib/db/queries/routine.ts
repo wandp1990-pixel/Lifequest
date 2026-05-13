@@ -1,4 +1,5 @@
-import { getClient, now, todayKST } from "../client"
+import { getClient } from "../client"
+import { now, todayKST, currentTimeKST, isWithinRoutineDeadline } from "@/lib/time/kst"
 
 export interface RoutineItemRow {
   id: number
@@ -23,13 +24,6 @@ export interface RoutineCheckResult {
   allDone: boolean
   routineName: string
   deadlineBonus: boolean
-}
-
-function currentTimeKST(): string {
-  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000)
-  const h = kst.getUTCHours().toString().padStart(2, "0")
-  const m = kst.getUTCMinutes().toString().padStart(2, "0")
-  return `${h}:${m}`
 }
 
 export async function getRoutines(): Promise<{
@@ -151,14 +145,6 @@ export async function reorderRoutineItems(orderedItemIds: number[]) {
       args: [i, orderedItemIds[i]],
     })
   }
-}
-
-// 자정 넘김 마감 처리: deadline이 새벽(< 06:00)이고 현재가 저녁 이후(>= 18:00)면
-// "내일 새벽까지" 의미로 해석해 통과시킨다. 그 외에는 currentTime <= deadline.
-function isWithinRoutineDeadline(currentTime: string, deadlineTime: string): boolean {
-  if (currentTime <= deadlineTime) return true
-  if (deadlineTime < "06:00" && currentTime >= "18:00") return true
-  return false
 }
 
 export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResult | null> {
