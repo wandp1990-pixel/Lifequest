@@ -1,47 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Plus, X, Trash2, CheckCircle2, Circle, ChevronDown, ChevronRight, BookOpen, Trophy, FolderPlus } from "lucide-react"
 import { PRIORITY_LABEL, PRIORITY_COLOR, STATUS_LABEL, PROJECT_COLOR_OPTIONS, PROJECT_COLOR_CLS } from "@/lib/constants/ui"
 import { DEADLINE_IMMINENT_DAYS } from "@/lib/constants/time"
-
-interface ProjectTask {
-  id: number
-  project_id: number
-  name: string
-  is_completed: number
-  exp_reward: number
-  sort_order: number
-  created_at: string
-  completed_at: string | null
-}
-
-interface Project {
-  id: number
-  name: string
-  description: string | null
-  status: "todo" | "in_progress" | "done"
-  priority: "low" | "medium" | "high"
-  bonus_exp: number
-  due_date: string | null
-  color: string
-  chapter_id: number | null
-  created_at: string
-  completed_at: string | null
-  tasks: ProjectTask[]
-  progress: number
-}
-
-interface Chapter {
-  id: number
-  name: string
-  start_date: string | null
-  end_date: string | null
-  bonus_exp: number
-  status: "active" | "done"
-  total_projects: number
-  done_projects: number
-}
+import { useProjects, type Project, type Chapter } from "@/hooks/useProjects"
 
 interface ProjectsTabProps {
   onExpGained?: () => void
@@ -63,9 +26,7 @@ function isDueSoon(due: string | null): boolean {
 }
 
 export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabProps) {
-  const [projects,  setProjects]  = useState<Project[]>([])
-  const [chapters,  setChapters]  = useState<Chapter[]>([])
-  const [loading,   setLoading]   = useState(true)
+  const { projects, setProjects, chapters, setChapters, loading, refetch } = useProjects()
   const [adding,    setAdding]    = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
   const [toast,     setToast]     = useState<{ msg: string; exp?: number } | null>(null)
@@ -107,23 +68,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   // 완료된 것들 표시 토글
   const [showDone, setShowDone] = useState(false)
 
-  const fetchAll = useCallback(async () => {
-    const [pRes, cRes] = await Promise.all([
-      fetch("/api/projects"),
-      fetch("/api/chapters"),
-    ])
-    if (pRes.ok) {
-      const data = await pRes.json()
-      setProjects(data.projects ?? [])
-    }
-    if (cRes.ok) {
-      const data = await cRes.json()
-      setChapters(data.chapters ?? [])
-    }
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
+  useEffect(() => { refetch() }, [refetch, refreshTick])
 
   const showToast = (msg: string, exp?: number) => {
     setToast({ msg, exp })
@@ -142,7 +87,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       }),
     })
     if (res.ok) {
-      await fetchAll()
+      await refetch()
       setAdding(false)
       setNewName(""); setNewDesc(""); setNewPriority("medium")
       setNewDueDate(""); setNewColor("violet"); setNewChapterId(null)
@@ -170,7 +115,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
-      await fetchAll()
+      await refetch()
       if (data.projectCompleted) {
         showToast(`${data.usedAi ? "AI 산정 " : ""}작업 +${data.exp}XP · 프로젝트 완료 보너스 +${data.bonusExp}XP`, data.exp + data.bonusExp)
       } else {
@@ -190,7 +135,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     const res = await fetch(`/api/projects/${id}`, { method: "DELETE" })
     if (res.ok) {
       setProjects((await res.json()).projects ?? [])
-      await fetchAll()
+      await refetch()
     }
     setConfirmDelete(null)
   }
@@ -204,7 +149,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
-      await fetchAll()
+      await refetch()
     }
     setEditingChapterFor(null)
   }
@@ -218,7 +163,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setProjects(data.projects ?? [])
-      await fetchAll()
+      await refetch()
       if (status === "done" && data.bonusExp > 0) {
         showToast(`프로젝트 완료 보너스 +${data.bonusExp}XP`, data.bonusExp)
         onExpGained?.()
@@ -270,7 +215,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     if (res.ok) {
       const data = await res.json()
       setChapters(data.chapters ?? [])
-      await fetchAll()
+      await refetch()
     }
   }
 
@@ -290,7 +235,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
       }),
     })
     if (res.ok) {
-      await fetchAll()
+      await refetch()
       setAddingProjectToChapter(null)
       setChapterNewProjName("")
       setChapterNewProjPriority("medium")
@@ -309,7 +254,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         })
       )
     )
-    await fetchAll()
+    await refetch()
     setAssigningToChapter(null)
     setAssignProjectIds([])
   }

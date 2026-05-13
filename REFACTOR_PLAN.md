@@ -29,11 +29,11 @@
 - [~] 2.7 시나리오 5개 baseline diff 검증 — typecheck/build pass, baseline curl 비교는 사용자 환경에서 수행 (`verification/baseline/README.md` 참조)
 
 ### Phase 3 — UI Primitives & Hooks
-- [ ] 3.1 `npx shadcn@latest init` + primitives 추가
-- [ ] 3.2 `hooks/useApi.ts` 작성
-- [ ] 3.3 도메인 훅 6개 작성 (`useChecklist` → `useRoutines` → `useTodos` → `useProjects` → `useCharacter` → `useMidnightRefresh`)
-- [ ] 3.4 `ToastContext` + `CharacterContext` 도입
-- [ ] 3.5 각 탭 수동 UX 테스트
+- [x] 3.1 shadcn primitives 18개 추가 (`components.json` 은 기존 존재 → init 스킵) (2026-05-14)
+- [x] 3.2 `hooks/useApi.ts` 작성 (2026-05-14)
+- [x] 3.3 도메인 훅 6개 작성 (`useChecklist` → `useRoutines` → `useTodos` → `useProjects` → `useCharacter` → `useMidnightRefresh`) (2026-05-14)
+- [x] 3.4 `ToastContext` + `CharacterContext` 도입 (Provider 인프라만; 적용은 Phase 4 분할과 합류) (2026-05-14)
+- [~] 3.5 각 탭 수동 UX 테스트 — typecheck/build pass, 실제 UX 검증은 사용자 환경에서 수행
 
 ### Phase 4 — God Component 분할
 - [ ] 4.1 SettingsDrawer (1308줄) → 8개 panel 분할
@@ -529,3 +529,57 @@ export function useFoo() {
 - `hooks/useApi.ts` 작성 시: `lib/api/respond.ts` 가 항상 `{ error: string }` 형식으로 에러를 반환하므로 fetcher 에서 그 필드를 throw 로 변환
 - `hooks/useChecklist.ts` 등 도메인 훅 작성 시: 위 route 들의 응답 shape (`{ items, checkedIds, groups, bonusGroupIds }` 등) 이 그대로 유지됨을 활용
 - 테스트 도입(`vitest`) 결정 보류 중. 작성한다면 `lib/game/exp-bonus.test.ts` 우선 — 5가지 streak 임계값, miss penalty 캡, due bonus on/off, routine deadline bonus 자정 넘김 케이스
+
+---
+
+### Phase 3 — 완료 (2026-05-14)
+
+**범위**: shadcn primitives 도입 + 공통 fetch 래퍼 + 도메인 훅 6개 + Toast/Character 컨텍스트 인프라. 응답 shape 및 자식 컴포넌트 props 인터페이스 무변동.
+
+**3.1 shadcn primitives 18개 (신규)**
+- `components/ui/{button,card,dialog,drawer,tabs,input,label,select,switch,tooltip,sonner,progress,separator,scroll-area,checkbox,popover,accordion,textarea}.tsx`
+- `components.json` 은 Phase 0 이전에 이미 생성돼 있어 `npx shadcn@latest init` 스킵, primitive 추가만 수행 (`npx shadcn@latest add ... --yes --overwrite`)
+- 기존 컴포넌트들의 마이그레이션은 Phase 4 분할과 함께 합류 (현재 코드는 모두 inline Tailwind 라 빌드/배포 영향 없음)
+
+**3.2 `hooks/useApi.ts` 신규**
+- `apiGet/apiPost/apiPut/apiPatch/apiDelete` — JSON parse + error normalize. `ApiError` 클래스 export
+- `lib/api/respond.ts` 의 `{ error: string }` 응답을 `throw new ApiError(status, msg)` 로 변환. 204 No Content / 빈 body 도 대응
+- 호출자는 `try { ... } catch (e) { if (!(e instanceof ApiError)) throw e }` 패턴으로 일관성 유지
+
+**3.3 도메인 훅 6개 신규**
+- `hooks/useChecklist.ts` — `{ dailyItems, setDailyItems, checkedDailyIds, setCheckedDailyIds, habitGroups, setHabitGroups, bonusGroupIds, setBonusGroupIds, refetch }`. `DailyItem` 타입 export
+- `hooks/useRoutines.ts` — routines + checkedItemIds + bonusIds + chapters (active 만) + setter + refetch. `/api/routines` + `/api/chapters` 통합 fetch
+- `hooks/useTodos.ts` — todoItems + completedTodoCount + setter + refetch. 응답이 `{items: TodoItem[]}` 또는 `TodoItem[]` 양쪽 수용
+- `hooks/useProjects.ts` — projects + chapters + loading + setter + refetch. `Project/Chapter/ProjectTask` 타입 export. ProjectsTab 의 자체 fetch 로직 흡수
+- `hooks/useCharacter.ts` — char + setter + refetch. `CharacterData` 타입 export. page.tsx 의 fetchChar 패턴 추출
+- `hooks/useMidnightRefresh.ts` — KST 자정마다 callback 호출. `KST_OFFSET_MS` / `ONE_DAY_MS` 상수 사용
+
+**3.3 적용처**
+- `components/game/TasksTab.tsx` — 12개 useState + fetchAll(5개 fetch) + KST 자정 inline → 4개 훅 호출 + `useMidnightRefresh(fetchAll)`. executeDelete 는 `apiDelete` 로 마이그레이션. 자식 컴포넌트 props 인터페이스 변경 없음
+- `components/game/ProjectsTab.tsx` — projects/chapters useState + fetchAll(2개 fetch) → `useProjects()`. 7개의 `await fetchAll()` 호출이 `await refetch()` 로 sed 일괄 치환됨. mutation 로직(handleAddProject 등)은 그대로 유지
+- `app/page.tsx` — `useState<CharacterData>` + fetchChar 인라인 → `useCharacter()`. CharacterData 타입은 hooks/useCharacter 로 이전됨. fetchQuestTotal 은 `apiGet` 로 마이그레이션
+
+**3.4 Context 도입**
+- `contexts/ToastContext.tsx` — sonner 위에 `showExp/showPenalty/showLevelUp/showError/showInfo` 의미 단위 hook 제공. 자동 dismiss 시간은 `TOAST_AUTO_DISMISS_MS` 상수
+- `contexts/CharacterContext.tsx` — `CharacterProvider` + `useCharacterCtx()`. 내부에 `useCharacter()` 호출 + 초기 refetch
+- `app/layout.tsx` — `<Toaster richColors position="top-center" />` 추가. CharacterProvider 는 인프라만 (page.tsx 가 아직 props 드릴링 구조이므로 실제 wrap 은 Phase 4 분할과 함께)
+- 기존 컴포넌트들의 자체 toast state(TasksTab/ProjectsTab/RoutineSection/HabitSection/TodoSection 등)는 변경 없이 유지. 새 컴포넌트들이 sonner 를 사용할 수 있는 인프라만 마련
+
+**3.5 검증 결과**
+- `npx tsc --noEmit` ✅ (오류 0개)
+- `npx next build` ✅ (Turbopack 4.9s, 23개 라우트 그대로)
+- bundle 변화: shadcn primitives 18개는 사용처 없으면 tree-shake 되어 final bundle 무영향
+- 자식 컴포넌트 props 인터페이스 동일성 유지 (HabitSection/RoutineSection/TodoSection 의 setter 들이 그대로 props 로 전달됨)
+
+**Phase 3 에서 의도적으로 보류 (Phase 4 에서 합류)**
+- 자식 컴포넌트(HabitSection/RoutineSection/TodoSection)의 내부 fetch 마이그레이션 → 컴포넌트 분할 시 각 자식이 직접 `useChecklist`/`useRoutines`/`useTodos` 호출하도록 자연스럽게 이동. 현재는 부모(TasksTab)가 훅 호출 후 setter 들을 props 로 전달
+- ProjectsTab 의 30+ 인라인 fetch (handleAddProject, handleCompleteTask, …) → 컴포넌트 분할(5개 파트) PR 에서 각 파트가 `useApi` 사용하도록 마이그레이션
+- CharacterTab 의 skills fetch → Phase 4 의 `useSkills` 또는 SkillSettings 컨테이너로 이동
+- `CharacterProvider` 의 page.tsx 적용 → 자식 컴포넌트들이 props char 대신 `useCharacterCtx()` 호출하도록 마이그레이션 후 wrap. 지금 wrap 하면 fetchChar 가 useCharacter 와 CharacterProvider 양쪽에서 호출되어 race 위험
+- 기존 컴포넌트들의 자체 toast state → sonner 의 `useToast()` 로 점진 교체. Phase 4 분할 PR 에서 각 컴포넌트별로 수행
+
+**다음 작업자에게 (Phase 4)**
+- 분할 우선순위: SettingsDrawer(1308) → ProjectsTab(989) → HabitSection(552) → RoutineSection(538). 가장 큰 것부터, 그러나 의존 그래프 상 SettingsDrawer 는 가장 독립적이라 시작점으로 적합
+- 분할 후 자식 컴포넌트가 직접 도메인 훅 호출하도록 마이그레이션. 부모(TasksTab 등)는 더 이상 useState/setter 를 자식에 props 로 넘기지 않음
+- `CharacterProvider` wrap 시점: 모든 char 사용처(CharacterTab, ItemsTab, BattleTab, SettingsDrawer, CharacterPanel)가 props 대신 컨텍스트를 사용하도록 마이그레이션 완료 후
+- shadcn primitive 도입: 새 분할 컴포넌트부터 `Button`/`Card`/`Dialog` 사용. 기존 inline Tailwind 는 그대로 두고 점진 교체

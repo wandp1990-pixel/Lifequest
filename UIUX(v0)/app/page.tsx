@@ -12,6 +12,8 @@ import CharacterTab from "@/components/game/CharacterTab"
 import BottomNav from "@/components/game/BottomNav"
 import SettingsDrawer from "@/components/game/SettingsDrawer"
 import { calcRegen } from "@/lib/regen"
+import { useCharacter } from "@/hooks/useCharacter"
+import { apiGet, ApiError } from "@/hooks/useApi"
 
 type TabType = "home" | "tasks" | "battle" | "items" | "skills"
 
@@ -23,41 +25,9 @@ const TAB_TITLES: Record<TabType, string> = {
   items:  "아이템",
 }
 
-type CharacterData = {
-  name: string
-  level: number
-  total_exp: number
-  next_exp: number
-  current_hp: number
-  max_hp: number
-  current_mp: number
-  max_mp: number
-  draw_tickets: number
-  clear_count: number
-  task_count: number
-  stat_points: number
-  skill_points: number
-  str: number
-  vit: number
-  dex: number
-  int_stat: number
-  luk: number
-  last_regen_at?: string | null
-  effective?: {
-    patk: number; matk: number; pdef: number; mdef: number
-    dex: number; luk: number; vit: number; int: number
-    max_hp: number; max_mp: number
-    crit_rate: number; crit_dmg: number
-    accuracy_bonus: number; evasion_bonus: number
-    double_attack: number; life_steal: number; def_ignore: number; reflect: number
-  }
-  item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
-  max_cleared_grade?: string | null
-}
-
 export default function GamePage() {
   const [activeTab, setActiveTab] = useState<TabType>("home")
-  const [char, setChar] = useState<CharacterData | null>(null)
+  const { char, refetch: fetchChar } = useCharacter()
   const [tasksCount, setTasksCount] = useState(0)
   const [dailyCompleted, setDailyCompleted] = useState(0)
   const [questTotal, setQuestTotal] = useState(10)
@@ -68,18 +38,9 @@ export default function GamePage() {
   const [refreshTick, setRefreshTick] = useState(0)
   const questRewardedRef = useRef(false)
 
-  const fetchChar = useCallback(async () => {
-    try {
-      const res = await fetch("/api/character")
-      if (res.ok) setChar(await res.json())
-    } catch {}
-  }, [])
-
   const fetchQuestTotal = useCallback(async () => {
     try {
-      const res = await fetch("/api/config")
-      if (!res.ok) return
-      const rows: { config_key: string; config_value: string }[] = await res.json()
+      const rows = await apiGet<{ config_key: string; config_value: string }[]>("/api/config")
       const totalItem = rows.find((r) => r.config_key === "daily_quest_total")
       const minItem = rows.find((r) => r.config_key === "daily_quest_exp_min")
       const maxItem = rows.find((r) => r.config_key === "daily_quest_exp_max")
@@ -87,7 +48,9 @@ export default function GamePage() {
       if (totalItem) setQuestTotal(parseInt(totalItem.config_value) || 10)
       if (minItem) setQuestRewardMin(parseInt(minItem.config_value) || 50)
       if (maxItem) setQuestRewardMax(parseInt(maxItem.config_value) || 100)
-    } catch {}
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e
+    }
   }, [])
 
   useEffect(() => {

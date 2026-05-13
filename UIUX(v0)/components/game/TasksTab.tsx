@@ -2,10 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react"
 import ProjectsTab from "./ProjectsTab"
-import HabitSection, { DailyItem } from "./HabitSection"
-import type { HabitGroup } from "@/lib/db"
+import HabitSection from "./HabitSection"
 import TodoSection, { TodoItem } from "./TodoSection"
-import RoutineSection, { Routine, RoutineChapter } from "./RoutineSection"
+import RoutineSection from "./RoutineSection"
+import { useChecklist } from "@/hooks/useChecklist"
+import { useRoutines } from "@/hooks/useRoutines"
+import { useTodos } from "@/hooks/useTodos"
+import { useProjects } from "@/hooks/useProjects"
+import { useMidnightRefresh } from "@/hooks/useMidnightRefresh"
+import { apiDelete, ApiError } from "@/hooks/useApi"
 
 type DeleteTarget =
   | { type: "daily"; id: number; name: string }
@@ -32,18 +37,27 @@ export default function TasksTab({
   questRewardMin = 50,
   questRewardMax = 100,
 }: TasksTabProps) {
-  // ── 데이터 상태 (카운터 집계용) ──────────────────────────────────────────
-  const [dailyItems, setDailyItems] = useState<DailyItem[]>([])
-  const [checkedDailyIds, setCheckedDailyIds] = useState<Set<number>>(new Set())
-  const [habitGroups, setHabitGroups] = useState<HabitGroup[]>([])
-  const [bonusGroupIds, setBonusGroupIds] = useState<Set<number>>(new Set())
-  const [todoItems, setTodoItems] = useState<TodoItem[]>([])
-  const [completedTodoCount, setCompletedTodoCount] = useState(0)
-  const [routines, setRoutines] = useState<Routine[]>([])
-  const [checkedRoutineItemIds, setCheckedRoutineItemIds] = useState<Set<number>>(new Set())
-  const [bonusRoutineIds, setBonusRoutineIds] = useState<Set<number>>(new Set())
-  const [chapters, setChapters] = useState<RoutineChapter[]>([])
-  const [projectCount, setProjectCount] = useState<number | null>(null)
+  // ── 도메인 데이터 훅 (각 훅이 자체 fetch + state 보유) ───────────────────
+  const checklist = useChecklist()
+  const routinesH = useRoutines()
+  const todosH = useTodos()
+  const projectsH = useProjects()
+  const {
+    dailyItems, setDailyItems,
+    checkedDailyIds, setCheckedDailyIds,
+    habitGroups, setHabitGroups,
+    bonusGroupIds, setBonusGroupIds,
+  } = checklist
+  const {
+    routines, setRoutines,
+    checkedRoutineItemIds, setCheckedRoutineItemIds,
+    bonusRoutineIds, setBonusRoutineIds,
+    chapters,
+  } = routinesH
+  const { todoItems, setTodoItems, completedTodoCount, setCompletedTodoCount } = todosH
+  const projectCount = projectsH.loading
+    ? null
+    : projectsH.projects.filter((p) => p.status !== "done").length
 
   // ── 공유 UI 상태 ──────────────────────────────────────────────────────────
   const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number; penalty?: boolean; penaltyExp?: number } | null>(null)
@@ -53,65 +67,19 @@ export default function TasksTab({
 
   // ── 초기 데이터 로드 ──────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
-    try {
-      const [checkRes, todoRes, routineRes, chapterRes, projectRes] = await Promise.all([
-        fetch("/api/checklist"),
-        fetch("/api/todos"),
-        fetch("/api/routines"),
-        fetch("/api/chapters"),
-        fetch("/api/projects"),
-      ])
-      if (checkRes.ok) {
-        const data = await checkRes.json()
-        setDailyItems(data.items ?? [])
-        setCheckedDailyIds(new Set(data.checkedIds ?? []))
-        setHabitGroups(data.groups ?? [])
-        setBonusGroupIds(new Set(data.bonusGroupIds ?? []))
-      }
-      if (todoRes.ok) {
-        const data = await todoRes.json()
-        const items = data.items ?? data
-        setTodoItems(items)
-        setCompletedTodoCount(items.filter((t: TodoItem) => t.is_completed).length)
-      }
-      if (routineRes.ok) {
-        const data = await routineRes.json()
-        setRoutines(data.routines ?? [])
-        setCheckedRoutineItemIds(new Set(data.checkedItemIds ?? []))
-        setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
-      }
-      if (chapterRes.ok) {
-        const data = await chapterRes.json()
-        setChapters((data.chapters ?? []).filter((c: { status: string }) => c.status === "active"))
-      }
-      if (projectRes.ok) {
-        const data = await projectRes.json()
-        setProjectCount((data.projects ?? []).filter((p: { status: string }) => p.status !== "done").length)
-      }
-    } catch {}
+    await Promise.all([
+      checklist.refetch(),
+      todosH.refetch(),
+      routinesH.refetch(),
+      projectsH.refetch(),
+    ])
     setLoading(false)
-  }, [])
+  }, [checklist, todosH, routinesH, projectsH])
 
   useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
 
-  // KST 자정마다 재조회 — 재귀적으로 다음 자정 timer를 다시 예약해
-  // 사용자가 앱을 24h+ 켜놓아도 매일 자정에 새 날짜 데이터로 갱신된다.
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>
-    const kstNow = () => new Date(Date.now() + 9 * 60 * 60 * 1000)
-    const msUntilMidnight = () => {
-      const n = kstNow()
-      return (24 * 60 * 60 * 1000) - (n.getUTCHours() * 3600 + n.getUTCMinutes() * 60 + n.getUTCSeconds()) * 1000 - n.getUTCMilliseconds()
-    }
-    const schedule = () => {
-      timer = setTimeout(() => {
-        fetchAll()
-        schedule()
-      }, msUntilMidnight())
-    }
-    schedule()
-    return () => clearTimeout(timer)
-  }, [fetchAll])
+  // KST 자정마다 재조회 — 사용자가 앱을 24h+ 켜놓아도 매일 자정 갱신.
+  useMidnightRefresh(fetchAll)
 
   // ── 카운터 집계 (QuestBanner · BottomNav 배지) ───────────────────────────
   useEffect(() => {
@@ -141,30 +109,27 @@ export default function TasksTab({
     const { type, id } = confirmDelete
     setConfirmDelete(null)
 
-    if (type === "daily") {
-      const res = await fetch("/api/checklist", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
-      if (res.ok) {
-        const data = await res.json()
+    try {
+      if (type === "daily") {
+        const data = await apiDelete<{ items?: typeof dailyItems; groups?: typeof habitGroups; bonusGroupIds?: number[] }>(
+          "/api/checklist", { id })
         setDailyItems(data.items ?? [])
         setHabitGroups(data.groups ?? [])
         setBonusGroupIds(new Set(data.bonusGroupIds ?? []))
-      }
-    } else if (type === "todo") {
-      const res = await fetch("/api/todos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
-      if (res.ok) {
-        const items = await res.json()
+      } else if (type === "todo") {
+        const items = await apiDelete<TodoItem[]>("/api/todos", { id })
         setTodoItems(items)
-        setCompletedTodoCount(items.filter((t: TodoItem) => t.is_completed).length)
-      }
-    } else {
-      const action = type === "routine" ? "deleteRoutine" : "deleteItem"
-      const res = await fetch("/api/routines", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, id }) })
-      if (res.ok) {
-        const data = await res.json()
+        setCompletedTodoCount(items.filter((t) => t.is_completed).length)
+      } else {
+        const action = type === "routine" ? "deleteRoutine" : "deleteItem"
+        const data = await apiDelete<{ routines?: typeof routines; checkedItemIds?: number[]; bonusRoutineIds?: number[] }>(
+          "/api/routines", { action, id })
         setRoutines(data.routines ?? [])
         setCheckedRoutineItemIds(new Set(data.checkedItemIds ?? []))
         setBonusRoutineIds(new Set(data.bonusRoutineIds ?? []))
       }
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e
     }
   }
 
