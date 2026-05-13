@@ -15,9 +15,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     await initDb()
-    const { name, start_date = null, end_date = null, bonus_tickets = 3 } = await req.json()
+    const { name, start_date = null, end_date = null } = await req.json()
     if (!name?.trim()) return NextResponse.json({ error: "이름 필수" }, { status: 400 })
-    await addChapter(name.trim(), start_date, end_date, bonus_tickets)
+    await addChapter(name.trim(), start_date, end_date, 0)
     const chapters = await getChapters()
     return NextResponse.json({ chapters })
   } catch (e) {

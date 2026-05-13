@@ -35,7 +35,6 @@ interface Chapter {
   name: string
   start_date: string | null
   end_date: string | null
-  bonus_tickets: number
   bonus_exp: number
   status: "active" | "done"
   total_projects: number
@@ -107,7 +106,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   const [addingBundle,      setAddingBundle]      = useState(false)
   const [chName,            setChName]            = useState("")
   const [chEnd,             setChEnd]             = useState("")
-  const [chTickets,         setChTickets]         = useState(3)
   const [completingChapter, setCompletingChapter] = useState<number | null>(null)
   const [expandedChapters,  setExpandedChapters]  = useState<Set<number>>(new Set())
 
@@ -248,14 +246,14 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     const res = await fetch("/api/chapters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: chName.trim(), end_date: chEnd || null, bonus_tickets: chTickets }),
+      body: JSON.stringify({ name: chName.trim(), end_date: chEnd || null }),
     })
     if (res.ok) {
       const data = await res.json()
       setChapters(data.chapters ?? [])
       const newest = (data.chapters ?? []).at(-1)
       if (newest) setExpandedChapters((prev) => new Set([...prev, newest.id]))
-      setAddingBundle(false); setChName(""); setChEnd(""); setChTickets(3)
+      setAddingBundle(false); setChName(""); setChEnd("")
     }
   }
 
@@ -265,14 +263,13 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
     const res = await fetch(`/api/chapters/${ch.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "complete", bonus_tickets: ch.bonus_tickets }),
+      body: JSON.stringify({ action: "complete" }),
     })
     if (res.ok) {
       const data = await res.json()
       setChapters(data.chapters ?? [])
       const parts: string[] = []
       if (data.bonusExp > 0) parts.push(`묶음 완료 보너스 +${data.bonusExp}XP`)
-      if (data.ticketsAwarded > 0) parts.push(`뽑기권 +${data.ticketsAwarded}`)
       showToast(parts.join(" · ") || "묶음 완료!")
       onExpGained?.()
     }
@@ -690,7 +687,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 </button>
                 <div className="flex-1" />
                 <span className="text-[10px] text-muted-foreground">
-                  보상: <span className="text-violet-400 font-bold">XP +{ch.bonus_exp}</span>{ch.bonus_tickets > 0 ? ` · 뽑기권 +${ch.bonus_tickets}` : ""}
+                  보상: <span className="text-violet-400 font-bold">XP +{ch.bonus_exp}</span>
                 </span>
               </div>
             )}
@@ -881,15 +878,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
                 className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
                 value={chEnd}
                 onChange={(e) => setChEnd(e.target.value)}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-[11px] text-muted-foreground block mb-1">보상 뽑기권</label>
-              <input
-                type="number" min={1} max={30}
-                className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
-                value={chTickets}
-                onChange={(e) => setChTickets(Number(e.target.value))}
               />
             </div>
           </div>

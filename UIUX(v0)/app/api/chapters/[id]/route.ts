@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initDb } from "@/lib/db/schema"
 import { getChapters, completeChapter, deleteChapter } from "@/lib/db/queries/chapter"
-import { getCharacter, updateCharacter } from "@/lib/db/queries/character"
 import { getProjects } from "@/lib/db/queries/project"
 import { addActivityLog } from "@/lib/db/queries/activity"
 import { gainExp } from "@/lib/game"
@@ -14,7 +13,7 @@ export async function PATCH(
     await initDb()
     const { id } = await params
     const chapterId = Number(id)
-    const { action, bonus_tickets } = await req.json()
+    const { action } = await req.json()
 
     if (action === "complete") {
       const projects = await getProjects()
@@ -24,7 +23,7 @@ export async function PATCH(
         return NextResponse.json({ error: "연결된 프로젝트를 모두 완료해야 합니다." }, { status: 400 })
       }
 
-      // 재완료 가드: completeChapter가 conditional. status='done'을 먼저 잡고 그 다음 티켓 지급.
+      // 재완료 가드: completeChapter가 conditional. status='done'을 먼저 잡는다.
       const newlyCompleted = await completeChapter(chapterId)
       if (!newlyCompleted) {
         return NextResponse.json({ error: "이미 완료된 챕터입니다" }, { status: 400 })
@@ -39,15 +38,9 @@ export async function PATCH(
         levelResult = await gainExp(bonusExp)
       }
 
-      const tickets = Number(bonus_tickets ?? 0)
-      if (tickets > 0) {
-        const char = await getCharacter()
-        if (char) await updateCharacter({ draw_tickets: char.draw_tickets + tickets })
-      }
       const refreshedChapters = await getChapters()
       return NextResponse.json({
         chapters: refreshedChapters,
-        ticketsAwarded: tickets,
         bonusExp,
         ...(levelResult ?? {}),
       })
