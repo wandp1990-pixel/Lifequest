@@ -208,12 +208,12 @@ export default function HabitSection({
     return (
       <div
         key={item.id}
-        className={`flex items-start gap-3 px-4 py-3 border-b border-amber-50 last:border-b-0 transition-colors ${done ? "bg-amber-50/20" : "bg-background"}`}
+        className={`flex items-center gap-2.5 px-3 py-2.5 border-b border-amber-50 last:border-b-0 transition-colors ${done ? "bg-amber-50/20" : "bg-background"}`}
       >
         <button
           onClick={() => completeHabit(item)}
           disabled={done || completing !== null}
-          className="mt-0.5 w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all active:scale-95"
+          className="w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all active:scale-95"
           style={{ borderColor: done ? "#F59E0B" : "#D1D5DB", background: done ? "#F59E0B" : "transparent" }}
           aria-label={done ? "완료됨" : "습관 완료"}
         >
@@ -266,17 +266,8 @@ export default function HabitSection({
             </div>
           ) : (
             <div className="flex flex-col gap-1 min-w-0">
-              <div className="flex items-start justify-between gap-3 min-w-0">
-                <p className={`text-sm font-semibold leading-snug min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{item.name}</p>
-                <span
-                  className="px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0"
-                  style={done ? { background: "#F3F4F6", color: "#9CA3AF" } : { background: "#FFF4D6", color: "#D97706" }}
-                >
-                  {done ? "✓ 완료" : `+${item.fixed_exp} EXP`}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
+              <p className={`text-sm font-semibold leading-snug truncate ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{item.name}</p>
+              <div className="flex flex-wrap items-center gap-1.5">
                 <span className={`flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${streakColor}`}>{streakLabel}</span>
                 {!done && (
                   <button
@@ -297,27 +288,6 @@ export default function HabitSection({
                   `${missed}일 쉬었어요... 패널티가 쌓이고 있어요 ⚠️`
                 return <p className="text-[10px] font-medium text-orange-500 leading-snug">{msg}</p>
               })()}
-
-              <div className="flex items-center gap-1.5">
-                {!done && (
-                  <>
-                    <button onClick={() => { setEditingId(item.id); setEditingName(item.name); setEditingExp(item.fixed_exp) }}
-                      className="text-gray-300 hover:text-amber-400 transition-colors flex-shrink-0 p-0.5" aria-label="이름 수정">
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    {habitGroups.length > 0 && (
-                      <button onClick={() => setMovingItemId(item.id)}
-                        className="text-gray-300 hover:text-amber-400 transition-colors flex-shrink-0 p-0.5" aria-label="그룹 이동">
-                        <Layers className="w-3 h-3" />
-                      </button>
-                    )}
-                  </>
-                )}
-                <button onClick={() => onConfirmDelete({ type: "daily", id: item.id, name: item.name })}
-                  className="text-gray-300 hover:text-red-400 transition-colors p-0.5" aria-label="삭제">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
           )}
 
@@ -340,13 +310,42 @@ export default function HabitSection({
             </div>
           )}
         </div>
+
+        {!isEditingName && !isMoving && (
+          <div className="flex items-center gap-1.5 flex-shrink-0 self-start">
+            <span
+              className="px-2.5 py-1 rounded-full text-xs font-bold"
+              style={done ? { background: "#F3F4F6", color: "#9CA3AF" } : { background: "#FFF4D6", color: "#D97706" }}
+            >
+              {done ? "✓ 완료" : `+${item.fixed_exp} EXP`}
+            </span>
+            {!done && (
+              <>
+                <button onClick={() => { setEditingId(item.id); setEditingName(item.name); setEditingExp(item.fixed_exp) }}
+                  className="text-gray-300 hover:text-amber-400 transition-colors p-0.5" aria-label="이름 수정">
+                  <Pencil className="w-3 h-3" />
+                </button>
+                {habitGroups.length > 0 && (
+                  <button onClick={() => setMovingItemId(item.id)}
+                    className="text-gray-300 hover:text-amber-400 transition-colors p-0.5" aria-label="그룹 이동">
+                    <Layers className="w-3 h-3" />
+                  </button>
+                )}
+              </>
+            )}
+            <button onClick={() => onConfirmDelete({ type: "daily", id: item.id, name: item.name })}
+              className="text-gray-300 hover:text-red-400 transition-colors p-0.5" aria-label="삭제">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     )
   }
 
   return (
     <>
-      <div className="mx-4 mt-2 rounded-2xl border border-amber-100 overflow-hidden">
+      <div className="mx-4 mt-3 rounded-2xl border border-amber-100 overflow-hidden">
         <div className="px-4 py-3 flex items-center justify-between bg-amber-50 dark:bg-amber-900/30">
           <div className="flex items-center gap-2">
             <span className="text-sm">☀️</span>
@@ -423,11 +422,11 @@ export default function HabitSection({
             style={{ border: allDone ? "1.5px solid #F6B73C" : "1px solid #FDE7B2", boxShadow: allDone ? "inset 3px 0 0 #F59E0B" : undefined }}
           >
             <button
-              className={`w-full px-4 pt-3 pb-2.5 text-left transition-colors rounded-t-2xl ${allDone ? "bg-amber-50/80 dark:bg-amber-900/20" : "bg-amber-50/40 dark:bg-amber-950/10"}`}
+              className={`w-full px-4 pt-3 pb-2.5 text-left transition-colors rounded-t-2xl ${allDone ? "bg-amber-50/80 dark:bg-amber-900/20" : "bg-background"}`}
               onClick={() => toggleGroup(group.id)}
             >
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex items-center gap-1 min-w-0 flex-1">
                   <span className="text-amber-400 flex-shrink-0">
                     {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </span>
@@ -447,11 +446,20 @@ export default function HabitSection({
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1 min-w-0">
                           <span className="text-sm font-bold text-foreground truncate">{group.name}</span>
-                          {hasBonus && <span className="text-[10px] font-bold text-amber-500 flex-shrink-0">✓ 스택 완성</span>}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingGroupId(group.id); setEditingGroupName(group.name) }}
+                            className="text-gray-300 hover:text-amber-400 transition-colors flex-shrink-0 p-0.5"
+                            aria-label="그룹 이름 수정"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
                         </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{checked}/{total} 완료</p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {hasBonus && <span className="text-[10px] font-bold text-amber-500 flex-shrink-0">✓ 스택 완성</span>}
+                          <span className="text-sm font-extrabold" style={{ color: "#D97706" }}>{checked}/{total}</span>
+                        </div>
                         <div className="mt-2 h-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-300"
@@ -464,10 +472,6 @@ export default function HabitSection({
                 </div>
                 {editingGroupId !== group.id && (
                   <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => { setEditingGroupId(group.id); setEditingGroupName(group.name) }}
-                      className="text-gray-300 hover:text-amber-400 transition-colors p-0.5">
-                      <Pencil className="w-3 h-3" />
-                    </button>
                     <button onClick={() => { setAddingToGroup(addingToGroup === group.id ? null : group.id); setNewName(""); setNewExp(10) }}
                       className="text-gray-300 hover:text-amber-400 transition-colors p-0.5">
                       <Plus className="w-3.5 h-3.5" />
@@ -520,19 +524,28 @@ export default function HabitSection({
         <div className="mx-4 mt-2 bg-background rounded-2xl overflow-hidden" style={{ border: "1px solid #FDE7B2" }}>
           <button
             onClick={() => toggleGroup(-1)}
-            className="w-full px-4 pt-3 pb-2.5 text-left transition-colors rounded-t-2xl bg-amber-50/30 dark:bg-amber-950/10"
+            className="w-full px-4 pt-3 pb-2.5 text-left transition-colors rounded-t-2xl bg-background"
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex items-center gap-1 min-w-0 flex-1">
                 <span className="text-amber-400 flex-shrink-0">
                   {collapsedGroups.has(-1) ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </span>
                 <div className="min-w-0">
                   <span className="text-sm font-bold text-foreground truncate">단독 습관</span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{ungroupedDoneCount}/{ungroupedItems.length} 완료</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">그룹 없이 개별 관리</p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-amber-500">개별 관리</span>
+              <span className="text-sm font-extrabold" style={{ color: "#D97706" }}>{ungroupedDoneCount}/{ungroupedItems.length}</span>
+            </div>
+            <div className="mt-2 h-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${ungroupedItems.length > 0 ? (ungroupedDoneCount / ungroupedItems.length) * 100 : 0}%`,
+                  background: "linear-gradient(90deg, #FCD34D, #F59E0B)",
+                }}
+              />
             </div>
           </button>
           {!collapsedGroups.has(-1) && (
