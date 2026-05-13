@@ -143,7 +143,11 @@ export default function TasksTab({
       }
     } else if (type === "todo") {
       const res = await fetch("/api/todos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })
-      if (res.ok) setTodoItems(await res.json())
+      if (res.ok) {
+        const items = await res.json()
+        setTodoItems(items)
+        setCompletedTodoCount(items.filter((t: TodoItem) => t.is_completed).length)
+      }
     } else {
       const action = type === "routine" ? "deleteRoutine" : "deleteItem"
       const res = await fetch("/api/routines", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, id }) })
@@ -275,7 +279,7 @@ export default function TasksTab({
       )}
 
       {/* 프로젝트 섹션 */}
-      {taskFilter === "project" && (
+      {(taskFilter === "project" || taskFilter === "all") && (
         <ProjectsTab onExpGained={onExpGained} refreshTick={refreshTick} />
       )}
 

@@ -98,23 +98,8 @@ export default function HabitSection({
   const addHabit = async (groupId?: number) => {
     if (!newName.trim()) return
     const body: Record<string, unknown> = { name: newName, suggested_exp: newExp }
-    if (groupId) {
-      const res = await fetch("/api/checklist", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        refreshFromResponse(data)
-        const newItem = (data.items ?? []).filter((i: DailyItem) => !i.group_id).slice(-1)[0]
-        if (newItem) {
-          await callApi("PUT", { action: "setItemGroup", itemId: newItem.id, groupId })
-        }
-      }
-    } else {
-      await callApi("PUT", body)
-    }
+    if (groupId) body.groupId = groupId
+    await callApi("PUT", body)
     setNewName("")
     setAdding(false)
     setAddingToGroup(null)

@@ -150,7 +150,13 @@ export async function generateRecurringTodosIfNeeded(addTodoItem: (name: string,
     if (!isTemplateDueToday(template)) continue
     const logId = await claimTodoTemplateGeneration(template.id, today)
     if (logId === null) continue
-    const todoId = await addTodoItem(template.name, template.suggested_exp, null, template.notify_time)
-    await linkGeneratedTodo(logId, todoId)
+    try {
+      const todoId = await addTodoItem(template.name, template.suggested_exp, null, template.notify_time)
+      await linkGeneratedTodo(logId, todoId)
+    } catch {
+      // 생성 실패 시 로그 제거 → 당일 재시도 가능하게 복원
+      const db = getClient()
+      await db.execute({ sql: "DELETE FROM todo_template_log WHERE id=?", args: [logId] })
+    }
   }
 }

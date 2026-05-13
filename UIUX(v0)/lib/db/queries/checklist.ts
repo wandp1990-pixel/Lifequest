@@ -152,12 +152,13 @@ export async function addChecklistLog(itemId: number, exp: number) {
   })
 }
 
-export async function addChecklistItem(name: string, fixedExp: number) {
+export async function addChecklistItem(name: string, fixedExp: number): Promise<number> {
   const db = getClient()
-  await db.execute({
+  const res = await db.execute({
     sql: "INSERT INTO checklist_item (name, fixed_exp, is_active) VALUES (?,?,1)",
     args: [name, fixedExp],
   })
+  return Number(res.lastInsertRowid)
 }
 
 export async function deleteChecklistItem(id: number) {

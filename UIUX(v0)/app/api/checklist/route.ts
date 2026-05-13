@@ -109,7 +109,8 @@ export async function PUT(req: NextRequest) {
       await updateChecklistItemName(body.id, body.name.trim(), body.fixed_exp !== undefined ? Number(body.fixed_exp) : undefined)
     } else {
       if (!body.name?.trim()) return NextResponse.json({ error: "이름을 입력하세요" }, { status: 400 })
-      await addChecklistItem(body.name.trim(), body.suggested_exp ?? 10)
+      const newId = await addChecklistItem(body.name.trim(), body.suggested_exp ?? 10)
+      if (body.groupId) await setItemGroup(newId, body.groupId)
     }
 
     const [items, checkedIds, groups, bonusGroupIds] = await Promise.all([

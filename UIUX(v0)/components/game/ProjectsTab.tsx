@@ -465,8 +465,8 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               {project.tasks.map((task) => (
                 <div key={task.id} className={`flex items-center gap-2 py-1 ${task.is_completed ? "opacity-50" : ""}`}>
                   <button
-                    onClick={() => !task.is_completed && handleCompleteTask(project.id, task.id)}
-                    disabled={!!task.is_completed || completing === task.id}
+                    onClick={() => !task.is_completed && project.status !== "done" && handleCompleteTask(project.id, task.id)}
+                    disabled={!!task.is_completed || project.status === "done" || completing === task.id}
                     className="shrink-0"
                   >
                     {task.is_completed ? (
