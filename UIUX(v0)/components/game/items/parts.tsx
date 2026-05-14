@@ -50,8 +50,8 @@ export function GradeBadge({ grade }: { grade: string }) {
   const color = GRADE_COLOR[grade] ?? "#9E9E9E"
   return (
     <span
-      style={{ color, borderColor: color, fontSize: "9px" }}
-      className="border rounded px-1 py-0.5 font-bold leading-none whitespace-nowrap"
+      style={{ color, borderColor: color, fontSize: "9px", padding: "0.5px 3px" }}
+      className="border rounded font-bold leading-none whitespace-nowrap"
     >
       {grade}
     </span>
@@ -61,7 +61,7 @@ export function GradeBadge({ grade }: { grade: string }) {
 export function LevelBadge({ level }: { level?: number }) {
   if (!level || level <= 1) return null
   return (
-    <span style={{ fontSize: "9px", color: "#6B7280", background: "#F3F4F6", borderRadius: 4, padding: "1px 4px", fontWeight: 700, lineHeight: 1 }}>
+    <span style={{ fontSize: "9px", color: "#6B7280", background: "#F3F4F6", borderRadius: 4, padding: "0.5px 3px", fontWeight: 700, lineHeight: 1, whiteSpace: "nowrap" }}>
       Lv.{level}
     </span>
   )

@@ -35,12 +35,12 @@ export default function EquippedGrid({ equippedMap }: { equippedMap: Record<stri
               className="flex flex-col rounded-2xl overflow-hidden"
               style={{ background: "white", border: `1.5px solid ${color}`, boxShadow: `0 2px 6px ${color}20` }}
             >
-              <div style={{ background: GRADE_BG[item.grade], borderBottom: `1px solid ${color}30`, padding: "5px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span className="text-sm leading-none">{icon}</span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: "#1C1B1F" }}>{label}</span>
+              <div style={{ background: GRADE_BG[item.grade], borderBottom: `1px solid ${color}30`, padding: "5px 7px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>
+                  <span className="text-sm leading-none" style={{ flexShrink: 0 }}>{icon}</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "#1C1B1F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
                   <LevelBadge level={item.roll_level} />
                   <GradeBadge grade={item.grade} />
                 </div>
