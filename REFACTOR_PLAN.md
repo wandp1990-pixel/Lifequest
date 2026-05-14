@@ -38,9 +38,9 @@
 ### Phase 4 — God Component 분할
 - [x] 4.1 SettingsDrawer 1308줄 → 62줄 컨테이너 + 10개 모듈 (2026-05-14)
 - [x] 4.2 ProjectsTab 989줄 → 233줄 컨테이너 + 5개 파트 (2026-05-14)
-- [ ] 4.3 HabitSection (552줄) + RoutineSection (538줄) 분할
-- [ ] 4.4 CharacterTab, BattleTab, ItemsTab, HomeTab 분할
-- [ ] 4.5 모든 컴포넌트 < 250줄 확인
+- [x] 4.3 HabitSection 552→245+4, RoutineSection 538→163+5 (2026-05-14)
+- [x] 4.4 CharacterTab 571→56+5, BattleTab 518→122+4, ItemsTab 434→145+5, HomeTab 367→28+4 (2026-05-14)
+- [x] 4.5 모든 컴포넌트 < 250줄 (예외 3개: ProjectCard 296, ChapterSection 288, TasksTab 277 — 복잡도상 분할 비현실적)
 
 ---
 
@@ -638,7 +638,92 @@ export function useFoo() {
 
 ---
 
-**Phase 4 남은 작업**
-- 4.3 HabitSection (552) + RoutineSection (538) — 8개 파트 추출 (HabitList/HabitItemRow/HabitGroupEditor/AddHabitForm + RoutineList/RoutineItem/RoutineEditor/AddRoutineForm)
-- 4.4 CharacterTab (571) + BattleTab (518) + ItemsTab (434) + HomeTab (367) — ~12개 파트
-- 4.5 최종 검증 + REFACTOR_PLAN 마무리
+### Phase 4.3 — 완료 (2026-05-14)
+
+**범위**: HabitSection 552줄, RoutineSection 538줄 분할. 자식 인라인 편집/추가 state 자체 보유, 부모는 mutate(PUT)/completeItem(POST) 헬퍼만 전달.
+
+**신규 파일 (components/game/habit/)**
+- `streakInfo.ts` (22) — streak → color/label 매핑 순수 함수
+- `types.ts` (16) — DailyItem, DeleteTarget
+- `HabitItem.tsx` (176) — 단일 습관 행. 이름/EXP 인라인 편집, 알림 시간, 그룹 이동
+- `HabitGroupCard.tsx` (167) — 그룹 카드 (헤더 + 진행률 + 항목 목록). 자체 add/edit state
+
+**컨테이너**
+- `HabitSection.tsx` (245) — mutate 헬퍼 + completeHabit + 단독/그룹 합성
+
+**신규 파일 (components/game/routine/)**
+- `types.ts` (28) — Routine, RoutineItem, RoutineChapter, DeleteTarget
+- `RoutineItemRow.tsx` (114) — 단일 항목 행. drag props는 부모에서 주입, 이름/EXP 인라인 편집 자체 보유
+- `RoutineCard.tsx` (211) — 루틴 카드. 헤더/진행률/항목 목록/드래그 reorder
+- `RoutineFooter.tsx` (99) — 항목 추가 트리거 + 마감 시간 편집 + 묶음 셀렉트 + 루틴 삭제
+
+**컨테이너**
+- `RoutineSection.tsx` (163) — mutate + completeItem + RoutineCard 목록 합성
+
+**검증**
+- 모든 파일 < 250줄 (최대 HabitSection 245)
+- typecheck ✅ / build ✅ / commit `a1bec1e`
+- API 계약 불변. drag reorder 응답이 별도 형태(success only)이므로 reorderItems 만 fetch 직접 호출 (RoutineCard 내부)
+
+---
+
+### Phase 4.4 — 완료 (2026-05-14)
+
+**범위**: HomeTab 367, ItemsTab 434, CharacterTab 571, BattleTab 518 분할.
+
+**HomeTab 367 → 28 컨테이너 + home/{4개}**
+- `AttendanceCard.tsx` (114) — 출석체크 (POST /api/attendance, 7일 스트릭 시각화)
+- `StatsGrid.tsx` (112) — 4칸 미니 스탯 (SVG 원형 게이지). 4개 API 병렬 fetch
+- `UrgentProjectsCard.tsx` (58) — 3일 이내 마감 임박 프로젝트
+- `ActivitySection.tsx` (128) — AI 활동 입력 (POST /api/activities) + 최근 5건 로그
+
+각 카드 자체 fetch. 컨테이너는 합성만.
+
+**ItemsTab 434 → 145 컨테이너 + items/{5개}**
+- `parts.tsx` (77) — GradeBadge / LevelBadge / OptionLine / parseOptions / SLOT_ORDER + types
+- `GachaBanner.tsx` (75) — 가챠 배너 + 뽑기 버튼 + 직전 결과 알림
+- `ReplaceModal.tsx` (70) — 같은 슬롯 충돌 시 교체/버리기 모달
+- `EquippedGrid.tsx` (60) — 9칸 슬롯 그리드 (빈 슬롯 dashed)
+- `UnequippedGrid.tsx` (73) — 보관함 목록 + 장착/삭제
+
+컨테이너에 inventory fetch + gacha/replace/discard/delete/equipFromStash mutation.
+
+**CharacterTab 571 → 56 컨테이너 + character/{5개}**
+- `constants.tsx` (51) — STATS, StatKey, Skill, CharBasics, EffectiveStats, ItemStatBonuses
+- `SkillCard.tsx` (108) — 단일 스킬 카드 (잠금/투자 분기)
+- `CombatStatsCard.tsx` (55) — PATK/MATK/PDEF/MDEF/HP/MP + 옵션 + 패시브 배지
+- `StatView.tsx` (152) — 스탯 배분 뷰. 자체 delta state + PUT /api/character
+- `SkillView.tsx` (165) — 스킬 투자 뷰. pendingInvest map + PUT /api/skills + SkillDetailSheet
+
+컨테이너는 view 토글만.
+
+**BattleTab 518 → 122 컨테이너 + battle/{4개}**
+- `types.ts` (91) — TurnLog, Monster, BattleResultData, CharData, RestoreMode, GRADE_KEYS/META
+- `TurnItem.tsx` (63) — 단일 턴 로그 행 + MiniBar 공통 컴포넌트
+- `LobbyView.tsx` (109) — 전투 시작 전 (5스탯 그리드 + 해금 등급 + 저장된 몬스터/새 전투 버튼)
+- `ResultView.tsx` (159) — 결과 화면 (HP/MP 바 + 능력치 비교 + 턴 로그 0.5초 애니메이션 + 승/패/시간초과). visibleTurns useEffect 본 컴포넌트로 이동
+
+컨테이너는 phase 전환 + battle config 로드 + savedMonster 복원 + doFight 호출.
+
+**검증**
+- 모든 신규 파일 < 250줄 (최대 ResultView 159)
+- typecheck ✅ / build ✅ / commit `801eb17`
+- Vercel auto-deploy Ready (22s). 프로덕션 `/api/character` 정상 응답 (level 18)
+
+---
+
+### Phase 4.5 — 검증 완료 (2026-05-14)
+
+**총괄**
+- Phase 4 통해 9개 God Component (총 5277줄) → 30+ 모듈화 완료
+- 250줄 초과 잔여 3개:
+  - `projects/ProjectCard.tsx` (296)
+  - `projects/ChapterSection.tsx` (288)
+  - `TasksTab.tsx` (277)
+  - 모두 책임 응집 + 추가 분할 시 부자연스러운 props drilling 발생. 그대로 유지
+- 그 외 모든 컴포넌트 < 250줄
+- 패턴 일관성: 자식 컴포넌트가 자체 fetch 또는 mutate 콜백 사용, props drilling 최소화
+
+**남은 권장 사항 (Phase 4 범위 외)**
+- TasksTab.tsx 의 4 fetch hooks 가 자식(HabitSection/RoutineSection/TodoSection) props 로 내려가는 구조 유지. 추후 CharacterContext 도입 시 일괄 정리 권장
+- shadcn primitive (Button/Card) 점진 도입은 자연스럽게 다음 PR에서
