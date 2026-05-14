@@ -60,7 +60,6 @@ export default function TasksTab({
     : projectsH.projects.filter((p) => p.status !== "done").length
 
   // ── 공유 UI 상태 ──────────────────────────────────────────────────────────
-  const [toast, setToast] = useState<{ exp: number; comment: string; bonus?: number; penalty?: boolean; penaltyExp?: number } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<DeleteTarget | null>(null)
   const [taskFilter, setTaskFilter] = useState<"all" | "routine" | "habit" | "todo" | "project">("all")
   const [loading, setLoading] = useState(true)
@@ -96,12 +95,6 @@ export default function TasksTab({
     const totalDone = checkedDailyIds.size + routineDone + completedTodoCount
     onDailyCompletedChange?.(totalDone)
   }, [dailyItems, checkedDailyIds, todoItems, routines, checkedRoutineItemIds, completedTodoCount, onCountChange, onDailyCompletedChange])
-
-  // ── 공유 토스트 ───────────────────────────────────────────────────────────
-  const showToast = (exp: number, comment: string, bonus?: number, penalty?: boolean, penaltyExp?: number) => {
-    setToast({ exp, comment, bonus, penalty, penaltyExp })
-    setTimeout(() => setToast(null), 3000)
-  }
 
   // ── 삭제 확인 · 실행 ─────────────────────────────────────────────────────
   const executeDelete = async () => {
@@ -153,22 +146,6 @@ export default function TasksTab({
   return (
     <div className="flex flex-col gap-0 relative pb-6">
 
-      {/* 토스트 */}
-      {toast && (
-        <div className={`sticky top-0 z-20 mx-4 mt-2 text-white text-xs font-bold px-4 py-2.5 rounded-2xl shadow-lg flex flex-col gap-0.5 ${toast.penalty ? "bg-red-400" : "bg-amber-400"}`}>
-          <span className="text-sm">
-            {toast.penalty
-              ? `${toast.exp} EXP (기한 초과 절반)`
-              : toast.penaltyExp
-              ? `+${toast.exp} EXP · 패널티 -${toast.penaltyExp}`
-              : toast.bonus
-              ? `+${toast.exp} EXP · 보너스 +${toast.bonus}`
-              : `+${toast.exp} EXP!`}
-          </span>
-          <span className="opacity-90 font-normal leading-snug">{toast.comment}</span>
-        </div>
-      )}
-
       {/* DAILY QUEST 요약 카드 */}
       <div className="mx-4 mt-3 rounded-2xl flex items-center gap-3 px-3 py-3" style={{ background: 'linear-gradient(135deg, #FFFAEF, #FFF1E0)', border: '1px solid #FFE3C7' }}>
         <svg width="58" height="58" viewBox="0 0 58 58" style={{ flexShrink: 0 }}>
@@ -215,7 +192,6 @@ export default function TasksTab({
           setCheckedRoutineItemIds={setCheckedRoutineItemIds}
           bonusRoutineIds={bonusRoutineIds}
           setBonusRoutineIds={setBonusRoutineIds}
-          onToast={showToast}
           onConfirmDelete={setConfirmDelete}
           onExpGained={onExpGained}
           chapters={chapters}
@@ -233,7 +209,6 @@ export default function TasksTab({
           setHabitGroups={setHabitGroups}
           bonusGroupIds={bonusGroupIds}
           setBonusGroupIds={setBonusGroupIds}
-          onToast={showToast}
           onConfirmDelete={setConfirmDelete}
           onExpGained={onExpGained}
         />
@@ -245,7 +220,6 @@ export default function TasksTab({
           todoItems={todoItems}
           setTodoItems={setTodoItems}
           setCompletedTodoCount={setCompletedTodoCount}
-          onToast={showToast}
           onConfirmDelete={setConfirmDelete}
           onExpGained={onExpGained}
         />

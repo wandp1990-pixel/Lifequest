@@ -10,6 +10,7 @@ import { useState, Dispatch, SetStateAction } from "react"
 import { Plus, X } from "lucide-react"
 import type { Routine, RoutineItem, RoutineChapter, DeleteTarget } from "./routine/types"
 import RoutineCard from "./routine/RoutineCard"
+import { useToast } from "@/contexts/ToastContext"
 
 export type { Routine, RoutineItem, RoutineChapter } from "./routine/types"
 
@@ -20,7 +21,6 @@ interface Props {
   setCheckedRoutineItemIds: Dispatch<SetStateAction<Set<number>>>
   bonusRoutineIds: Set<number>
   setBonusRoutineIds: Dispatch<SetStateAction<Set<number>>>
-  onToast: (exp: number, comment: string, bonus?: number) => void
   onConfirmDelete: (target: DeleteTarget) => void
   onExpGained?: () => void
   chapters?: RoutineChapter[]
@@ -28,9 +28,10 @@ interface Props {
 
 export default function RoutineSection({
   routines, setRoutines, checkedRoutineItemIds, setCheckedRoutineItemIds,
-  bonusRoutineIds, setBonusRoutineIds, onToast, onConfirmDelete, onExpGained,
+  bonusRoutineIds, setBonusRoutineIds, onConfirmDelete, onExpGained,
   chapters = [],
 }: Props) {
+  const { showExp } = useToast()
   const [completing, setCompleting] = useState<number | null>(null)
   const [expandedRoutineIds, setExpandedRoutineIds] = useState<Set<number>>(new Set())
   const [addingRoutine, setAddingRoutine] = useState(false)
@@ -76,9 +77,9 @@ export default function RoutineSection({
         const comment = data.deadlineBonus
           ? `⏰ 마감 전 달성! 🎉 ${data.routineName} 완수!`
           : `🎉 ${data.routineName} 완수!`
-        onToast(data.exp, comment, data.bonusExp)
+        showExp(data.exp, comment, data.bonusExp)
       } else {
-        onToast(data.exp, "루틴 항목 완료")
+        showExp(data.exp, "루틴 항목 완료")
       }
       onExpGained?.()
     } finally {

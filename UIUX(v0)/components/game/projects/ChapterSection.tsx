@@ -12,6 +12,7 @@ import { BookOpen, ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react"
 import { PROJECT_COLOR_CLS } from "@/lib/constants/ui"
 import { DEADLINE_IMMINENT_DAYS } from "@/lib/constants/time"
 import { apiDelete, apiPatch, apiPost, ApiError } from "@/hooks/useApi"
+import { useToast } from "@/contexts/ToastContext"
 import type { Chapter, Project } from "@/hooks/useProjects"
 import ProjectCard from "./ProjectCard"
 
@@ -37,7 +38,6 @@ interface Props {
   refetch: () => Promise<void>
   setProjects: (p: Project[]) => void
   setChapters: (c: Chapter[]) => void
-  onToast: (msg: string, exp?: number) => void
   onExpGained?: () => void
   onConfirmDeleteProject: (target: { id: number; name: string }) => void
 }
@@ -46,8 +46,9 @@ export default function ChapterSection({
   ch, projects, chapters, expanded, toggleExpanded,
   expandedProjectIds, toggleProject,
   refetch, setProjects, setChapters,
-  onToast, onExpGained, onConfirmDeleteProject,
+  onExpGained, onConfirmDeleteProject,
 }: Props) {
+  const { showInfo } = useToast()
   const [assigning, setAssigning] = useState(false)
   const [assignIds, setAssignIds] = useState<number[]>([])
   const [addingProject, setAddingProject] = useState(false)
@@ -68,7 +69,7 @@ export default function ChapterSection({
       setChapters(data.chapters ?? [])
       const parts: string[] = []
       if ((data.bonusExp ?? 0) > 0) parts.push(`묶음 완료 보너스 +${data.bonusExp}XP`)
-      onToast(parts.join(" · ") || "묶음 완료!")
+      showInfo(parts.join(" · ") || "묶음 완료!")
       onExpGained?.()
     } catch (e) {
       if (!(e instanceof ApiError)) throw e
@@ -156,7 +157,6 @@ export default function ChapterSection({
                   onMutated={(d) => { if (d.projects) setProjects(d.projects); else refetch() }}
                   onDelete={() => onConfirmDeleteProject({ id: p.id, name: p.name })}
                   onExpGained={onExpGained}
-                  onToast={onToast}
                 />
               ))}
             </div>

@@ -44,7 +44,7 @@
 
 ### Phase 5 — 후속 정리 (Phase 4 외 권장 사항 합류)
 - [x] 5.1 CharacterContext 실제 wrap — layout.tsx 에 Provider, page.tsx/4탭/SettingsDrawer/settings 3패널이 props 대신 useCharacterCtx 사용 (2026-05-14)
-- [ ] 5.2 Toast 통합 — 기존 컴포넌트 자체 toast useState 제거 → ToastContext.useToast(showExp/showPenalty/showLevelUp/...)
+- [x] 5.2 Toast 통합 — TasksTab/ProjectsTab 자체 toast useState 제거, 자식 6개 컴포넌트 useToast 직접 호출 + onToast props 제거 (2026-05-14)
 - [ ] 5.3 shadcn primitives 채택 — 18개 UI primitive 사용처 마이그레이션 (Button/Card/Dialog/Drawer/Tabs 등)
 - [ ] 5.4 Route/Queries 보일러 정리 — 나머지 14개 route 에 withInit + queries/*.ts 의 db.execute → exec/execOne 마이그레이션
 
@@ -766,4 +766,39 @@ export function useFoo() {
 **다음 작업자에게 (Phase 5.2)**
 - ToastContext.useToast({showExp/showPenalty/showLevelUp/showError/showInfo}) 가 이미 인프라로 마련됨. 자체 toast useState 제거 후 sonner 호출만 남기면 됨
 - TasksTab/ProjectsTab/RoutineSection/HabitSection/TodoSection 의 `<Toast>` JSX 와 toast state 제거 대상
+
+---
+
+### Phase 5.2 — 완료 (2026-05-14)
+
+**범위**: TasksTab + ProjectsTab 의 자체 toast useState/JSX 제거. 자식 6개 컴포넌트 (HabitSection/RoutineSection/TodoSection/ProjectCard/ChapterSection/DoneSection) 의 `onToast` props 제거 후 직접 `useToast()` 호출.
+
+**변경 파일**
+- `components/game/HabitSection.tsx` — `useToast().showExp` 직접 호출. `onToast` prop 제거. exp + penalty 분기는 showExp 시그니처(`exp, comment, bonus, penaltyExp`)로 그대로 매핑
+- `components/game/RoutineSection.tsx` — `useToast().showExp` 호출. `onToast` prop 제거
+- `components/game/TodoSection.tsx` — `useToast().showExp/showPenalty` 호출. `data.penaltyApplied` 분기로 showPenalty 호출 (penalty=true 시그널). `onToast` prop 제거
+- `components/game/projects/ProjectCard.tsx` — `useToast().showInfo/showError` 호출. error 케이스는 showError. `onToast` prop 제거
+- `components/game/projects/ChapterSection.tsx` — `useToast().showInfo` 호출. 자식 ProjectCard 에 `onToast` 전달 라인 제거. `onToast` prop 제거
+- `components/game/projects/DoneSection.tsx` — `onToast` prop 제거. 자식 ProjectCard 에 `onToast` 전달 라인 제거
+- `components/game/TasksTab.tsx` — `toast` useState + showToast 함수 + sticky `<Toast>` JSX 제거. 자식 3개에 `onToast` 전달 라인 제거
+- `components/game/ProjectsTab.tsx` — `toast` useState + showToast 함수 + 하단 `<Toast>` JSX 제거. 자식 3개에 `onToast` 전달 라인 제거
+
+**의도적 design 결정**
+- `AttendanceCard`, `ActivitySection` 의 인라인 알림 (`{toast && <div>...</div>}`) 은 sonner 토스트가 아니라 카드 디자인의 일부이므로 **유지**. (출석 보너스 메시지, AI 채점 결과 amber 박스)
+- `TasksTab` 의 sticky 토스트 디자인(amber/red 그래디언트 + 2줄 EXP+comment)은 sonner richColors top-center 형태로 대체 — 위치/스타일 미세 변경 있음. 핵심 메시지는 동일 (`+${exp} EXP · 보너스 +${bonus}`)
+- `ProjectsTab` 의 fixed bottom 토스트는 sonner top-center 로 위치 변경됨. msg 자체에 EXP 포함된 형태라 showInfo 로 매핑 (exp 인자 무시)
+- ProjectCard 의 ApiError 캐치는 showError 로 이전 (이전엔 showToast 로 메시지만 표시했음)
+
+**검증**
+- `npx tsc --noEmit` ✅ (exit 0)
+- `npx next build` ✅ (Turbopack, 23개 라우트)
+- 응답 shape 무변동. toast props drilling 7개(TasksTab→3, ProjectsTab→3, ChapterSection→1) 제거
+
+**Phase 5.2 에서 의도적으로 보류**
+- 자식 컴포넌트의 `onExpGained` 콜백 chain — props drilling 패턴 유지. 추후 CharacterContext.refetch 직접 호출로 대체 가능하나, 일부 부모는 `onExpGained` 가 부수 효과(상위 캐릭터 hp/mp 재렌더, 자식 상태 동기화)를 트리거하는 의미라 함부로 제거 어려움. 5.3 또는 별도 PR 에서 처리
+
+**다음 작업자에게 (Phase 5.3)**
+- 신규 분할 컴포넌트부터 `Button`/`Card`/`Dialog` 사용. 기존 inline Tailwind 는 점진 교체
+- shadcn primitive 채택은 가장 큰 변화 단위가 SettingsDrawer 의 패널들 (Dialog/Drawer 직접 사용 가능)
+
 

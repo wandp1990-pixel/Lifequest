@@ -2,6 +2,7 @@
 
 import { useState, Dispatch, SetStateAction } from "react"
 import { Plus, X, Pencil, Clock, Bell } from "lucide-react"
+import { useToast } from "@/contexts/ToastContext"
 
 export interface TodoItem {
   id: number
@@ -20,7 +21,6 @@ interface TodoSectionProps {
   todoItems: TodoItem[]
   setTodoItems: Dispatch<SetStateAction<TodoItem[]>>
   setCompletedTodoCount: Dispatch<SetStateAction<number>>
-  onToast: (exp: number, comment: string, bonus?: number, penalty?: boolean, penaltyExp?: number) => void
   onConfirmDelete: (target: DeleteTarget) => void
   onExpGained?: () => void
 }
@@ -29,10 +29,10 @@ export default function TodoSection({
   todoItems,
   setTodoItems,
   setCompletedTodoCount,
-  onToast,
   onConfirmDelete,
   onExpGained,
 }: TodoSectionProps) {
+  const { showExp, showPenalty } = useToast()
   const [completing, setCompleting] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState("")
@@ -96,7 +96,11 @@ export default function TodoSection({
       if (!res.ok) return
       setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 1, exp_gained: data.exp } : t))
       setCompletedTodoCount((prev) => prev + 1)
-      onToast(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined, data.penaltyApplied)
+      if (data.penaltyApplied) {
+        showPenalty(data.exp, data.comment)
+      } else {
+        showExp(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined)
+      }
       onExpGained?.()
     } finally {
       setCompleting(null)

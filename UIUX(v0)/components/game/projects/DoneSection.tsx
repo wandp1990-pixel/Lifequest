@@ -22,7 +22,6 @@ interface Props {
   refetch: () => Promise<void>
   setProjects: (p: Project[]) => void
   setChapters: (c: Chapter[]) => void
-  onToast: (msg: string, exp?: number) => void
   onExpGained?: () => void
   onConfirmDeleteProject: (target: { id: number; name: string }) => void
 }
@@ -31,7 +30,7 @@ export default function DoneSection({
   doneChapters, doneStandaloneProjects, chapters, projects,
   expandedProjectIds, toggleProject,
   refetch, setProjects, setChapters,
-  onToast, onExpGained, onConfirmDeleteProject,
+  onExpGained, onConfirmDeleteProject,
 }: Props) {
   const [showDone, setShowDone] = useState(false)
   const totalDone = doneChapters.length + doneStandaloneProjects.length
@@ -90,7 +89,6 @@ export default function DoneSection({
                   onMutated={(d) => { if (d.projects) setProjects(d.projects); else refetch() }}
                   onDelete={() => onConfirmDeleteProject({ id: p.id, name: p.name })}
                   onExpGained={onExpGained}
-                  onToast={onToast}
                 />
               ))}
             </div>

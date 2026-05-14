@@ -37,15 +37,9 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   const [addingBundle, setAddingBundle] = useState(false)
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<number>>(new Set())
   const [expandedChapters, setExpandedChapters] = useState<Set<number>>(new Set())
-  const [toast, setToast] = useState<{ msg: string; exp?: number } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null)
 
   useEffect(() => { refetch() }, [refetch, refreshTick])
-
-  const showToast = (msg: string, exp?: number) => {
-    setToast({ msg, exp })
-    setTimeout(() => setToast(null), 3000)
-  }
 
   const toggleProject = (id: number) => {
     setExpandedProjectIds((prev) => {
@@ -161,7 +155,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               refetch={refetch}
               setProjects={setProjects}
               setChapters={setChapters}
-              onToast={showToast}
               onExpGained={onExpGained}
               onConfirmDeleteProject={setConfirmDelete}
             />
@@ -184,7 +177,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
             onMutated={(d) => { if (d.projects) setProjects(d.projects); else refetch() }}
             onDelete={() => setConfirmDelete({ id: p.id, name: p.name })}
             onExpGained={onExpGained}
-            onToast={showToast}
           />
         ))}
         {standaloneProjects.length === 0 && (
@@ -205,7 +197,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         refetch={refetch}
         setProjects={setProjects}
         setChapters={setChapters}
-        onToast={showToast}
         onExpGained={onExpGained}
         onConfirmDeleteProject={setConfirmDelete}
       />
@@ -220,12 +211,6 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
               <button onClick={() => handleDeleteProject(confirmDelete.id)} className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-bold">삭제</button>
             </div>
           </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-full px-4 py-2 text-xs font-bold shadow-lg animate-in fade-in slide-in-from-bottom-2">
-          {toast.msg}
         </div>
       )}
     </div>

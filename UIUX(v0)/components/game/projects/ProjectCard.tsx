@@ -12,6 +12,7 @@ import { ChevronDown, ChevronRight, CheckCircle2, Circle, Plus, Trash2, X } from
 import { PRIORITY_LABEL, PRIORITY_COLOR, STATUS_LABEL, PROJECT_COLOR_CLS } from "@/lib/constants/ui"
 import { DEADLINE_IMMINENT_DAYS } from "@/lib/constants/time"
 import { apiDelete, apiPatch, apiPost, ApiError } from "@/hooks/useApi"
+import { useToast } from "@/contexts/ToastContext"
 import type { Project, Chapter } from "@/hooks/useProjects"
 
 function formatDate(d: string | null): string | null {
@@ -33,13 +34,13 @@ interface Props {
   onMutated: (data: { projects?: Project[] }) => void
   onDelete: () => void
   onExpGained?: () => void
-  onToast: (msg: string, exp?: number) => void
 }
 
 export default function ProjectCard({
   project, chapters, expanded, toggleExpand,
-  onMutated, onDelete, onExpGained, onToast,
+  onMutated, onDelete, onExpGained,
 }: Props) {
+  const { showInfo, showError } = useToast()
   const [addingTask, setAddingTask] = useState(false)
   const [newTaskName, setNewTaskName] = useState("")
   const [newTaskExp, setNewTaskExp] = useState("0")
@@ -57,11 +58,11 @@ export default function ProjectCard({
         `/api/projects/${project.id}`, { status })
       onMutated(data)
       if (status === "done" && (data.bonusExp ?? 0) > 0) {
-        onToast(`프로젝트 완료 보너스 +${data.bonusExp}XP`, data.bonusExp)
+        showInfo(`프로젝트 완료 보너스 +${data.bonusExp}XP`)
         onExpGained?.()
       }
     } catch (e) {
-      if (e instanceof ApiError) onToast(e.message)
+      if (e instanceof ApiError) showError(e.message)
       else throw e
     }
   }
@@ -101,9 +102,9 @@ export default function ProjectCard({
       }>(`/api/projects/${project.id}/tasks/${taskId}`)
       onMutated(data)
       if (data.projectCompleted) {
-        onToast(`${data.usedAi ? "AI 산정 " : ""}작업 +${data.exp}XP · 프로젝트 완료 보너스 +${data.bonusExp}XP`, data.exp + (data.bonusExp ?? 0))
+        showInfo(`${data.usedAi ? "AI 산정 " : ""}작업 +${data.exp}XP · 프로젝트 완료 보너스 +${data.bonusExp}XP`)
       } else {
-        onToast(`${data.usedAi ? "AI 산정 " : ""}작업 완료 +${data.exp}XP`, data.exp)
+        showInfo(`${data.usedAi ? "AI 산정 " : ""}작업 완료 +${data.exp}XP`)
       }
       onExpGained?.()
     } catch (e) {

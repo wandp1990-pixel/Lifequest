@@ -13,6 +13,7 @@ import type { HabitGroup } from "@/lib/db"
 import type { DailyItem, DeleteTarget } from "./habit/types"
 import HabitGroupCard from "./habit/HabitGroupCard"
 import HabitItem from "./habit/HabitItem"
+import { useToast } from "@/contexts/ToastContext"
 
 export type { DailyItem } from "./habit/types"
 
@@ -25,7 +26,6 @@ interface Props {
   setHabitGroups: Dispatch<SetStateAction<HabitGroup[]>>
   bonusGroupIds: Set<number>
   setBonusGroupIds: Dispatch<SetStateAction<Set<number>>>
-  onToast: (exp: number, comment: string, bonus?: number, penalty?: boolean, penaltyExp?: number) => void
   onConfirmDelete: (target: DeleteTarget) => void
   onExpGained?: () => void
 }
@@ -33,8 +33,9 @@ interface Props {
 export default function HabitSection({
   dailyItems, setDailyItems, checkedDailyIds, setCheckedDailyIds,
   habitGroups, setHabitGroups, bonusGroupIds, setBonusGroupIds,
-  onToast, onConfirmDelete, onExpGained,
+  onConfirmDelete, onExpGained,
 }: Props) {
+  const { showExp } = useToast()
   const [completing, setCompleting] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState("")
@@ -78,12 +79,12 @@ export default function HabitSection({
       })))
       if (data.groupBonus && item.group_id) {
         setBonusGroupIds((prev) => new Set([...prev, item.group_id!]))
-        onToast(data.exp, data.comment, undefined, undefined, data.penaltyExp > 0 ? data.penaltyExp : undefined)
+        showExp(data.exp, data.comment, undefined, data.penaltyExp > 0 ? data.penaltyExp : undefined)
         setTimeout(() => {
-          onToast(data.groupBonus, `'${data.groupName}' 스택 완성!`, data.groupBonus)
+          showExp(data.groupBonus, `'${data.groupName}' 스택 완성!`, data.groupBonus)
         }, 800)
       } else {
-        onToast(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined, undefined, data.penaltyExp > 0 ? data.penaltyExp : undefined)
+        showExp(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined, data.penaltyExp > 0 ? data.penaltyExp : undefined)
       }
       onExpGained?.()
     } finally {
