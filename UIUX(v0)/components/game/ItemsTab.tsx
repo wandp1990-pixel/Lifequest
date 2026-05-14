@@ -2,6 +2,7 @@
  * @module components/game/ItemsTab
  * @purpose 아이템 탭 컨테이너. inventory fetch + 가챠 mutation + 장비 교체/삭제 조정.
  *          하위: GachaBanner / ReplaceModal / EquippedGrid / UnequippedGrid.
+ *          drawTickets/refetch 는 CharacterContext 에서 직접 구독 (Phase 5.1).
  */
 
 "use client"
@@ -12,14 +13,15 @@ import ReplaceModal from "./items/ReplaceModal"
 import EquippedGrid from "./items/EquippedGrid"
 import UnequippedGrid from "./items/UnequippedGrid"
 import type { EquipmentItem, GachaResult } from "./items/parts"
+import { useCharacterCtx } from "@/contexts/CharacterContext"
 
 interface Props {
-  drawTickets: number
-  onTicketsChanged?: () => void
   refreshTick?: number
 }
 
-export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }: Props) {
+export default function ItemsTab({ refreshTick }: Props) {
+  const { char, refetch } = useCharacterCtx()
+  const drawTickets = char?.draw_tickets ?? 0
   const [equipment, setEquipment] = useState<EquipmentItem[]>([])
   const [rolling, setRolling] = useState(false)
   const [lastResult, setLastResult] = useState<{ item: GachaResult; autoEquipped: boolean } | null>(null)
@@ -61,13 +63,13 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
       const item: GachaResult = data.results?.[0]
       if (!item) return
 
-      onTicketsChanged?.()
+      refetch()
       const currentEquipped = equipment.find((e) => e.slot === item.slot && e.is_equipped === 1)
 
       if (!currentEquipped) {
         await patchInventory({ action: "equip", itemId: item.id })
         await fetchInventory()
-        onTicketsChanged?.()
+        refetch()
         setLastResult({ item, autoEquipped: true })
       } else {
         await fetchInventory()
@@ -84,7 +86,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
     await patchInventory({ action: "equip", itemId: newItem.id })
     await patchInventory({ action: "delete", itemId: oldItem.id })
     await fetchInventory()
-    onTicketsChanged?.()
+    refetch()
     setLastResult({ item: newItem, autoEquipped: false })
     setPendingReplace(null)
   }
@@ -106,7 +108,7 @@ export default function ItemsTab({ drawTickets, onTicketsChanged, refreshTick }:
     if (cur) await patchInventory({ action: "delete", itemId: cur.id })
     await patchInventory({ action: "equip", itemId: item.id })
     await fetchInventory()
-    onTicketsChanged?.()
+    refetch()
   }
 
   if (loading) {

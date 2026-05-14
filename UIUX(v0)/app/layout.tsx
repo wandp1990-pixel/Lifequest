@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/sonner'
+import { CharacterProvider } from '@/contexts/CharacterContext'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -41,8 +42,10 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        {children}
-        <Toaster richColors position="top-center" />
+        <CharacterProvider>
+          {children}
+          <Toaster richColors position="top-center" />
+        </CharacterProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

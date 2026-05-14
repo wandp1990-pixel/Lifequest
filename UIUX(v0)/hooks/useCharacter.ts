@@ -38,6 +38,7 @@ export type CharacterData = {
   }
   item_stat_bonuses?: { str: number; vit: number; dex: number; int_stat: number; luk: number }
   max_cleared_grade?: string | null
+  pending_battle_monster?: string | null
 }
 
 export function useCharacter() {

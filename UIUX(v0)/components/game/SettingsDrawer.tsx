@@ -2,7 +2,7 @@
  * @module components/game/SettingsDrawer
  * @purpose 설정 drawer 컨테이너. drawer chrome + 8개 patch panel 합성.
  *          각 panel 은 자체 fetch + state 보유 (components/game/settings/* 참조).
- *          onCharUpdated: 캐릭터 데이터 변경(스탯/스킬/battle config) 후 호출
+ *          char/refetch 는 CharacterContext 에서 각 panel 이 직접 구독 (Phase 5.1).
  *          onDataChanged: 데이터 트리 변경(todo template) 후 호출 (TasksTab refresh 트리거)
  */
 
@@ -18,16 +18,13 @@ import SkillDbPanel from "./settings/SkillDbPanel"
 import ConfigPanel from "./settings/ConfigPanel"
 import BattleConfigPanel from "./settings/BattleConfigPanel"
 import ResetPanel from "./settings/ResetPanel"
-import type { CharacterData } from "@/hooks/useCharacter"
 
 interface SettingsDrawerProps {
-  char: CharacterData | null
-  onCharUpdated: () => void
   onDataChanged?: () => void
   onClose: () => void
 }
 
-export default function SettingsDrawer({ char, onCharUpdated, onDataChanged, onClose }: SettingsDrawerProps) {
+export default function SettingsDrawer({ onDataChanged, onClose }: SettingsDrawerProps) {
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
@@ -49,11 +46,11 @@ export default function SettingsDrawer({ char, onCharUpdated, onDataChanged, onC
 
           <TodoTemplatesPanel onDataChanged={onDataChanged} />
           <PromptPanel />
-          <CharacterPanel char={char} onCharUpdated={onCharUpdated} />
-          <SkillsPanel char={char} onCharUpdated={onCharUpdated} />
+          <CharacterPanel />
+          <SkillsPanel />
           <SkillDbPanel />
           <ConfigPanel />
-          <BattleConfigPanel char={char} onCharUpdated={onCharUpdated} />
+          <BattleConfigPanel />
           <ResetPanel onClose={onClose} />
         </div>
       </div>

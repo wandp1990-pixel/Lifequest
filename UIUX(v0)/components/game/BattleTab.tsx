@@ -2,6 +2,7 @@
  * @module components/game/BattleTab
  * @purpose 전투 탭 컨테이너. phase(lobby/loading/result) 전환 + battle config + 저장된 몬스터 복원.
  *          POST /api/battle. 결과는 ResultView로 전달.
+ *          char/refetch 는 CharacterContext 에서 직접 구독 (Phase 5.1).
  */
 
 "use client"
@@ -12,20 +13,16 @@ import ResultView from "./battle/ResultView"
 import {
   GRADE_KEYS,
   type BattleResultData,
-  type CharData,
   type Monster,
   type RestoreMode,
 } from "./battle/types"
-
-interface Props {
-  char: CharData | null
-  onExpGained: () => void
-}
+import { useCharacterCtx } from "@/contexts/CharacterContext"
 
 type BattleScales = { clearScale: number; levelScale: number }
 const DEFAULT_SCALES: BattleScales = { clearScale: 0.03, levelScale: 0.04 }
 
-export default function BattleTab({ char, onExpGained }: Props) {
+export default function BattleTab() {
+  const { char, refetch } = useCharacterCtx()
   const [phase, setPhase]   = useState<"lobby" | "loading" | "result">("lobby")
   const [result, setResult] = useState<BattleResultData | null>(null)
   const [error, setError]   = useState<string | null>(null)
@@ -84,7 +81,7 @@ export default function BattleTab({ char, onExpGained }: Props) {
       setResult(data)
       setSavedMonster(data.winner === "플레이어" ? null : data.monster)
       setPhase("result")
-      onExpGained()
+      refetch()
     } catch (e) {
       setError(String(e))
       setPhase("lobby")
@@ -94,7 +91,7 @@ export default function BattleTab({ char, onExpGained }: Props) {
   function newBattle() {
     setPhase("lobby")
     setResult(null)
-    onExpGained()
+    refetch()
   }
 
   if (phase !== "result" || !result) {

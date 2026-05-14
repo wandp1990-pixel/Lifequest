@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Save } from "lucide-react"
 import SettingsSection from "./SettingsSection"
 import { apiGet, apiPut, ApiError } from "@/hooks/useApi"
-import type { CharacterData } from "@/hooks/useCharacter"
+import { useCharacterCtx } from "@/contexts/CharacterContext"
 
 interface BattleConfigRow {
   config_key: string
@@ -21,12 +21,8 @@ interface BattleConfigRow {
   step: number
 }
 
-interface Props {
-  char: CharacterData | null
-  onCharUpdated: () => void
-}
-
-export default function BattleConfigPanel({ char, onCharUpdated }: Props) {
+export default function BattleConfigPanel() {
+  const { char, refetch } = useCharacterCtx()
   const [configs, setConfigs] = useState<BattleConfigRow[]>([])
   const [edits, setEdits] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
@@ -54,7 +50,7 @@ export default function BattleConfigPanel({ char, onCharUpdated }: Props) {
       // vit_to_max_hp / int_to_max_mp 변경이 max_hp/max_mp 에 반영되도록 재계산
       if (char) {
         await apiPut("/api/character", { vit: char.vit })
-        onCharUpdated()
+        refetch()
       }
       await fetchConfig()
     } catch (e) {

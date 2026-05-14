@@ -10,7 +10,7 @@ import { useEffect, useState } from "react"
 import { Save } from "lucide-react"
 import SettingsSection from "./SettingsSection"
 import { apiPut, ApiError } from "@/hooks/useApi"
-import type { CharacterData } from "@/hooks/useCharacter"
+import { useCharacterCtx } from "@/contexts/CharacterContext"
 
 const CHAR_FIELDS = [
   { key: "str",          label: "STR (힘)" },
@@ -25,12 +25,8 @@ const CHAR_FIELDS = [
   { key: "draw_tickets", label: "뽑기권" },
 ] as const
 
-interface Props {
-  char: CharacterData | null
-  onCharUpdated: () => void
-}
-
-export default function CharacterPanel({ char, onCharUpdated }: Props) {
+export default function CharacterPanel() {
+  const { char, refetch } = useCharacterCtx()
   const [edits, setEdits] = useState<Record<string, string>>({})
   const [nameEdit, setNameEdit] = useState("")
   const [saving, setSaving] = useState(false)
@@ -49,7 +45,7 @@ export default function CharacterPanel({ char, onCharUpdated }: Props) {
     setSaving(true)
     try {
       await apiPut("/api/character", { ...edits, name: nameEdit })
-      onCharUpdated()
+      refetch()
     } catch (e) {
       if (!(e instanceof ApiError)) throw e
     } finally {

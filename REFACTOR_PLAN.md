@@ -42,6 +42,12 @@
 - [x] 4.4 CharacterTab 571→56+5, BattleTab 518→122+4, ItemsTab 434→145+5, HomeTab 367→28+4 (2026-05-14)
 - [x] 4.5 모든 컴포넌트 < 250줄 (예외 3개: ProjectCard 296, ChapterSection 288, TasksTab 277 — 복잡도상 분할 비현실적)
 
+### Phase 5 — 후속 정리 (Phase 4 외 권장 사항 합류)
+- [x] 5.1 CharacterContext 실제 wrap — layout.tsx 에 Provider, page.tsx/4탭/SettingsDrawer/settings 3패널이 props 대신 useCharacterCtx 사용 (2026-05-14)
+- [ ] 5.2 Toast 통합 — 기존 컴포넌트 자체 toast useState 제거 → ToastContext.useToast(showExp/showPenalty/showLevelUp/...)
+- [ ] 5.3 shadcn primitives 채택 — 18개 UI primitive 사용처 마이그레이션 (Button/Card/Dialog/Drawer/Tabs 등)
+- [ ] 5.4 Route/Queries 보일러 정리 — 나머지 14개 route 에 withInit + queries/*.ts 의 db.execute → exec/execOne 마이그레이션
+
 ---
 
 ## Context
@@ -727,3 +733,37 @@ export function useFoo() {
 **남은 권장 사항 (Phase 4 범위 외)**
 - TasksTab.tsx 의 4 fetch hooks 가 자식(HabitSection/RoutineSection/TodoSection) props 로 내려가는 구조 유지. 추후 CharacterContext 도입 시 일괄 정리 권장
 - shadcn primitive (Button/Card) 점진 도입은 자연스럽게 다음 PR에서
+
+---
+
+### Phase 5.1 — 완료 (2026-05-14)
+
+**범위**: CharacterContext 실제 wrap. page.tsx + 4개 탭(Character/Battle/Items/Settings) + Settings 3개 패널 (Character/Skills/BattleConfig) 의 char props 제거 → useCharacterCtx() 호출.
+
+**변경 파일**
+- `hooks/useCharacter.ts` — `CharacterData` 에 `pending_battle_monster?: string | null` 추가 (BattleTab 이 의존)
+- `contexts/CharacterContext.tsx` — docblock 갱신 (Phase 5.1 부터 실제 wrap 명시)
+- `app/layout.tsx` — `<CharacterProvider>{children}<Toaster /></CharacterProvider>` wrap. Analytics 는 Provider 바깥
+- `app/page.tsx` — `useCharacter()` → `useCharacterCtx()`. fetchChar 초기 useEffect 제거 (Provider 가 마운트 시 refetch). 자식 탭 4개의 char/onCharUpdated/onTicketsChanged props 제거
+- `components/game/CharacterTab.tsx` — `Props` 제거, `useCharacterCtx()`. CharBasics 타입 import 도 제거 (자식 StatView/SkillView 가 받는 char 는 CharacterData 호환)
+- `components/game/BattleTab.tsx` — 동일. `onExpGained` 콜백 자리는 refetch 직접 호출. CharData import 도 제거 (LobbyView/ResultView 가 받는 char 는 CharacterData 호환)
+- `components/game/ItemsTab.tsx` — drawTickets/onTicketsChanged props 제거. drawTickets = char?.draw_tickets ?? 0
+- `components/game/SettingsDrawer.tsx` — char/onCharUpdated props 제거. 자식 패널들이 직접 컨텍스트 구독
+- `components/game/settings/CharacterPanel.tsx` — props 제거, `useCharacterCtx`. onCharUpdated → refetch
+- `components/game/settings/SkillsPanel.tsx` — 동일
+- `components/game/settings/BattleConfigPanel.tsx` — 동일 (char.vit 재 PUT 후 refetch 호출은 유지)
+
+**검증**
+- `npx tsc --noEmit` ✅ (exit 0)
+- `npx next build` ✅ (Turbopack, 23개 라우트 그대로)
+- diff stat: 11개 파일 54 ins / 75 del = **순감소 21줄**
+- char props drilling 7개 제거 (page→4탭, settings 3패널)
+
+**Phase 5.1 에서 의도적으로 보류**
+- TasksTab / HomeTab 자식들의 `onExpGained` 콜백 chain (HabitSection/RoutineSection/TodoSection/AttendanceCard/ActivitySection 등이 받음) → 5.2 의 Toast 통합 PR 에서 같이 정리하거나 별도 작업
+- BattleTab 자식(LobbyView/ResultView), CharacterTab 자식(StatView/SkillView)이 여전히 char prop 받음 — 컴포넌트 책임 응집 + 테스트 가능성 위해 그대로 유지. 추후 필요시 마이그레이션
+
+**다음 작업자에게 (Phase 5.2)**
+- ToastContext.useToast({showExp/showPenalty/showLevelUp/showError/showInfo}) 가 이미 인프라로 마련됨. 자체 toast useState 제거 후 sonner 호출만 남기면 됨
+- TasksTab/ProjectsTab/RoutineSection/HabitSection/TodoSection 의 `<Toast>` JSX 와 toast state 제거 대상
+

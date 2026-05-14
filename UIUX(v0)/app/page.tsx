@@ -12,7 +12,7 @@ import CharacterTab from "@/components/game/CharacterTab"
 import BottomNav from "@/components/game/BottomNav"
 import SettingsDrawer from "@/components/game/SettingsDrawer"
 import { calcRegen } from "@/lib/regen"
-import { useCharacter } from "@/hooks/useCharacter"
+import { useCharacterCtx } from "@/contexts/CharacterContext"
 import { apiGet, ApiError } from "@/hooks/useApi"
 
 type TabType = "home" | "tasks" | "battle" | "items" | "skills"
@@ -27,7 +27,7 @@ const TAB_TITLES: Record<TabType, string> = {
 
 export default function GamePage() {
   const [activeTab, setActiveTab] = useState<TabType>("home")
-  const { char, refetch: fetchChar } = useCharacter()
+  const { char, refetch: fetchChar } = useCharacterCtx()
   const [tasksCount, setTasksCount] = useState(0)
   const [dailyCompleted, setDailyCompleted] = useState(0)
   const [questTotal, setQuestTotal] = useState(10)
@@ -54,9 +54,8 @@ export default function GamePage() {
   }, [])
 
   useEffect(() => {
-    fetchChar()
     fetchQuestTotal()
-  }, [fetchChar, fetchQuestTotal])
+  }, [fetchQuestTotal])
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60000)
@@ -83,10 +82,10 @@ export default function GamePage() {
       <>
         {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} onTabChange={setActiveTab} />}
         {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} questTotal={questTotal} questRewardMin={questRewardMin} questRewardMax={questRewardMax} />}
-        {activeTab === "skills" && <CharacterTab char={char} onCharUpdated={fetchChar} itemStatBonuses={char?.item_stat_bonuses} effectiveStats={char?.effective} />}
-        {activeTab === "items"  && <ItemsTab drawTickets={char?.draw_tickets ?? 0} onTicketsChanged={fetchChar} refreshTick={refreshTick} />}
+        {activeTab === "skills" && <CharacterTab />}
+        {activeTab === "items"  && <ItemsTab refreshTick={refreshTick} />}
         <div className={activeTab === "battle" ? "block" : "hidden"}>
-          <BattleTab char={char} onExpGained={handleExpGained} />
+          <BattleTab />
         </div>
       </>
     )
@@ -148,8 +147,6 @@ export default function GamePage() {
 
         {showSettings && (
           <SettingsDrawer
-            char={char}
-            onCharUpdated={fetchChar}
             onDataChanged={() => setRefreshTick((t) => t + 1)}
             onClose={() => { setShowSettings(false); fetchQuestTotal(); setRefreshTick((t) => t + 1) }}
           />

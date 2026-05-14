@@ -1,8 +1,7 @@
 /**
  * @module contexts/CharacterContext
- * @purpose 캐릭터 단일 진실. 자식이 useCharacterCtx() 로 char + refetch 직접 접근 가능.
- *          현재(Phase 3) page.tsx 가 props 로 char 를 자식에 드릴링하는 구조이므로 본 컨텍스트는 Phase 4 분할 후 마이그레이션 예정.
- *          이 단계에서는 Provider 인프라만 마련. 기존 props 흐름은 그대로 유지.
+ * @purpose 캐릭터 단일 진실. 자식이 useCharacterCtx() 로 char + refetch 직접 접근.
+ *          Phase 5.1(2026-05-14) 부터 app/layout.tsx 에서 wrap, page.tsx 및 탭/드로어가 props 대신 컨텍스트 사용.
  * @add-here:
  *   - gameConfig / battleConfig 같은 다른 단일 진실 데이터 (별도 hook → Provider value 에 합류)
  */

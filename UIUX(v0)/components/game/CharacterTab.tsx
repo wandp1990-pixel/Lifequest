@@ -1,6 +1,7 @@
 /**
  * @module components/game/CharacterTab
  * @purpose 캐릭터 탭 컨테이너. 스탯/스킬 뷰 전환 토글 + 자식 두 개 렌더.
+ *          char/refetch 는 CharacterContext 에서 직접 구독 (Phase 5.1).
  */
 
 "use client"
@@ -8,16 +9,10 @@
 import { useState } from "react"
 import StatView from "./character/StatView"
 import SkillView from "./character/SkillView"
-import type { CharBasics, EffectiveStats, ItemStatBonuses } from "./character/constants"
+import { useCharacterCtx } from "@/contexts/CharacterContext"
 
-interface Props {
-  char: CharBasics | null
-  onCharUpdated: () => void
-  itemStatBonuses?: ItemStatBonuses
-  effectiveStats?: EffectiveStats
-}
-
-export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, effectiveStats }: Props) {
+export default function CharacterTab() {
+  const { char, refetch } = useCharacterCtx()
   const [view, setView] = useState<"stat" | "skill">("stat")
 
   return (
@@ -44,13 +39,13 @@ export default function CharacterTab({ char, onCharUpdated, itemStatBonuses, eff
       {view === "stat" && (
         <StatView
           char={char}
-          itemStatBonuses={itemStatBonuses}
-          effectiveStats={effectiveStats}
-          onCharUpdated={onCharUpdated}
+          itemStatBonuses={char?.item_stat_bonuses}
+          effectiveStats={char?.effective}
+          onCharUpdated={refetch}
         />
       )}
 
-      {view === "skill" && <SkillView char={char} onCharUpdated={onCharUpdated} />}
+      {view === "skill" && <SkillView char={char} onCharUpdated={refetch} />}
     </div>
   )
 }

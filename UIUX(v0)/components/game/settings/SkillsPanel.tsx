@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Save, Zap } from "lucide-react"
 import SettingsSection from "./SettingsSection"
 import { apiGet, apiPut, ApiError } from "@/hooks/useApi"
-import type { CharacterData } from "@/hooks/useCharacter"
+import { useCharacterCtx } from "@/contexts/CharacterContext"
 
 interface SkillRow {
   id: string
@@ -25,12 +25,8 @@ interface SkillRow {
   invested: number
 }
 
-interface Props {
-  char: CharacterData | null
-  onCharUpdated: () => void
-}
-
-export default function SkillsPanel({ char, onCharUpdated }: Props) {
+export default function SkillsPanel() {
+  const { char, refetch } = useCharacterCtx()
   const [skills, setSkills] = useState<SkillRow[]>([])
   const [edits, setEdits] = useState<Record<string, number>>({})
   const [saving, setSaving] = useState(false)
@@ -54,7 +50,7 @@ export default function SkillsPanel({ char, onCharUpdated }: Props) {
     try {
       await apiPut("/api/skills", { investments: edits })
       await fetchSkills()
-      onCharUpdated()
+      refetch()
     } catch (e) {
       if (!(e instanceof ApiError)) throw e
     } finally {
