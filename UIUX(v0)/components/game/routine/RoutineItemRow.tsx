@@ -57,11 +57,16 @@ export default function RoutineItemRow({
       <button
         onClick={onComplete}
         disabled={done || isCompletingAny}
-        className="w-5 h-5 rounded flex items-center justify-center border-2 flex-shrink-0 transition-all active:scale-95"
-        style={{ borderColor: done ? "#5BA888" : "#D1D5DB", background: done ? "#5BA888" : "transparent" }}
+        className="p-2 -m-2 flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
+        aria-label={done ? "완료됨" : "루틴 항목 완료"}
       >
-        {done && <span className="text-white text-[9px] font-black leading-none">✓</span>}
-        {isLoading && !done && <span className="w-2 h-2 rounded-full bg-teal-300 animate-pulse" />}
+        <span
+          className="w-5 h-5 rounded flex items-center justify-center border-2"
+          style={{ borderColor: done ? "#5BA888" : "#D1D5DB", background: done ? "#5BA888" : "transparent" }}
+        >
+          {done && <span className="text-white text-[9px] font-black leading-none">✓</span>}
+          {isLoading && !done && <span className="w-2 h-2 rounded-full bg-teal-300 animate-pulse" />}
+        </span>
       </button>
       <div className="flex-1 min-w-0">
         {editing ? (
@@ -87,12 +92,15 @@ export default function RoutineItemRow({
       </div>
       {!editing && (
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span
-            className="px-2.5 py-1 rounded-full text-xs font-bold"
+          <button
+            onClick={onComplete}
+            disabled={done || isCompletingAny}
+            className="px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95"
             style={done ? { background: "#F3F4F6", color: "#9CA3AF" } : { background: "#E8F7F0", color: "#5BA888" }}
+            aria-label={done ? "완료됨" : "경험치 받고 완료"}
           >
-            {done ? "✓ 완료" : `+${item.fixed_exp} EXP`}
-          </span>
+            {done ? "✓ 완료" : isLoading ? "처리 중..." : `+${item.fixed_exp} EXP`}
+          </button>
           {!done && (
             <button
               onClick={() => { setEditing(true); setNameVal(item.name); setExpVal(item.fixed_exp) }}
