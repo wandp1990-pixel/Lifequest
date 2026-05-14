@@ -256,28 +256,28 @@ export default function ProjectCard({
 
           {addingTask ? (
             <div className="mt-1 space-y-2">
-              <div className="flex gap-2">
-                <input
-                  autoFocus
-                  className="flex-1 text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
-                  placeholder="작업 이름"
-                  value={newTaskName}
-                  onChange={(e) => setNewTaskName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddTask()
-                    if (e.key === "Escape") { setAddingTask(false); setNewTaskName(""); setNewTaskExp("0") }
-                  }}
-                />
+              <input
+                autoFocus
+                className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-1.5 outline-none focus:border-violet-500"
+                placeholder="작업 이름"
+                value={newTaskName}
+                onChange={(e) => setNewTaskName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddTask()
+                  if (e.key === "Escape") { setAddingTask(false); setNewTaskName(""); setNewTaskExp("0") }
+                }}
+              />
+              <div className="flex gap-2 items-center">
                 <input
                   type="number"
                   min={0}
-                  className="w-20 text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none focus:border-violet-500"
-                  placeholder="XP"
+                  className="flex-1 min-w-0 text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none focus:border-violet-500"
+                  placeholder="XP (0=AI 산정)"
                   value={newTaskExp}
                   onChange={(e) => setNewTaskExp(e.target.value)}
                 />
-                <button onClick={handleAddTask} className="px-3 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold">추가</button>
-                <button onClick={() => { setAddingTask(false); setNewTaskName(""); setNewTaskExp("0") }} className="text-muted-foreground"><X size={14} /></button>
+                <button onClick={handleAddTask} className="px-3 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold flex-shrink-0">추가</button>
+                <button onClick={() => { setAddingTask(false); setNewTaskName(""); setNewTaskExp("0") }} className="text-muted-foreground flex-shrink-0 p-1"><X size={14} /></button>
               </div>
               <p className="text-[10px] text-muted-foreground">XP를 `0`으로 두면 완료 시 AI가 경험치를 산정합니다.</p>
             </div>
