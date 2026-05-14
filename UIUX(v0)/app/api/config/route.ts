@@ -1,23 +1,14 @@
-import { NextRequest, NextResponse } from "next/server"
-import { initDb, getGameConfigFull, updateGameConfigValue } from "@/lib/db"
+import { NextRequest } from "next/server"
+import { getGameConfigFull, updateGameConfigValue } from "@/lib/db"
+import { ok, badRequest, withInit } from "@/lib/api/respond"
 
-export async function GET() {
-  try {
-    await initDb()
-    return NextResponse.json(await getGameConfigFull())
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
-  }
-}
+export const GET = withInit(async () => {
+  return ok(await getGameConfigFull())
+})
 
-export async function PUT(req: NextRequest) {
-  try {
-    await initDb()
-    const { key, value } = await req.json()
-    if (!key) return NextResponse.json({ error: "key 필요" }, { status: 400 })
-    await updateGameConfigValue(key, String(value))
-    return NextResponse.json({ ok: true })
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
-  }
-}
+export const PUT = withInit(async (req: NextRequest) => {
+  const { key, value } = await req.json()
+  if (!key) return badRequest("key 필요")
+  await updateGameConfigValue(key, String(value))
+  return ok({ ok: true })
+})

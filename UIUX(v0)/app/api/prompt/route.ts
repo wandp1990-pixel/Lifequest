@@ -1,24 +1,15 @@
-import { NextRequest, NextResponse } from "next/server"
-import { initDb, getActivePrompt, updatePromptContent } from "@/lib/db"
+import { NextRequest } from "next/server"
+import { getActivePrompt, updatePromptContent } from "@/lib/db"
+import { ok, badRequest, withInit } from "@/lib/api/respond"
 
-export async function GET() {
-  try {
-    await initDb()
-    const content = await getActivePrompt("general")
-    return NextResponse.json({ content })
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
-  }
-}
+export const GET = withInit(async () => {
+  const content = await getActivePrompt("general")
+  return ok({ content })
+})
 
-export async function PUT(req: NextRequest) {
-  try {
-    await initDb()
-    const { content } = await req.json()
-    if (!content?.trim()) return NextResponse.json({ error: "내용을 입력하세요" }, { status: 400 })
-    await updatePromptContent("general", content)
-    return NextResponse.json({ ok: true })
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
-  }
-}
+export const PUT = withInit(async (req: NextRequest) => {
+  const { content } = await req.json()
+  if (!content?.trim()) return badRequest("내용을 입력하세요")
+  await updatePromptContent("general", content)
+  return ok({ ok: true })
+})

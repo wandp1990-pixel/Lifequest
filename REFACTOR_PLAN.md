@@ -46,7 +46,7 @@
 - [x] 5.1 CharacterContext 실제 wrap — layout.tsx 에 Provider, page.tsx/4탭/SettingsDrawer/settings 3패널이 props 대신 useCharacterCtx 사용 (2026-05-14)
 - [x] 5.2 Toast 통합 — TasksTab/ProjectsTab 자체 toast useState 제거, 자식 6개 컴포넌트 useToast 직접 호출 + onToast props 제거 (2026-05-14)
 - [x] 5.3 shadcn primitives 부분 채택 — 모달 3곳(TasksTab Drawer/ProjectsTab Dialog/ReplaceModal Drawer). 도메인 색상(amber/violet/teal) 강결합 영역은 inline Tailwind 유지 (2026-05-14)
-- [ ] 5.4 Route/Queries 보일러 정리 — 나머지 14개 route 에 withInit + queries/*.ts 의 db.execute → exec/execOne 마이그레이션
+- [x] 5.4 Route 보일러 정리 — 13개 route 에 withInit 적용. queries/*.ts 의 db.execute 마이그레이션은 의도적 보류 (race-guard 시맨틱 보존 우선) (2026-05-14)
 
 ---
 
@@ -828,6 +828,44 @@ export function useFoo() {
 **다음 작업자에게 (Phase 5.4)**
 - `lib/api/respond.ts` 의 `withInit` 가 이미 마련됨. 나머지 14개 route 의 try/catch + initDb 보일러를 `withInit(async () => ...)` 로 래핑
 - `lib/db/queries/_helpers.ts` 의 `exec/execOne/execMany` 가 마련됨. queries/*.ts 의 `db.execute({sql, args})` 직접 호출을 점진 교체. race-guard 패턴 (`INSERT OR IGNORE` 6곳, conditional `UPDATE` 2곳) 은 `claimOnce/claimUpdate` 사용 — 시맨틱 보존
+
+---
+
+### Phase 5.4 — 완료 (2026-05-14)
+
+**범위**: 미적용 13개 route 의 try/catch + initDb 보일러를 `withInit` 으로 통일. `NextResponse.json(data)` → `ok(data)`, `NextResponse.json({error:..}, {status:400})` → `badRequest(..)`, status:404 → `notFound(..)`.
+
+**변경 파일 (13개)**
+- `app/api/activities/route.ts` (GET/POST)
+- `app/api/battle-config/route.ts` (GET/PUT)
+- `app/api/chapters/route.ts` (GET/POST)
+- `app/api/chapters/[id]/route.ts` (PATCH/DELETE)
+- `app/api/character/route.ts` (GET/PUT — DELETE 는 initDbSchemaOnly 사용으로 보류)
+- `app/api/config/route.ts` (GET/PUT)
+- `app/api/cron/notify/route.ts` (GET — VAPID 인증 + 401 응답은 NextResponse 직접 사용, 그 외는 ok/err)
+- `app/api/projects/ai-judge/route.ts` (POST)
+- `app/api/prompt/route.ts` (GET/PUT)
+- `app/api/push/route.ts` (POST/DELETE)
+- `app/api/skill-db/route.ts` (GET/POST/PUT/DELETE)
+- `app/api/skills/route.ts` (GET/PUT)
+- `app/api/todo-templates/route.ts` (GET/POST/PUT/DELETE)
+
+**의도적 보류**
+- `app/api/battle/route.ts` — `console.error("[battle]", e)` 로깅 보존을 위해 try/catch 그대로 유지. `withInit` 으로 가면 catch 에서 로깅 사라짐
+- `app/api/character/route.ts` DELETE — `initDbSchemaOnly()` 사용 (seed 데이터 재생성 스킵). `withInit` 이 호출하는 `initDb()` 와 충돌
+- `lib/db/queries/*.ts` 의 `db.execute({sql, args})` → `exec/execOne` 마이그레이션은 시맨틱 보존 우선으로 보류. race-guard (`INSERT OR IGNORE` 6곳, conditional `UPDATE` 2곳) + 트랜잭션 본문 (`gainExp`) 은 신중하게 별도 RFC 가 필요. 가시적 이득(코드 라인 감소) 대비 회귀 위험 큼
+
+**검증**
+- `npx tsc --noEmit` ✅ (exit 0)
+- `npx next build` ✅ (Turbopack, 23개 라우트 그대로)
+- 응답 shape 무변동. `withInit` 의 catch 가 동일한 `{error: String(e)}` / 500 표준 반환
+
+**Phase 5 전체 (5.1~5.4) 완료 요약**
+- 5.1: CharacterContext wrap → char props drilling 7개 제거
+- 5.2: Toast 통합 → onToast props drilling 7개 제거. sonner useToast 채택
+- 5.3: shadcn 모달 3곳 채택. 도메인 색상 영역은 시각 회귀 회피 위해 보류
+- 5.4: 13개 route withInit 적용. 약 130줄 보일러 감소
+
 
 
 
