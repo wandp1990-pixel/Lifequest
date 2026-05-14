@@ -20,7 +20,7 @@ export default function ReplaceModal({ pending, onReplace, onDiscard }: Props) {
   const { newItem, oldItem } = pending
   return (
     <Drawer open={true} onOpenChange={(o) => !o && onDiscard()}>
-      <DrawerContent className="left-1/2 -translate-x-1/2 w-full max-w-sm">
+      <DrawerContent className="mx-auto max-w-sm">
         <DrawerHeader>
           <DrawerTitle className="text-center">장착 중인 아이템이 있습니다</DrawerTitle>
         </DrawerHeader>
