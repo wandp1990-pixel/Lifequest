@@ -45,6 +45,8 @@ export default function ProjectCard({
   const [newTaskName, setNewTaskName] = useState("")
   const [newTaskExp, setNewTaskExp] = useState("0")
   const [completing, setCompleting] = useState<number | null>(null)
+  // 낙관적 완료 ID — props.project.tasks가 동기화되기 전 즉시 체크 표시
+  const [optimisticDoneIds, setOptimisticDoneIds] = useState<Set<number>>(new Set())
   const [editingChapter, setEditingChapter] = useState(false)
 
   const dueSoon = isDueSoon(project.due_date) && project.status !== "done"
@@ -93,24 +95,35 @@ export default function ProjectCard({
   }
 
   const handleCompleteTask = async (taskId: number) => {
-    if (completing !== null) return
-    setCompleting(taskId)
+    if (optimisticDoneIds.has(taskId)) return
+    const task = project.tasks.find((t) => t.id === taskId)
+    const isAi = !task || task.exp_reward === 0
+    // 낙관적 체크 — 시각 피드백 즉시. 고정 EXP일 때만 토스트도 즉시.
+    setOptimisticDoneIds((prev) => new Set([...prev, taskId]))
+    if (task && !isAi) showInfo(`작업 완료 +${task.exp_reward}XP`)
+    if (isAi) setCompleting(taskId)
     try {
       const data = await apiPatch<{
         projects?: Project[]; projectCompleted?: boolean
         exp: number; bonusExp?: number; usedAi?: boolean
       }>(`/api/projects/${project.id}/tasks/${taskId}`)
       onMutated(data)
-      if (data.projectCompleted) {
-        showInfo(`${data.usedAi ? "AI 산정 " : ""}작업 +${data.exp}XP · 프로젝트 완료 보너스 +${data.bonusExp}XP`)
-      } else {
-        showInfo(`${data.usedAi ? "AI 산정 " : ""}작업 완료 +${data.exp}XP`)
+      // AI 산정 또는 프로젝트 완료 보너스는 서버 응답 후 토스트
+      if (isAi) {
+        if (data.projectCompleted) {
+          showInfo(`AI 산정 작업 +${data.exp}XP · 프로젝트 완료 보너스 +${data.bonusExp}XP`)
+        } else {
+          showInfo(`AI 산정 작업 완료 +${data.exp}XP`)
+        }
+      } else if (data.projectCompleted) {
+        showInfo(`프로젝트 완료 보너스 +${data.bonusExp}XP`)
       }
       onExpGained?.()
     } catch (e) {
+      setOptimisticDoneIds((prev) => { const next = new Set(prev); next.delete(taskId); return next })
       if (!(e instanceof ApiError)) throw e
     } finally {
-      setCompleting(null)
+      if (isAi) setCompleting(null)
     }
   }
 
@@ -222,30 +235,33 @@ export default function ProjectCard({
           )}
 
           <div className="space-y-1.5">
-            {project.tasks.map((task) => (
-              <div key={task.id} className={`flex items-center gap-2 py-1 ${task.is_completed ? "opacity-50" : ""}`}>
-                <button
-                  onClick={() => !task.is_completed && project.status !== "done" && handleCompleteTask(task.id)}
-                  disabled={!!task.is_completed || project.status === "done" || completing === task.id}
-                  className="shrink-0"
-                >
-                  {task.is_completed ? (
-                    <CheckCircle2 size={16} className="text-emerald-500" />
-                  ) : completing === task.id ? (
-                    <Circle size={16} className="text-muted-foreground animate-pulse" />
-                  ) : (
-                    <Circle size={16} className="text-muted-foreground" />
-                  )}
-                </button>
-                <span className={`flex-1 text-xs ${task.is_completed ? "line-through" : ""}`}>{task.name}</span>
-                <span className="text-[10px] text-amber-400 shrink-0">{task.exp_reward === 0 ? "AI 산정" : `+${task.exp_reward}XP`}</span>
-                {!task.is_completed && (
-                  <button onClick={() => handleDeleteTask(task.id)} className="text-muted-foreground shrink-0">
-                    <X size={12} />
+            {project.tasks.map((task) => {
+              const visuallyDone = !!task.is_completed || optimisticDoneIds.has(task.id)
+              return (
+                <div key={task.id} className={`flex items-center gap-2 py-1 ${visuallyDone ? "opacity-50" : ""}`}>
+                  <button
+                    onClick={() => !visuallyDone && project.status !== "done" && handleCompleteTask(task.id)}
+                    disabled={visuallyDone || project.status === "done"}
+                    className="shrink-0"
+                  >
+                    {visuallyDone ? (
+                      <CheckCircle2 size={16} className="text-emerald-500" />
+                    ) : completing === task.id ? (
+                      <Circle size={16} className="text-muted-foreground animate-pulse" />
+                    ) : (
+                      <Circle size={16} className="text-muted-foreground" />
+                    )}
                   </button>
-                )}
-              </div>
-            ))}
+                  <span className={`flex-1 text-xs ${visuallyDone ? "line-through" : ""}`}>{task.name}</span>
+                  <span className="text-[10px] text-amber-400 shrink-0">{task.exp_reward === 0 ? "AI 산정" : `+${task.exp_reward}XP`}</span>
+                  {!visuallyDone && (
+                    <button onClick={() => handleDeleteTask(task.id)} className="text-muted-foreground shrink-0">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {project.tasks.length === 0 && (

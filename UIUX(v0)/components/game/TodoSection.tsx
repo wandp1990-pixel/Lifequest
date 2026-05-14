@@ -84,8 +84,13 @@ export default function TodoSection({
   }
 
   const completeTodo = async (item: TodoItem) => {
-    if (item.is_completed || completing !== null) return
-    setCompleting(item.id)
+    if (item.is_completed) return
+    // 낙관적 체크 — 시각 피드백 즉시. EXP 토스트는 서버 응답(페널티/보너스 산정) 후.
+    // AI(suggested_exp=0)일 때만 "처리 중..." 버튼 표시 위해 completing 세팅.
+    const isAi = (item.suggested_exp ?? 0) === 0
+    setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 1 } : t))
+    setCompletedTodoCount((prev) => prev + 1)
+    if (isAi) setCompleting(item.id)
     try {
       const res = await fetch("/api/todos", {
         method: "PATCH",
@@ -93,17 +98,23 @@ export default function TodoSection({
         body: JSON.stringify({ id: item.id }),
       })
       const data = await res.json()
-      if (!res.ok) return
+      if (!res.ok) {
+        setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
+        setCompletedTodoCount((prev) => Math.max(0, prev - 1))
+        return
+      }
       setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 1, exp_gained: data.exp } : t))
-      setCompletedTodoCount((prev) => prev + 1)
       if (data.penaltyApplied) {
         showPenalty(data.exp, data.comment)
       } else {
         showExp(data.exp, data.comment, data.bonusExp > 0 ? data.bonusExp : undefined)
       }
       onExpGained?.()
+    } catch {
+      setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
+      setCompletedTodoCount((prev) => Math.max(0, prev - 1))
     } finally {
-      setCompleting(null)
+      if (isAi) setCompleting(null)
     }
   }
 
@@ -233,7 +244,7 @@ export default function TodoSection({
                   <Clock className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button onClick={() => completeTodo(item)} disabled={done || completing !== null}
+              <button onClick={() => completeTodo(item)} disabled={done}
                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
                   done ? "bg-muted text-muted-foreground cursor-not-allowed" :
                   isLoading ? "bg-violet-200 text-violet-700 animate-pulse cursor-wait" :

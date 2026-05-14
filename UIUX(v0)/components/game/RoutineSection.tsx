@@ -32,7 +32,7 @@ export default function RoutineSection({
   chapters = [],
 }: Props) {
   const { showExp } = useToast()
-  const [completing, setCompleting] = useState<number | null>(null)
+  // 낙관적 UI — completing은 더 이상 게이팅에 사용하지 않음. 체크 자체가 즉시 반영되어 시각 피드백이 됨.
   const [expandedRoutineIds, setExpandedRoutineIds] = useState<Set<number>>(new Set())
   const [addingRoutine, setAddingRoutine] = useState(false)
   const [newRoutineName, setNewRoutineName] = useState("")
@@ -61,8 +61,10 @@ export default function RoutineSection({
   }
 
   const completeItem = async (item: RoutineItem) => {
-    if (checkedRoutineItemIds.has(item.id) || completing !== null) return
-    setCompleting(item.id)
+    if (checkedRoutineItemIds.has(item.id)) return
+    // 낙관적 UI: 체크와 기본 EXP 토스트 즉시. 루틴 항목은 fixed_exp가 항상 클라이언트에 있음(AI 없음).
+    setCheckedRoutineItemIds((prev) => new Set([...prev, item.id]))
+    showExp(item.fixed_exp, "루틴 항목 완료")
     try {
       const res = await fetch("/api/routines", {
         method: "POST",
@@ -70,20 +72,21 @@ export default function RoutineSection({
         body: JSON.stringify({ itemId: item.id }),
       })
       const data = await res.json()
-      if (!res.ok) return
-      setCheckedRoutineItemIds((prev) => new Set([...prev, item.id]))
+      if (!res.ok) {
+        setCheckedRoutineItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+        return
+      }
+      // 보너스(루틴 완수/마감보너스)는 서버 산정 — 도착 후 추가 토스트
       if (data.allDone && data.bonusExp > 0) {
         setBonusRoutineIds((prev) => new Set([...prev, item.routine_id]))
         const comment = data.deadlineBonus
           ? `⏰ 마감 전 달성! 🎉 ${data.routineName} 완수!`
           : `🎉 ${data.routineName} 완수!`
-        showExp(data.exp, comment, data.bonusExp)
-      } else {
-        showExp(data.exp, "루틴 항목 완료")
+        showExp(data.bonusExp, comment, data.bonusExp)
       }
       onExpGained?.()
-    } finally {
-      setCompleting(null)
+    } catch {
+      setCheckedRoutineItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
     }
   }
 
@@ -150,7 +153,7 @@ export default function RoutineSection({
           chapters={chapters}
           checkedItemIds={checkedRoutineItemIds}
           bonusGranted={bonusRoutineIds.has(r.id)}
-          completing={completing}
+          completing={null}
           expanded={expandedRoutineIds.has(r.id)}
           toggleExpanded={() => toggleRoutine(r.id)}
           setRoutines={setRoutines}
