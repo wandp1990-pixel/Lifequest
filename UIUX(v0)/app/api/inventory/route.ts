@@ -27,9 +27,8 @@ import { MAX_GACHA_COUNT } from "@/lib/constants/gacha"
 import { ok, badRequest, withInit } from "@/lib/api/respond"
 
 export const GET = withInit(async () => {
-  const equipment = await getEquipment()
-  const char = await getCharacter()
-  return ok({ equipment, draw_tickets: char.draw_tickets, pity_count: char.pity_count ?? 0 })
+  const [equipment, char, grades] = await Promise.all([getEquipment(), getCharacter(), getItemGrades()])
+  return ok({ equipment, draw_tickets: char.draw_tickets, pity_count: char.pity_count ?? 0, grades })
 })
 
 // 장착/해제/삭제 처리 후 effective 스탯 재계산.

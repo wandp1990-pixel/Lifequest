@@ -13,6 +13,7 @@ import ReplaceModal from "./items/ReplaceModal"
 import EquippedGrid from "./items/EquippedGrid"
 import UnequippedGrid from "./items/UnequippedGrid"
 import type { EquipmentItem, GachaResult } from "./items/parts"
+import type { GradeRow } from "@/lib/game/gacha"
 import { useCharacterCtx } from "@/contexts/CharacterContext"
 
 interface Props {
@@ -28,6 +29,7 @@ export default function ItemsTab({ refreshTick }: Props) {
   const [pendingReplace, setPendingReplace] = useState<{ newItem: GachaResult; oldItem: EquipmentItem } | null>(null)
   const [loading, setLoading] = useState(true)
   const [pityCount, setPityCount] = useState(0)
+  const [grades, setGrades] = useState<GradeRow[]>([])
 
   const fetchInventory = async () => {
     const res = await fetch("/api/inventory")
@@ -35,6 +37,7 @@ export default function ItemsTab({ refreshTick }: Props) {
       const data = await res.json()
       setEquipment(data.equipment ?? [])
       if (typeof data.pity_count === "number") setPityCount(data.pity_count)
+      if (Array.isArray(data.grades)) setGrades(data.grades)
     }
     setLoading(false)
   }
@@ -135,6 +138,7 @@ export default function ItemsTab({ refreshTick }: Props) {
         lastResult={lastResult}
         onRoll={handleGacha}
         pityCount={pityCount}
+        grades={grades}
       />
       {pendingReplace && (
         <ReplaceModal
