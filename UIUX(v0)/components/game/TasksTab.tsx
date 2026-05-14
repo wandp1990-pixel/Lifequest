@@ -66,15 +66,22 @@ export default function TasksTab({
   const [loading, setLoading] = useState(true)
 
   // ── 초기 데이터 로드 ──────────────────────────────────────────────────────
+  // deps는 hook 객체가 아닌 stable refetch 함수만 — 객체를 deps로 넣으면 매 렌더마다
+  // fetchAll 레퍼런스가 바뀌어 useEffect가 무한 재실행되고, 비행 중인 GET이 POST 이후
+  // 도착하며 checkedIds를 옛 값으로 덮어써서 체크가 "잠깐 들어왔다가 풀린다".
+  const { refetch: refetchChecklist } = checklist
+  const { refetch: refetchTodos } = todosH
+  const { refetch: refetchRoutines } = routinesH
+  const { refetch: refetchProjects } = projectsH
   const fetchAll = useCallback(async () => {
     await Promise.all([
-      checklist.refetch(),
-      todosH.refetch(),
-      routinesH.refetch(),
-      projectsH.refetch(),
+      refetchChecklist(),
+      refetchTodos(),
+      refetchRoutines(),
+      refetchProjects(),
     ])
     setLoading(false)
-  }, [checklist, todosH, routinesH, projectsH])
+  }, [refetchChecklist, refetchTodos, refetchRoutines, refetchProjects])
 
   useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
 
