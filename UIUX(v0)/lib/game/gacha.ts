@@ -46,19 +46,43 @@ export interface RolledItem {
   options: string[]
 }
 
+/** 연속 폐기 시 가산되는 상위 등급 집합 + 1회당 가중치 보너스 */
+export const PITY_BONUS_PER_DRAW = 0.5
+export const PITY_BONUS_GRADES = new Set(["S", "SR", "SSR", "UR"])
+
+/** pity 가중치 적용된 등급 테이블 반환 (원본 미변경) */
+export function applyPityBoost(grades: GradeRow[], pityCount: number): GradeRow[] {
+  if (pityCount <= 0) return grades
+  const bonus = pityCount * PITY_BONUS_PER_DRAW
+  return grades.map((g) =>
+    PITY_BONUS_GRADES.has(g.grade) ? { ...g, weight: Math.max(0, g.weight) + bonus } : g
+  )
+}
+
+/** 특정 등급의 현재 출현 확률(%) — pity 적용. UI 표시용. */
+export function gradeChancePercent(grades: GradeRow[], grade: string, pityCount = 0): number {
+  const adjusted = applyPityBoost(grades, pityCount)
+  const total = adjusted.reduce((s, g) => s + Math.max(0, g.weight), 0)
+  if (total <= 0) return 0
+  const target = adjusted.find((g) => g.grade === grade)
+  if (!target) return 0
+  return (Math.max(0, target.weight) / total) * 100
+}
+
 /**
  * 가중치 기반 등급 선택. weight 합이 0 이하면 균등 폴백.
  * 출처: app/api/inventory/route.ts:31-40
  */
-export function pickGrade(grades: GradeRow[]): GradeRow {
-  const total = grades.reduce((s, g) => s + Math.max(0, g.weight), 0)
-  if (total <= 0) return grades[Math.floor(Math.random() * grades.length)]
+export function pickGrade(grades: GradeRow[], pityCount = 0): GradeRow {
+  const adjusted = applyPityBoost(grades, pityCount)
+  const total = adjusted.reduce((s, g) => s + Math.max(0, g.weight), 0)
+  if (total <= 0) return adjusted[Math.floor(Math.random() * adjusted.length)]
   let r = Math.random() * total
-  for (const g of grades) {
+  for (const g of adjusted) {
     r -= Math.max(0, g.weight)
     if (r <= 0) return g
   }
-  return grades[grades.length - 1]
+  return adjusted[adjusted.length - 1]
 }
 
 /** 슬롯 균등 랜덤. 출처: app/api/inventory/route.ts:43-45 */
@@ -121,12 +145,12 @@ export function rollAbilityValue(ability: AbilityRow, grade: GradeRow, ratio: nu
  *
  * 출처: app/api/inventory/route.ts:156-223 — 동작 보존.
  */
-export function rollGachaItems(count: number, charLevel: number, pools: GachaPools): RolledItem[] {
+export function rollGachaItems(count: number, charLevel: number, pools: GachaPools, pityCount = 0): RolledItem[] {
   const { grades, slots, abilities, passives } = pools
   const rolled: RolledItem[] = []
 
   for (let i = 0; i < count; i++) {
-    const grade = pickGrade(grades)
+    const grade = pickGrade(grades, pityCount)
     const slot = pickSlot(slots)
 
     const excluded = new Set<string>((() => {

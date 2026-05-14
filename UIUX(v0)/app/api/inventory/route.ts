@@ -29,17 +29,27 @@ import { ok, badRequest, withInit } from "@/lib/api/respond"
 export const GET = withInit(async () => {
   const equipment = await getEquipment()
   const char = await getCharacter()
-  return ok({ equipment, draw_tickets: char.draw_tickets })
+  return ok({ equipment, draw_tickets: char.draw_tickets, pity_count: char.pity_count ?? 0 })
 })
 
 // 장착/해제/삭제 처리 후 effective 스탯 재계산.
 // 장비 변경 후 max_hp/mp 가 감소했으면 current 를 새 max 에 맞게 캡.
+// discardGacha: 가챠 결과 폐기. pity_count 증가.
+// equip: 장착 수락 → pity_count 0 으로 리셋 (의도된 장착 = 만족).
 export const PATCH = withInit(async (req: NextRequest) => {
   const { action, itemId } = await req.json()
   if (typeof itemId !== "number" || !Number.isFinite(itemId)) return badRequest("itemId 필요")
-  if (action === "equip") await equipItem(itemId)
+  if (action === "equip") {
+    await equipItem(itemId)
+    await updateCharacter({ pity_count: 0 })
+  }
   else if (action === "unequip") await unequipItem(itemId)
   else if (action === "delete") await deleteEquipment(itemId)
+  else if (action === "discardGacha") {
+    await deleteEquipment(itemId)
+    const cur = await getCharacter()
+    await updateCharacter({ pity_count: (cur.pity_count ?? 0) + 1 })
+  }
   else return badRequest("알 수 없는 action")
 
   const [char, bcfg, equipment, allSkills] = await Promise.all([
@@ -58,7 +68,7 @@ export const PATCH = withInit(async (req: NextRequest) => {
       current_mp: Math.min(char.current_mp, effMaxMp),
     })
   }
-  return ok({ ok: true })
+  return ok({ ok: true, pity_count: char.pity_count ?? 0 })
 })
 
 // 가챠: count 개 장비 생성 및 뽑기권 차감.
@@ -81,7 +91,8 @@ export const POST = withInit(async (req: NextRequest) => {
   ])
 
   // 가챠 결과를 먼저 모두 결정 (랜덤). DB 쓰기는 트랜잭션 안에서 한 번에.
-  const rolled = rollGachaItems(count, char.level, { grades, slots, abilities, passives })
+  // pity_count 만큼 상위 등급(S/SR/SSR/UR) 가중치 가산.
+  const rolled = rollGachaItems(count, char.level, { grades, slots, abilities, passives }, char.pity_count ?? 0)
 
   // 트랜잭션: 티켓 차감 + N개 INSERT atomic.
   // 차감은 conditional UPDATE 라 race 시 한 쪽만 통과 → rollback.
@@ -117,5 +128,5 @@ export const POST = withInit(async (req: NextRequest) => {
     mainValue: item.mainValue,
     options: item.options,
   }))
-  return ok({ results })
+  return ok({ results, pity_count: char.pity_count ?? 0 })
 })

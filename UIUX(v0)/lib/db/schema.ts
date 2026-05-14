@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS character (
     current_mp   INTEGER  DEFAULT 55,
     max_mp       INTEGER  DEFAULT 55,
     pending_battle_monster TEXT DEFAULT NULL,
+    pity_count   INTEGER  DEFAULT 0,
     created_at   TEXT,
     updated_at   TEXT
 );
@@ -322,6 +323,7 @@ export async function initDbSchemaOnly() {
   try { await db.execute("ALTER TABLE project ADD COLUMN chapter_id INTEGER REFERENCES chapter(id)") } catch {}
   try { await db.execute("ALTER TABLE equipment ADD COLUMN roll_level INTEGER DEFAULT 1") } catch {}
   try { await db.execute("ALTER TABLE checklist_item ADD COLUMN group_id INTEGER") } catch {}
+  try { await db.execute("ALTER TABLE character ADD COLUMN pity_count INTEGER DEFAULT 0") } catch {}
 }
 
 // 전체 DB 초기화 (스키마 + 시드 + 마이그레이션)
@@ -610,6 +612,11 @@ export async function initDb() {
     await db.execute(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_habit_group_bonus_log_date ON habit_group_bonus_log(group_id, DATE(granted_at))"
     )
+  })
+
+  await runMigration("gacha_pity_v1", async () => {
+    try { await db.execute("ALTER TABLE character ADD COLUMN pity_count INTEGER DEFAULT 0") } catch {}
+    await db.execute("UPDATE character SET pity_count = COALESCE(pity_count, 0) WHERE id=1")
   })
 
   // 더블탭 race 방어: 같은 (item_id, KST 날짜)에 대해 1회만 적립

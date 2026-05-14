@@ -6,15 +6,29 @@
 "use client"
 
 import { GRADE_COLOR, GRADE_LABEL, type GachaResult } from "./parts"
+import { PITY_BONUS_PER_DRAW } from "@/lib/game/gacha"
 
 interface Props {
   drawTickets: number
   rolling: boolean
   lastResult: { item: GachaResult; autoEquipped: boolean } | null
   onRoll: () => void
+  pityCount?: number
 }
 
-export default function GachaBanner({ drawTickets, rolling, lastResult, onRoll }: Props) {
+// SSR 기본 weight 0.9, 전체 기본합 100 기준.
+// pity 1당 S/SR/SSR/UR 각각 +PITY_BONUS_PER_DRAW(=0.5) → 총합도 +2.0/회.
+const SSR_BASE_WEIGHT = 0.9
+const TOTAL_BASE_WEIGHT = 100
+const PITY_GRADES_COUNT = 4
+
+function ssrChanceAt(pity: number): number {
+  const numer = SSR_BASE_WEIGHT + pity * PITY_BONUS_PER_DRAW
+  const denom = TOTAL_BASE_WEIGHT + pity * PITY_BONUS_PER_DRAW * PITY_GRADES_COUNT
+  return (numer / denom) * 100
+}
+
+export default function GachaBanner({ drawTickets, rolling, lastResult, onRoll, pityCount = 0 }: Props) {
   return (
     <div
       className="relative rounded-2xl overflow-hidden"
@@ -26,10 +40,19 @@ export default function GachaBanner({ drawTickets, rolling, lastResult, onRoll }
           <div>
             <p className="text-[11px] font-black tracking-widest uppercase mb-1" style={{ color: "#FFB57A", letterSpacing: "0.12em" }}>GACHA · LIMITED</p>
             <p className="text-white font-bold text-base leading-tight">아이템 뽑기</p>
-            <div className="flex gap-1.5 mt-2">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1" style={{ background: "rgba(255,138,61,0.2)", color: "#FFB57A" }}>
                 🎫 {drawTickets}장 보유
               </span>
+              {pityCount > 0 && (
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"
+                  style={{ background: "rgba(255,87,87,0.18)", color: "#FF9E9E" }}
+                  title="연속 폐기 시 상위 등급 확률 증가. 장착 시 0으로 초기화."
+                >
+                  🔥 {pityCount}연속 폐기 · SSR {ssrChanceAt(pityCount).toFixed(1)}%
+                </span>
+              )}
             </div>
           </div>
           <button

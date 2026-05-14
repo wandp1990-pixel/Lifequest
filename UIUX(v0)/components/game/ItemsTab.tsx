@@ -27,12 +27,14 @@ export default function ItemsTab({ refreshTick }: Props) {
   const [lastResult, setLastResult] = useState<{ item: GachaResult; autoEquipped: boolean } | null>(null)
   const [pendingReplace, setPendingReplace] = useState<{ newItem: GachaResult; oldItem: EquipmentItem } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [pityCount, setPityCount] = useState(0)
 
   const fetchInventory = async () => {
     const res = await fetch("/api/inventory")
     if (res.ok) {
       const data = await res.json()
       setEquipment(data.equipment ?? [])
+      if (typeof data.pity_count === "number") setPityCount(data.pity_count)
     }
     setLoading(false)
   }
@@ -40,11 +42,15 @@ export default function ItemsTab({ refreshTick }: Props) {
   useEffect(() => { fetchInventory() }, [refreshTick])
 
   const patchInventory = async (body: object) => {
-    await fetch("/api/inventory", {
+    const res = await fetch("/api/inventory", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
+    if (res.ok) {
+      const data = await res.json().catch(() => null)
+      if (data && typeof data.pity_count === "number") setPityCount(data.pity_count)
+    }
   }
 
   const handleGacha = async () => {
@@ -62,6 +68,7 @@ export default function ItemsTab({ refreshTick }: Props) {
       const data = await res.json()
       const item: GachaResult = data.results?.[0]
       if (!item) return
+      if (typeof data.pity_count === "number") setPityCount(data.pity_count)
 
       refetch()
       const currentEquipped = equipment.find((e) => e.slot === item.slot && e.is_equipped === 1)
@@ -93,7 +100,7 @@ export default function ItemsTab({ refreshTick }: Props) {
 
   const handleDiscard = async () => {
     if (!pendingReplace) return
-    await patchInventory({ action: "delete", itemId: pendingReplace.newItem.id })
+    await patchInventory({ action: "discardGacha", itemId: pendingReplace.newItem.id })
     await fetchInventory()
     setPendingReplace(null)
   }
@@ -127,6 +134,7 @@ export default function ItemsTab({ refreshTick }: Props) {
         rolling={rolling}
         lastResult={lastResult}
         onRoll={handleGacha}
+        pityCount={pityCount}
       />
       {pendingReplace && (
         <ReplaceModal
