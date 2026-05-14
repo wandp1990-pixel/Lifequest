@@ -27,7 +27,6 @@ export default function GachaBanner({ drawTickets, rolling, lastResult, onRoll }
             <p className="text-[11px] font-black tracking-widest uppercase mb-1" style={{ color: "#FFB57A", letterSpacing: "0.12em" }}>GACHA · LIMITED</p>
             <p className="text-white font-bold text-base leading-tight">아이템 뽑기</p>
             <div className="flex gap-1.5 mt-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md" style={{ background: "rgba(255,255,255,0.12)", color: "#C5C0E5" }}>SSR 3.2%</span>
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1" style={{ background: "rgba(255,138,61,0.2)", color: "#FFB57A" }}>
                 🎫 {drawTickets}장 보유
               </span>
