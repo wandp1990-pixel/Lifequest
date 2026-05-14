@@ -11,6 +11,7 @@ import { useTodos } from "@/hooks/useTodos"
 import { useProjects } from "@/hooks/useProjects"
 import { useMidnightRefresh } from "@/hooks/useMidnightRefresh"
 import { apiDelete, ApiError } from "@/hooks/useApi"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer"
 
 type DeleteTarget =
   | { type: "daily"; id: number; name: string }
@@ -231,21 +232,20 @@ export default function TasksTab({
       )}
 
       {/* 삭제 확인 모달 */}
-      {confirmDelete && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setConfirmDelete(null)} />
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-sm bg-background rounded-t-3xl z-40 px-6 py-6 shadow-2xl">
-            <p className="text-sm font-bold text-foreground text-center mb-1">항목을 삭제하시겠습니까?</p>
-            <p className="text-xs text-muted-foreground text-center mb-5">&ldquo;{confirmDelete.name}&rdquo;</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)}
-                className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-bold text-sm active:scale-95">취소</button>
-              <button onClick={executeDelete}
-                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm active:scale-95">삭제</button>
-            </div>
+      <Drawer open={confirmDelete !== null} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <DrawerContent className="left-1/2 -translate-x-1/2 w-full max-w-sm">
+          <DrawerHeader>
+            <DrawerTitle className="text-center">항목을 삭제하시겠습니까?</DrawerTitle>
+            <DrawerDescription className="text-center">&ldquo;{confirmDelete?.name}&rdquo;</DrawerDescription>
+          </DrawerHeader>
+          <div className="flex gap-3 px-6 pb-6">
+            <button onClick={() => setConfirmDelete(null)}
+              className="flex-1 py-3 rounded-2xl bg-muted text-muted-foreground font-bold text-sm active:scale-95">취소</button>
+            <button onClick={executeDelete}
+              className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm active:scale-95">삭제</button>
           </div>
-        </>
-      )}
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }

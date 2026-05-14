@@ -14,6 +14,7 @@ import { BookOpen, FolderPlus, Plus } from "lucide-react"
 import { DEADLINE_IMMINENT_DAYS } from "@/lib/constants/time"
 import { apiDelete, ApiError } from "@/hooks/useApi"
 import { useProjects, type Project } from "@/hooks/useProjects"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import ProjectCard from "./projects/ProjectCard"
 import ChapterSection from "./projects/ChapterSection"
 import DoneSection from "./projects/DoneSection"
@@ -201,18 +202,18 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
         onConfirmDeleteProject={setConfirmDelete}
       />
 
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4" onClick={() => setConfirmDelete(null)}>
-          <div className="bg-card border border-border rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <p className="text-sm font-bold mb-1">프로젝트 삭제</p>
-            <p className="text-xs text-muted-foreground mb-4">&quot;{confirmDelete.name}&quot;과 모든 하위 작업이 삭제됩니다.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 rounded-xl border border-border text-sm">취소</button>
-              <button onClick={() => handleDeleteProject(confirmDelete.id)} className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-bold">삭제</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={confirmDelete !== null} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>프로젝트 삭제</DialogTitle>
+            <DialogDescription>&quot;{confirmDelete?.name}&quot;과 모든 하위 작업이 삭제됩니다.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row gap-2 sm:justify-end">
+            <button onClick={() => setConfirmDelete(null)} className="flex-1 py-2 rounded-xl border border-border text-sm">취소</button>
+            <button onClick={() => confirmDelete && handleDeleteProject(confirmDelete.id)} className="flex-1 py-2 rounded-xl bg-red-500 text-white text-sm font-bold">삭제</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -45,7 +45,7 @@
 ### Phase 5 — 후속 정리 (Phase 4 외 권장 사항 합류)
 - [x] 5.1 CharacterContext 실제 wrap — layout.tsx 에 Provider, page.tsx/4탭/SettingsDrawer/settings 3패널이 props 대신 useCharacterCtx 사용 (2026-05-14)
 - [x] 5.2 Toast 통합 — TasksTab/ProjectsTab 자체 toast useState 제거, 자식 6개 컴포넌트 useToast 직접 호출 + onToast props 제거 (2026-05-14)
-- [ ] 5.3 shadcn primitives 채택 — 18개 UI primitive 사용처 마이그레이션 (Button/Card/Dialog/Drawer/Tabs 등)
+- [x] 5.3 shadcn primitives 부분 채택 — 모달 3곳(TasksTab Drawer/ProjectsTab Dialog/ReplaceModal Drawer). 도메인 색상(amber/violet/teal) 강결합 영역은 inline Tailwind 유지 (2026-05-14)
 - [ ] 5.4 Route/Queries 보일러 정리 — 나머지 14개 route 에 withInit + queries/*.ts 의 db.execute → exec/execOne 마이그레이션
 
 ---
@@ -800,5 +800,34 @@ export function useFoo() {
 **다음 작업자에게 (Phase 5.3)**
 - 신규 분할 컴포넌트부터 `Button`/`Card`/`Dialog` 사용. 기존 inline Tailwind 는 점진 교체
 - shadcn primitive 채택은 가장 큰 변화 단위가 SettingsDrawer 의 패널들 (Dialog/Drawer 직접 사용 가능)
+
+---
+
+### Phase 5.3 — 완료 (부분 채택) (2026-05-14)
+
+**범위**: 모달 3곳을 shadcn primitives 로 마이그레이션. 그 외 컴포넌트의 inline Tailwind 디자인은 도메인 색상 강결합으로 시각 회귀 위험이 커 **의도적 보류**.
+
+**변경 파일**
+- `components/game/TasksTab.tsx` — 삭제 확인 bottom sheet 모달 → `Drawer` + `DrawerContent/Header/Title/Description`. controlled mode (`open` / `onOpenChange`)
+- `components/game/ProjectsTab.tsx` — 삭제 확인 center 모달 → `Dialog` + `DialogContent/Header/Title/Description/Footer`. 동일 controlled
+- `components/game/items/ReplaceModal.tsx` — bottom sheet 형태 → `Drawer`. close 시 onDiscard 자동 호출. outside click stopPropagation 코드 제거 (Drawer 가 자동 처리)
+
+**도입 안 한 이유 (의도적 보류)**
+- **Button**: 라이프퀘스트의 button 은 amber-500 / violet-500 / teal-500 / emerald-500 등 도메인 색상 강결합. shadcn `Button` 의 variant 시스템은 primary/secondary/destructive/outline/ghost/link 만 제공. variant 추가 없이 className override 만으로 사용하면 shadcn primitive 의미가 약해지므로 보류
+- **Card**: 라이프퀘스트 카드들은 그래디언트 배경 + 도메인 색상 border + 카드별 특수 디자인. shadcn `Card` 의 단순 wrapper 가 큰 이득 없음
+- **Tabs**: CharacterTab 의 stat/skill 토글 등은 amber-500 / violet-500 액티브 상태로 자체 디자인. shadcn `Tabs` 디폴트 스타일과 충돌
+- **Accordion**: HabitGroupCard / RoutineCard 의 펼침 토글은 자체 chevron + 도메인 색상 헤더. 동일 사유
+
+**전체 마이그레이션은 별도 디자인 토큰 / shadcn variant 확장 RFC 후 진행 권장**. 현재는 인프라(18개 primitive)와 활용 사례(모달 3곳) 마련까지 완료.
+
+**검증**
+- `npx tsc --noEmit` ✅ (exit 0)
+- `npx next build` ✅ (Turbopack)
+- 모달 동작 동일성: open/close, outside click, escape key 지원 (shadcn primitive 기본 제공)
+
+**다음 작업자에게 (Phase 5.4)**
+- `lib/api/respond.ts` 의 `withInit` 가 이미 마련됨. 나머지 14개 route 의 try/catch + initDb 보일러를 `withInit(async () => ...)` 로 래핑
+- `lib/db/queries/_helpers.ts` 의 `exec/execOne/execMany` 가 마련됨. queries/*.ts 의 `db.execute({sql, args})` 직접 호출을 점진 교체. race-guard 패턴 (`INSERT OR IGNORE` 6곳, conditional `UPDATE` 2곳) 은 `claimOnce/claimUpdate` 사용 — 시맨틱 보존
+
 
 
