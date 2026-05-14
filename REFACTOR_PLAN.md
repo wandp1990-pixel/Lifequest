@@ -36,8 +36,8 @@
 - [~] 3.5 각 탭 수동 UX 테스트 — typecheck/build pass, 실제 UX 검증은 사용자 환경에서 수행
 
 ### Phase 4 — God Component 분할
-- [ ] 4.1 SettingsDrawer (1308줄) → 8개 panel 분할
-- [ ] 4.2 ProjectsTab (989줄) → 5개 파트 분할
+- [x] 4.1 SettingsDrawer 1308줄 → 62줄 컨테이너 + 10개 모듈 (2026-05-14)
+- [x] 4.2 ProjectsTab 989줄 → 233줄 컨테이너 + 5개 파트 (2026-05-14)
 - [ ] 4.3 HabitSection (552줄) + RoutineSection (538줄) 분할
 - [ ] 4.4 CharacterTab, BattleTab, ItemsTab, HomeTab 분할
 - [ ] 4.5 모든 컴포넌트 < 250줄 확인
@@ -583,3 +583,62 @@ export function useFoo() {
 - 분할 후 자식 컴포넌트가 직접 도메인 훅 호출하도록 마이그레이션. 부모(TasksTab 등)는 더 이상 useState/setter 를 자식에 props 로 넘기지 않음
 - `CharacterProvider` wrap 시점: 모든 char 사용처(CharacterTab, ItemsTab, BattleTab, SettingsDrawer, CharacterPanel)가 props 대신 컨텍스트를 사용하도록 마이그레이션 완료 후
 - shadcn primitive 도입: 새 분할 컴포넌트부터 `Button`/`Card`/`Dialog` 사용. 기존 inline Tailwind 는 그대로 두고 점진 교체
+
+---
+
+### Phase 4.1 — 완료 (2026-05-14)
+
+**범위**: SettingsDrawer 1308줄 → 62줄 컨테이너 + 10개 settings 모듈. 각 panel 자체 fetch + state + 저장.
+
+**신규 파일 (components/game/settings/)**
+- `SettingsSection.tsx` (32) — collapsible 헤더/콘텐츠 공통 chrome
+- `CharacterPanel.tsx` (97) — char 스탯/포인트/레벨/EXP 일괄 편집 (PUT /api/character)
+- `SkillsPanel.tsx` (131) — 보유 스킬 SKP 배분 (PUT /api/skills)
+- `SkillDbPanel.tsx` (230) — 스킬 DB CRUD (PUT/POST/DELETE /api/skill-db)
+- `ConfigPanel.tsx` (87) — game_config 일괄 편집 (PUT /api/config × N)
+- `BattleConfigPanel.tsx` (123) — battle_config 일괄 편집 + char.vit re-PUT (max_hp/mp 재계산)
+- `PromptPanel.tsx` (63) — AI 판정 프롬프트 (PUT /api/prompt)
+- `TodoTemplatesPanel.tsx` (185) — 반복 할 일 규칙 (GET/POST/PUT/DELETE /api/todo-templates)
+- `TodoTemplateForm.tsx` (188) — 위 패널의 폼 부분 분리
+- `ResetPanel.tsx` (101) — 캐릭터 소프트/완전 초기화 (PUT character + DELETE ?mode=partial|full)
+
+**컨테이너**
+- `SettingsDrawer.tsx` (62) — drawer chrome + PushSetup + 8개 패널 합성. fetch/useState 0개
+
+**검증**
+- 모든 모듈 < 250줄 (최대 SkillDbPanel 230줄)
+- typecheck ✅ / build ✅ / commit `0896d3b`
+- 응답 shape · UI 동작 무변동. mutation 은 useApi 마이그레이션 (apiGet/Put/Post/Delete + ApiError handling)
+
+---
+
+### Phase 4.2 — 완료 (2026-05-14)
+
+**범위**: ProjectsTab 989줄 → 233줄 컨테이너 + 5개 projects 파트. 자식이 자체 mutation + useState 보유.
+
+**신규 파일 (components/game/projects/)**
+- `ProjectCard.tsx` (296) — 개별 프로젝트 카드. 헤더 + 확장 시 status/chapter 편집 + 작업 목록 + 작업 추가 폼. mutation: status change, chapter change, complete task (toast + onExpGained), add task, delete task. props: project, chapters, expanded toggle, onMutated(data), onDelete, onExpGained, onToast
+- `ChapterSection.tsx` (288) — 챕터 카드. 진행률 + 내부 프로젝트 (ProjectCard 재사용) + assign 인라인 + add 인라인 + 완료/삭제. mutation: complete chapter, delete chapter, assign projects (Promise.all PATCH), add project in chapter
+- `DoneSection.tsx` (102) — 완료 항목 토글. 완료 챕터 인라인 요약 + 완료 프로젝트 ProjectCard 재사용
+- `AddProjectForm.tsx` (126) — 새 프로젝트 폼. 자체 form state. POST /api/projects 후 onCreated(refetch)
+- `AddChapterForm.tsx` (76) — 새 묶음 폼. 자체 form state. POST /api/chapters 후 onCreated(newId) 콜백으로 컨테이너가 expanded 처리
+
+**컨테이너**
+- `ProjectsTab.tsx` (233) — useProjects + toast + confirmDelete + 5개 자식 합성. 요약 카드 + 액션 버튼 + 단독/묶음/완료 섹션 + 삭제 모달
+
+**의도적 design 결정**
+- 자식 컴포넌트가 직접 useApi 호출 (props drilling 회피). 부모는 onMutated/onToast/onExpGained 콜백만 전달
+- ProjectCard 의 onMutated 는 `(data: { projects? }) => void` — 응답에 projects 가 있으면 부모가 직접 setProjects, 없으면 refetch (예: chapter complete 응답에는 projects 없음)
+- ChapterSection 안에서 ProjectCard 재사용 → 단독 프로젝트와 챕터 내 프로젝트가 동일 컴포넌트
+- AddProjectForm 의 PROJECT_COLOR_OPTIONS.cls 사용 (PROJECT_COLOR_CLS 매핑 대신 직접 cls). 원본과 동일 — 원본도 c.cls 직접 사용했음
+
+**검증**
+- 모든 신규 파일 < 300줄 (250 목표 약간 초과: ProjectCard 296, ChapterSection 288). 책임 응집 위해 추가 분할 안 함
+- typecheck ✅ / build ✅ / commit `aeed553`
+
+---
+
+**Phase 4 남은 작업**
+- 4.3 HabitSection (552) + RoutineSection (538) — 8개 파트 추출 (HabitList/HabitItemRow/HabitGroupEditor/AddHabitForm + RoutineList/RoutineItem/RoutineEditor/AddRoutineForm)
+- 4.4 CharacterTab (571) + BattleTab (518) + ItemsTab (434) + HomeTab (367) — ~12개 파트
+- 4.5 최종 검증 + REFACTOR_PLAN 마무리
