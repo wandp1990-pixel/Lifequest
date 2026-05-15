@@ -44,6 +44,20 @@ export function getActiveSkills(skills: SkillData[]): SkillData[] {
   return skills.filter((s) => s.type === "active" && s.invested > 0)
 }
 
+// 장착 장비 옵션의 [스킬명] 패시브를 해당 스킬 invested에 +1 합산하여 반환
+export function applyItemPassives(skills: SkillData[], equippedOptions: string[]): SkillData[] {
+  const counts: Record<string, number> = {}
+  for (const raw of equippedOptions) {
+    let lines: string[] = []
+    try { const p = JSON.parse(raw ?? "[]"); if (Array.isArray(p)) lines = p as string[] } catch {}
+    for (const line of lines) {
+      if (typeof line === "string" && line.startsWith("[") && line.endsWith("]"))
+        counts[line.slice(1, -1)] = (counts[line.slice(1, -1)] ?? 0) + 1
+    }
+  }
+  return skills.map(s => ({ ...s, invested: s.invested + (counts[s.name] ?? 0) }))
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type MonsterStats = {
@@ -294,7 +308,6 @@ export function buildPlayerCombatStats(
   let bonusCritRate = 0, bonusCritDmg = 0
   let doubleAtkChance = 0, lifeStealRatio = 0, defIgnoreRatio = 0, reflectRatio = 0
   let bonusAccuracy = 0, bonusEvasion = 0
-  const itemPassiveCounts: Record<string, number> = {}
 
   // 모든 장비 옵션 문자열 파싱
   for (const raw of equippedOptions) {
@@ -307,12 +320,8 @@ export function buildPlayerCombatStats(
     for (const line of lines) {
       if (typeof line !== "string") continue
 
-      // 아이템 패시브: "[스킬명]" → 해당 스킬 invested +1 누적
-      if (line.startsWith("[") && line.endsWith("]")) {
-        const name = line.slice(1, -1)
-        itemPassiveCounts[name] = (itemPassiveCounts[name] ?? 0) + 1
-        continue
-      }
+      // [스킬명] 형식은 applyItemPassives()로 이미 skills에 반영됨 — 여기서는 건너뜀
+      if (line.startsWith("[") && line.endsWith("]")) continue
 
       // 일반 옵션 파싱: "물리 공격력 +10" 또는 "치명타확률 +1.2%" 형식
       const isPct = line.endsWith("%")
@@ -346,12 +355,8 @@ export function buildPlayerCombatStats(
   const intTotal = char.int_stat + eInt
   const vitTotal = char.vit + eVit
 
-  // 아이템 패시브 invested 합산 후 패시브 보너스 계산
-  const skillsWithItemBonus = skills.map(s => ({
-    ...s,
-    invested: s.invested + (itemPassiveCounts[s.name] ?? 0),
-  }))
-  const pb = computePassiveBonuses(skillsWithItemBonus)
+  // 패시브 스킬 보너스 (호출자가 applyItemPassives로 이미 invested 합산한 skills를 넘김)
+  const pb = computePassiveBonuses(skills)
 
   // 기초 스탯 계산: 속성(STR/INT/VIT) + 아이템 보너스 → 전투 스탯 변환
   const basePatk = strTotal * strToPatk + ePatk

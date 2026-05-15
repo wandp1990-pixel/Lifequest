@@ -619,6 +619,13 @@ export async function initDb() {
     await db.execute("UPDATE character SET pity_count = COALESCE(pity_count, 0) WHERE id=1")
   })
 
+  await runMigration("item_passive_to_skill_v1", async () => {
+    await db.execute("UPDATE equipment SET options = REPLACE(options, '[더블어택]', '[연속공격]') WHERE options LIKE '%더블어택%'")
+    await db.execute("UPDATE equipment SET options = REPLACE(options, '[생명흡수]', '[강철 피부]') WHERE options LIKE '%생명흡수%'")
+    await db.execute("UPDATE equipment SET options = REPLACE(options, '[방어무시]', '[분노]') WHERE options LIKE '%방어무시%'")
+    await db.execute("UPDATE equipment SET options = REPLACE(options, '[반사]', '[철벽]') WHERE options LIKE '%반사%'")
+  })
+
   // 더블탭 race 방어: 같은 (item_id, KST 날짜)에 대해 1회만 적립
   await runMigration("daily_log_unique_v1", async () => {
     await db.execute(`

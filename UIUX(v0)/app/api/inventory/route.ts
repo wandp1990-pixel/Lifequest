@@ -23,6 +23,7 @@ import {
   type AbilityRow,
   type PassiveRow,
 } from "@/lib/game/gacha"
+import { applyItemPassives } from "@/lib/battle"
 import { MAX_GACHA_COUNT } from "@/lib/constants/gacha"
 import { ok, badRequest, withInit } from "@/lib/api/respond"
 
@@ -57,7 +58,8 @@ export const PATCH = withInit(async (req: NextRequest) => {
   const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
     .filter((e) => e.is_equipped === 1)
     .map((e) => e.options)
-  const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, allSkills)
+  const boostedSkills = applyItemPassives(allSkills, equippedOptions)
+  const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, boostedSkills)
   const effMaxHp = Math.round(cs.max_hp)
   const effMaxMp = Math.round(cs.max_mp)
   // 장비 제거로 max 가 감소했을 때 current_hp 가 초과하면 new max 로 캡

@@ -4,7 +4,7 @@ import {
   getSkillsWithInvestment, getClient,
 } from "@/lib/db"
 import { now } from "@/lib/db/client"
-import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, parseEquippedStatBonuses, type Monster } from "@/lib/battle"
+import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, applyItemPassives, parseEquippedStatBonuses, type Monster } from "@/lib/battle"
 import { calcRegen } from "@/lib/regen"
 
 // 타입 가드: 몬스터 스탯 필드 유효성 검사
@@ -58,8 +58,9 @@ export async function POST() {
       .filter((e) => (e.is_equipped as number) === 1)
       .map((e) => e.options as string)
 
-    const activeSkills = getActiveSkills(allSkills)
-    const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, allSkills)
+    const boostedSkills = applyItemPassives(allSkills, equippedOptions)
+    const activeSkills = getActiveSkills(boostedSkills)
+    const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, boostedSkills)
     // 지난 패배에서 저장된 재도전 몬스터 파싱
     const pendingMonster = parsePendingMonster(char.pending_battle_monster)
 
