@@ -68,10 +68,10 @@ export default function StatsGrid({ refreshTick, onTabChange }: Props) {
   useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
 
   const stats: StatEntry[] = [
+    { label: "할 일",    done: todosDone,    total: todosTotal,    color: "#fbbf24", icon: "📋", bg: "bg-amber-50 dark:bg-amber-950/40",   border: "border-amber-200 dark:border-amber-800",   trackColor: "#fde68a" },
     { label: "습관",     done: habitsDone,   total: habitsTotal,   color: "#22c55e", icon: "☀️", bg: "bg-green-50 dark:bg-green-950/40",   border: "border-green-200 dark:border-green-800",   trackColor: "#bbf7d0" },
     { label: "루틴",     done: routinesDone, total: routinesTotal, color: "#818cf8", icon: "🔁", bg: "bg-indigo-50 dark:bg-indigo-950/40", border: "border-indigo-200 dark:border-indigo-800", trackColor: "#c7d2fe" },
     { label: "프로젝트", done: projectsDone, total: projectsTotal, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", trackColor: "#ddd6fe" },
-    { label: "할 일",    done: todosDone,    total: todosTotal,    color: "#fbbf24", icon: "📋", bg: "bg-amber-50 dark:bg-amber-950/40",   border: "border-amber-200 dark:border-amber-800",   trackColor: "#fde68a" },
   ]
   const R = 22, C = 50, stroke = 4
   const circ = 2 * Math.PI * R
