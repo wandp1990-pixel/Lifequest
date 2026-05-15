@@ -174,9 +174,9 @@ export default function TasksTab({
       <div className="px-4 pt-3 pb-1 flex gap-2">
         {([
           ["all",     "전체",    null],
-          ["routine", "루틴",    routines.length],
-          ["habit",   "습관",    dailyItems.length],
           ["todo",    "할일",    todoItems.filter(t => !t.is_completed).length],
+          ["habit",   "습관",    dailyItems.length],
+          ["routine", "루틴",    routines.length],
           ["project", "프로젝트", projectCount],
         ] as [string, string, number | null][]).map(([k, label, count]) => (
           <button key={k}
