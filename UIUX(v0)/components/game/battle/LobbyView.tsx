@@ -84,7 +84,7 @@ export default function LobbyView({ char, scales, savedMonster, loading, error, 
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm font-bold" style={{ color: savedMonster.color }}>{savedMonster.full_name}</p>
-                <p className="text-[10px] text-muted-foreground">{savedMonster.grade_name} · {savedMonster.race_emoji} {savedMonster.race_name}</p>
+                <p className="text-[10px] text-muted-foreground">{savedMonster.grade_code}({savedMonster.grade_name}) · {savedMonster.race_emoji} {savedMonster.race_name}</p>
               </div>
               <span className="text-[10px] text-muted-foreground">강도 ×{savedMonster.total_coeff.toFixed(2)}</span>
             </div>

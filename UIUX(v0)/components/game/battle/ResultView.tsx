@@ -50,7 +50,7 @@ export default function ResultView({ result, char, restoreMode, onFight, onNewBa
         <span className="text-[10px] text-muted-foreground font-bold">VS</span>
         <div className="text-center flex-1 mx-2">
           <p className="text-sm font-bold" style={{ color: monster.color }}>{monster.full_name}</p>
-          <p className="text-[10px] text-muted-foreground">{monster.grade_name} · {monster.race_emoji} {monster.race_name}</p>
+          <p className="text-[10px] text-muted-foreground">{monster.grade_code}({monster.grade_name}) · {monster.race_emoji} {monster.race_name}</p>
         </div>
         <span className="text-[10px] text-muted-foreground">클리어 {char_after.clear_count}회</span>
       </div>
