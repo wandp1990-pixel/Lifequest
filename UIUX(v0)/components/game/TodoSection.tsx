@@ -174,7 +174,12 @@ export default function TodoSection({
         <p className="text-center text-muted-foreground text-sm py-4">+ 버튼으로 할 일을 추가하세요</p>
       )}
 
-      {todoItems.map((item) => {
+      {[...todoItems].sort((a, b) => {
+        if (!a.due_time && !b.due_time) return 0
+        if (!a.due_time) return -1
+        if (!b.due_time) return 1
+        return a.due_time.localeCompare(b.due_time)
+      }).map((item) => {
         const done = !!item.is_completed
         const isLoading = completing === item.id
         const isEditingName = editingId === item.id
