@@ -8,8 +8,8 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, ChevronRight, CheckCircle2, Circle, Plus, Trash2, X } from "lucide-react"
-import { PRIORITY_LABEL, PRIORITY_COLOR, STATUS_LABEL, PROJECT_COLOR_CLS } from "@/lib/constants/ui"
+import { ChevronDown, ChevronRight, CheckCircle2, Circle, Pencil, Plus, Trash2, X } from "lucide-react"
+import { PRIORITY_LABEL, PRIORITY_COLOR, STATUS_LABEL, PROJECT_COLOR_CLS, PROJECT_COLOR_OPTIONS } from "@/lib/constants/ui"
 import { DEADLINE_IMMINENT_DAYS } from "@/lib/constants/time"
 import { apiDelete, apiPatch, apiPost, ApiError } from "@/hooks/useApi"
 import { useToast } from "@/contexts/ToastContext"
@@ -48,6 +48,12 @@ export default function ProjectCard({
   // 낙관적 완료 ID — props.project.tasks가 동기화되기 전 즉시 체크 표시
   const [optimisticDoneIds, setOptimisticDoneIds] = useState<Set<number>>(new Set())
   const [editingChapter, setEditingChapter] = useState(false)
+  const [editingProject, setEditingProject] = useState(false)
+  const [editName, setEditName] = useState(project.name)
+  const [editDesc, setEditDesc] = useState(project.description ?? "")
+  const [editPriority, setEditPriority] = useState<"low" | "medium" | "high">(project.priority)
+  const [editDueDate, setEditDueDate] = useState(project.due_date ? project.due_date.split("T")[0] : "")
+  const [editColor, setEditColor] = useState(project.color)
 
   const dueSoon = isDueSoon(project.due_date) && project.status !== "done"
   const dueLabel = formatDate(project.due_date)
@@ -130,6 +136,20 @@ export default function ProjectCard({
     }
   }
 
+  const handleEditSave = async () => {
+    if (!editName.trim()) return
+    try {
+      const data = await apiPatch<{ projects?: Project[] }>(
+        `/api/projects/${project.id}`,
+        { name: editName.trim(), description: editDesc, priority: editPriority, due_date: editDueDate || null, color: editColor }
+      )
+      onMutated(data)
+      setEditingProject(false)
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e
+    }
+  }
+
   const handleDeleteTask = async (taskId: number) => {
     try {
       const data = await apiDelete<{ projects?: Project[] }>(`/api/projects/${project.id}/tasks/${taskId}`)
@@ -187,6 +207,75 @@ export default function ProjectCard({
 
       {expanded && (
         <div className="border-t border-border px-3 pb-3 pt-2 space-y-2">
+          {editingProject ? (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-violet-400">프로젝트 수정</span>
+                <button onClick={() => setEditingProject(false)}><X size={14} className="text-muted-foreground" /></button>
+              </div>
+              <input
+                autoFocus
+                className="w-full text-sm bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
+                placeholder="프로젝트 이름 *"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleEditSave(); if (e.key === "Escape") setEditingProject(false) }}
+              />
+              <input
+                className="w-full text-xs bg-muted border border-border rounded-lg px-3 py-2 outline-none focus:border-violet-500"
+                placeholder="설명 (선택)"
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-[11px] text-muted-foreground block mb-1">우선순위</label>
+                  <select
+                    className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                    value={editPriority}
+                    onChange={(e) => setEditPriority(e.target.value as "low" | "medium" | "high")}
+                  >
+                    <option value="high">높음</option>
+                    <option value="medium">보통</option>
+                    <option value="low">낮음</option>
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-[11px] text-muted-foreground block mb-1">마감일</label>
+                  <input
+                    type="date"
+                    className="w-full text-xs bg-muted border border-border rounded-lg px-2 py-1.5 outline-none"
+                    value={editDueDate}
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground block mb-1">색상</label>
+                <div className="flex gap-2">
+                  {PROJECT_COLOR_OPTIONS.map((c) => (
+                    <button
+                      key={c.value}
+                      onClick={() => setEditColor(c.value)}
+                      className={`w-6 h-6 rounded-full ${c.cls} ${editColor === c.value ? "ring-2 ring-white ring-offset-1 ring-offset-background" : ""}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleEditSave}
+                  disabled={!editName.trim()}
+                  className="flex-1 py-1.5 text-xs bg-violet-500 text-white rounded-lg font-bold disabled:opacity-40"
+                >저장</button>
+                <button
+                  onClick={() => setEditingProject(false)}
+                  className="px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground"
+                >취소</button>
+              </div>
+            </div>
+          ) : (
+            <>
           <div className="flex gap-1 flex-wrap">
             {(["todo", "in_progress", "done"] as const).map((s) => (
               <button
@@ -200,6 +289,12 @@ export default function ProjectCard({
               </button>
             ))}
             <div className="flex-1" />
+            <button
+              onClick={() => { setEditingProject(true); setEditName(project.name); setEditDesc(project.description ?? ""); setEditPriority(project.priority); setEditDueDate(project.due_date ? project.due_date.split("T")[0] : ""); setEditColor(project.color) }}
+              className="text-muted-foreground px-1"
+            >
+              <Pencil size={12} />
+            </button>
             <button onClick={onDelete} className="text-[10px] text-red-400 px-1">
               <Trash2 size={12} />
             </button>
@@ -308,6 +403,8 @@ export default function ProjectCard({
             >
               <Plus size={12} /> 작업 추가
             </button>
+          )}
+            </>
           )}
         </div>
       )}
