@@ -41,12 +41,14 @@ export default function UnequippedGrid({ items, equippedMap, onEquip, onDelete, 
                   <span style={{ fontSize: 11, fontWeight: 800, color: "#1C1B1F", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{slotInfo?.label ?? item.slot}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
-                  <LevelBadge level={item.roll_level} />
                   <GradeBadge grade={item.grade} />
                 </div>
               </div>
               <div className="p-2.5 flex flex-col flex-1">
-                <p className="text-[11px] font-bold text-foreground leading-tight mb-1.5 line-clamp-2">{item.name}</p>
+                <div className="flex items-start gap-1 mb-1.5">
+                  <p className="text-[11px] font-bold text-foreground leading-tight flex-1 line-clamp-2">{item.name}</p>
+                  <LevelBadge level={item.roll_level} />
+                </div>
                 <div className="flex-1 space-y-0.5 mb-2">
                   {opts.slice(0, 3).map((opt, i) => <OptionLine key={i} opt={opt} />)}
                 </div>
