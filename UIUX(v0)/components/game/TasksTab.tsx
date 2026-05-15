@@ -171,7 +171,7 @@ export default function TasksTab({
       </div>
 
       {/* 필터 칩 */}
-      <div className="px-4 pt-3 pb-1 flex gap-2">
+      <div className="px-4 pt-3 pb-1 flex gap-2 overflow-x-auto scrollbar-none">
         {([
           ["all",     "전체",    null],
           ["todo",    "할일",    todoItems.filter(t => !t.is_completed).length],
@@ -181,7 +181,7 @@ export default function TasksTab({
         ] as [string, string, number | null][]).map(([k, label, count]) => (
           <button key={k}
             onClick={() => setTaskFilter(k as typeof taskFilter)}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+            className={`flex-shrink-0 flex-1 py-2 px-3 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
               taskFilter === k
                 ? "bg-violet-500 text-white border-violet-500 shadow-sm"
                 : "bg-background text-muted-foreground border-border"
