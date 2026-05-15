@@ -28,7 +28,7 @@ export async function getAbilityPool(category?: string) {
 export async function getPassivePool() {
   const db = getClient()
   const res = await db.execute(
-    "SELECT id, name, description FROM skill_table WHERE type = 'passive' AND is_active = 1"
+    "SELECT id, name, description FROM skill_table WHERE is_active = 1"
   )
   return res.rows
 }
