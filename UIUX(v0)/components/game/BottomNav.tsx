@@ -73,7 +73,7 @@ export default function BottomNav({
 
   return (
     <nav
-      className="flex items-center justify-around px-2 py-2 border-t border-border bg-muted"
+      className="flex items-center justify-around px-2 pt-2 pb-[1px] border-t border-border bg-muted"
       aria-label="메인 내비게이션"
     >
       {TAB_CONFIG.map((tab) => {
