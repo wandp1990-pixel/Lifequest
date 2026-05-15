@@ -32,18 +32,20 @@ export default function TopHeader({ title, onMenuClick, onRefresh }: TopHeaderPr
   }
 
   return (
-    <header className="flex items-center justify-between px-4 pt-4 pb-2">
-      <button
-        aria-label="Menu"
-        onClick={onMenuClick}
-        className="bg-muted rounded-2xl p-2.5 active:scale-95"
-      >
-        <AlignLeft className="w-5 h-5 text-muted-foreground" />
-      </button>
+    <header className="flex items-center px-4 pt-4 pb-2">
+      <div className="w-24 flex items-center">
+        <button
+          aria-label="Menu"
+          onClick={onMenuClick}
+          className="bg-muted rounded-2xl p-2.5 active:scale-95"
+        >
+          <AlignLeft className="w-5 h-5 text-muted-foreground" />
+        </button>
+      </div>
 
-      <h1 className="text-lg font-bold text-foreground">{title}</h1>
+      <h1 className="flex-1 text-center text-lg font-bold text-foreground">{title}</h1>
 
-      <div className="flex items-center gap-2">
+      <div className="w-24 flex items-center justify-end gap-2">
         {onRefresh && (
           <button
             aria-label="Refresh"
