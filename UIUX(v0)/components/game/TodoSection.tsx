@@ -200,7 +200,7 @@ export default function TodoSection({
               ) : (
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <p className={`text-sm font-semibold leading-snug truncate min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{item.name}</p>
+                    <p className={`text-sm font-semibold leading-snug line-clamp-2 min-w-0 ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{item.name}</p>
                     {!done && (
                       <button onClick={() => { setEditingId(item.id); setEditingName(item.name); setEditingExp(item.suggested_exp ?? 0) }}
                         className="text-gray-300 hover:text-violet-400 transition-colors flex-shrink-0 p-0.5" aria-label="이름 수정">
