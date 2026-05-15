@@ -8,7 +8,7 @@
 import { GRADE_BG } from "@/lib/constants/ui"
 import { GRADE_COLOR, GradeBadge, LevelBadge, OptionLine, parseOptions, SLOT_ORDER, type EquipmentItem } from "./parts"
 
-export default function EquippedGrid({ equippedMap }: { equippedMap: Record<string, EquipmentItem> }) {
+export default function EquippedGrid({ equippedMap, onSelect }: { equippedMap: Record<string, EquipmentItem>; onSelect?: (item: EquipmentItem) => void }) {
   return (
     <div>
       <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">장착 장비</p>
@@ -32,8 +32,9 @@ export default function EquippedGrid({ equippedMap }: { equippedMap: Record<stri
           return (
             <div
               key={id}
-              className="flex flex-col rounded-2xl overflow-hidden"
+              className="flex flex-col rounded-2xl overflow-hidden cursor-pointer active:scale-95 transition-transform"
               style={{ background: "white", border: `1.5px solid ${color}`, boxShadow: `0 2px 6px ${color}20` }}
+              onClick={() => onSelect?.(item)}
             >
               <div style={{ background: GRADE_BG[item.grade], borderBottom: `1px solid ${color}30`, padding: "5px 7px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>

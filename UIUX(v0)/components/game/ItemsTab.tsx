@@ -12,6 +12,7 @@ import GachaBanner from "./items/GachaBanner"
 import ReplaceModal from "./items/ReplaceModal"
 import EquippedGrid from "./items/EquippedGrid"
 import UnequippedGrid from "./items/UnequippedGrid"
+import ItemDetailSheet from "./items/ItemDetailSheet"
 import type { EquipmentItem, GachaResult } from "./items/parts"
 import type { GradeRow } from "@/lib/game/gacha"
 import { useCharacterCtx } from "@/contexts/CharacterContext"
@@ -30,6 +31,7 @@ export default function ItemsTab({ refreshTick }: Props) {
   const [loading, setLoading] = useState(true)
   const [pityCount, setPityCount] = useState(0)
   const [grades, setGrades] = useState<GradeRow[]>([])
+  const [selectedItem, setSelectedItem] = useState<EquipmentItem | null>(null)
 
   const fetchInventory = async () => {
     const res = await fetch("/api/inventory")
@@ -147,13 +149,22 @@ export default function ItemsTab({ refreshTick }: Props) {
           onDiscard={handleDiscard}
         />
       )}
-      <EquippedGrid equippedMap={equippedMap} />
+      <EquippedGrid equippedMap={equippedMap} onSelect={setSelectedItem} />
       <UnequippedGrid
         items={unequipped}
         equippedMap={equippedMap}
         onEquip={handleEquipFromStash}
         onDelete={handleDelete}
+        onSelect={setSelectedItem}
       />
+      {selectedItem && (
+        <ItemDetailSheet
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onEquip={async (item) => { await handleEquipFromStash(item); setSelectedItem(null) }}
+          onDelete={async (id) => { await handleDelete(id); setSelectedItem(null) }}
+        />
+      )}
     </div>
   )
 }

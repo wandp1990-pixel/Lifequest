@@ -13,9 +13,10 @@ interface Props {
   equippedMap: Record<string, EquipmentItem>
   onEquip: (item: EquipmentItem) => Promise<void>
   onDelete: (id: number) => Promise<void>
+  onSelect?: (item: EquipmentItem) => void
 }
 
-export default function UnequippedGrid({ items, equippedMap, onEquip, onDelete }: Props) {
+export default function UnequippedGrid({ items, equippedMap, onEquip, onDelete, onSelect }: Props) {
   if (items.length === 0) return null
   return (
     <div>
@@ -30,8 +31,9 @@ export default function UnequippedGrid({ items, equippedMap, onEquip, onDelete }
           return (
             <div
               key={item.id}
-              className="flex flex-col rounded-2xl overflow-hidden"
+              className="flex flex-col rounded-2xl overflow-hidden cursor-pointer active:scale-95 transition-transform"
               style={{ background: "white", border: `1.5px solid ${color}70` }}
+              onClick={() => onSelect?.(item)}
             >
               <div style={{ background: GRADE_BG[item.grade], borderBottom: `1px solid ${color}30`, padding: "5px 7px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0, flex: 1 }}>
@@ -50,14 +52,14 @@ export default function UnequippedGrid({ items, equippedMap, onEquip, onDelete }
                 </div>
                 <div className="flex gap-1 mt-auto">
                   <button
-                    onClick={() => onEquip(item)}
+                    onClick={(e) => { e.stopPropagation(); onEquip(item) }}
                     className="flex-1 text-[10px] font-bold py-1.5 rounded-lg text-white"
                     style={{ background: "#F5A524" }}
                   >
                     장착
                   </button>
                   <button
-                    onClick={() => onDelete(item.id)}
+                    onClick={(e) => { e.stopPropagation(); onDelete(item.id) }}
                     className="flex-1 text-[10px] font-bold py-1.5 rounded-lg bg-red-50 text-red-500"
                   >
                     삭제
