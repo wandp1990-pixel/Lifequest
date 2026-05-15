@@ -62,11 +62,13 @@ export default function HabitSection({
 
   const completeHabit = async (item: DailyItem) => {
     if (checkedDailyIds.has(item.id)) return
-    // 낙관적 체크 — 시각 피드백 즉시. EXP/스트릭/페널티/그룹보너스는 서버 산정 후 토스트.
-    // AI(fixed_exp=0) 경우만 "처리 중..." 버튼 상태 유지하기 위해 completing 세팅.
     const isAi = (item.fixed_exp ?? 0) === 0
-    setCheckedDailyIds((prev) => new Set([...prev, item.id]))
-    if (isAi) setCompleting(item.id)
+    // AI: 응답 전까지 "처리 중..." 표시, 체크는 응답 후. 비AI: 즉시 낙관적 체크.
+    if (isAi) {
+      setCompleting(item.id)
+    } else {
+      setCheckedDailyIds((prev) => new Set([...prev, item.id]))
+    }
     try {
       const res = await fetch("/api/checklist", {
         method: "POST",
@@ -75,9 +77,10 @@ export default function HabitSection({
       })
       const data = await res.json()
       if (!res.ok) {
-        setCheckedDailyIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+        if (!isAi) setCheckedDailyIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
         return
       }
+      if (isAi) setCheckedDailyIds((prev) => new Set([...prev, item.id]))
       setDailyItems((prev) => prev.map((d) => d.id === item.id ? { ...d, streak: data.streak } : d))
       setHabitGroups((prev) => prev.map((g) => ({
         ...g,
@@ -94,7 +97,7 @@ export default function HabitSection({
       }
       onExpGained?.()
     } catch {
-      setCheckedDailyIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+      if (!isAi) setCheckedDailyIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
     } finally {
       if (isAi) setCompleting(null)
     }

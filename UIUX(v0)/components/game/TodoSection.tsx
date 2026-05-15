@@ -85,12 +85,14 @@ export default function TodoSection({
 
   const completeTodo = async (item: TodoItem) => {
     if (item.is_completed) return
-    // 낙관적 체크 — 시각 피드백 즉시. EXP 토스트는 서버 응답(페널티/보너스 산정) 후.
-    // AI(suggested_exp=0)일 때만 "처리 중..." 버튼 표시 위해 completing 세팅.
     const isAi = (item.suggested_exp ?? 0) === 0
-    setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 1 } : t))
-    setCompletedTodoCount((prev) => prev + 1)
-    if (isAi) setCompleting(item.id)
+    // AI: 응답 전까지 "처리 중..." 표시, 완료 처리는 응답 후. 비AI: 즉시 낙관적 완료.
+    if (isAi) {
+      setCompleting(item.id)
+    } else {
+      setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 1 } : t))
+      setCompletedTodoCount((prev) => prev + 1)
+    }
     try {
       const res = await fetch("/api/todos", {
         method: "PATCH",
@@ -99,10 +101,13 @@ export default function TodoSection({
       })
       const data = await res.json()
       if (!res.ok) {
-        setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
-        setCompletedTodoCount((prev) => Math.max(0, prev - 1))
+        if (!isAi) {
+          setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
+          setCompletedTodoCount((prev) => Math.max(0, prev - 1))
+        }
         return
       }
+      if (isAi) setCompletedTodoCount((prev) => prev + 1)
       setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 1, exp_gained: data.exp } : t))
       if (data.penaltyApplied) {
         showPenalty(data.exp, data.comment)
@@ -111,8 +116,10 @@ export default function TodoSection({
       }
       onExpGained?.()
     } catch {
-      setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
-      setCompletedTodoCount((prev) => Math.max(0, prev - 1))
+      if (!isAi) {
+        setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
+        setCompletedTodoCount((prev) => Math.max(0, prev - 1))
+      }
     } finally {
       if (isAi) setCompleting(null)
     }
@@ -244,7 +251,7 @@ export default function TodoSection({
                   <Clock className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button onClick={() => completeTodo(item)} disabled={done}
+              <button onClick={() => completeTodo(item)} disabled={done || isLoading}
                 className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
                   done ? "bg-muted text-muted-foreground cursor-not-allowed" :
                   isLoading ? "bg-violet-200 text-violet-700 animate-pulse cursor-wait" :

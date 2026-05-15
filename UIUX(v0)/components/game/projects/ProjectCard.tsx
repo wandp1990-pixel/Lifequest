@@ -98,18 +98,21 @@ export default function ProjectCard({
     if (optimisticDoneIds.has(taskId)) return
     const task = project.tasks.find((t) => t.id === taskId)
     const isAi = !task || task.exp_reward === 0
-    // 낙관적 체크 — 시각 피드백 즉시. 고정 EXP일 때만 토스트도 즉시.
-    setOptimisticDoneIds((prev) => new Set([...prev, taskId]))
-    if (task && !isAi) showInfo(`작업 완료 +${task.exp_reward}XP`)
-    if (isAi) setCompleting(taskId)
+    // AI: 응답 전까지 "처리 중..." 표시, 완료 처리는 응답 후. 비AI: 즉시 낙관적 완료 + 토스트.
+    if (isAi) {
+      setCompleting(taskId)
+    } else {
+      setOptimisticDoneIds((prev) => new Set([...prev, taskId]))
+      if (task) showInfo(`작업 완료 +${task.exp_reward}XP`)
+    }
     try {
       const data = await apiPatch<{
         projects?: Project[]; projectCompleted?: boolean
         exp: number; bonusExp?: number; usedAi?: boolean
       }>(`/api/projects/${project.id}/tasks/${taskId}`)
       onMutated(data)
-      // AI 산정 또는 프로젝트 완료 보너스는 서버 응답 후 토스트
       if (isAi) {
+        setOptimisticDoneIds((prev) => new Set([...prev, taskId]))
         if (data.projectCompleted) {
           showInfo(`AI 산정 작업 +${data.exp}XP · 프로젝트 완료 보너스 +${data.bonusExp}XP`)
         } else {
@@ -120,7 +123,7 @@ export default function ProjectCard({
       }
       onExpGained?.()
     } catch (e) {
-      setOptimisticDoneIds((prev) => { const next = new Set(prev); next.delete(taskId); return next })
+      if (!isAi) setOptimisticDoneIds((prev) => { const next = new Set(prev); next.delete(taskId); return next })
       if (!(e instanceof ApiError)) throw e
     } finally {
       if (isAi) setCompleting(null)
@@ -240,8 +243,8 @@ export default function ProjectCard({
               return (
                 <div key={task.id} className={`flex items-center gap-2 py-1 ${visuallyDone ? "opacity-50" : ""}`}>
                   <button
-                    onClick={() => !visuallyDone && project.status !== "done" && handleCompleteTask(task.id)}
-                    disabled={visuallyDone || project.status === "done"}
+                    onClick={() => !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id)}
+                    disabled={visuallyDone || project.status === "done" || completing !== null}
                     className="shrink-0"
                   >
                     {visuallyDone ? (
