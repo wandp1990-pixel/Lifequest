@@ -205,16 +205,16 @@ export default function HabitSection({
             className="w-full px-4 pt-3 pb-2.5 text-left transition-colors rounded-t-2xl bg-background"
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1 min-w-0 flex-1">
-                <span className="text-amber-400 flex-shrink-0">
+              <div className="min-w-0 flex-1">
+                <span className="text-sm font-bold text-foreground truncate">단독 습관</span>
+                <p className="text-[11px] text-muted-foreground mt-0.5">그룹 없이 개별 관리</p>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="text-sm font-extrabold" style={{ color: "#D97706" }}>{ungroupedDoneCount}/{ungroupedItems.length}</span>
+                <span className="text-amber-400">
                   {collapsedGroups.has(-1) ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </span>
-                <div className="min-w-0">
-                  <span className="text-sm font-bold text-foreground truncate">단독 습관</span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">그룹 없이 개별 관리</p>
-                </div>
               </div>
-              <span className="text-sm font-extrabold" style={{ color: "#D97706" }}>{ungroupedDoneCount}/{ungroupedItems.length}</span>
             </div>
             <div className="mt-2 h-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 overflow-hidden">
               <div

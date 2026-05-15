@@ -67,9 +67,6 @@ export default function HabitGroupCard({
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 min-w-0 flex-1">
-            <span className="text-amber-400 flex-shrink-0">
-              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </span>
             <div className="flex-1 min-w-0">
               {editingName ? (
                 <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -108,16 +105,21 @@ export default function HabitGroupCard({
               )}
             </div>
           </div>
-          {!editingName && (
-            <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setAdding(!adding); setNewName(""); setNewExp(10) }} className="text-gray-300 hover:text-amber-400 transition-colors p-0.5">
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={remove} className="text-gray-300 hover:text-red-400 transition-colors p-0.5">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {!editingName && (
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => { setAdding(!adding); setNewName(""); setNewExp(10) }} className="text-gray-300 hover:text-amber-400 transition-colors p-0.5">
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={remove} className="text-gray-300 hover:text-red-400 transition-colors p-0.5">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+            <span className="text-amber-400 flex-shrink-0">
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </span>
+          </div>
         </div>
       </button>
 
