@@ -80,7 +80,7 @@ export default function ProjectsTab({ onExpGained, refreshTick }: ProjectsTabPro
   const dueSoonProjects = projects.filter((p) => isDueSoon(p.due_date) && p.status !== "done")
 
   return (
-    <div className="px-4 pb-4 space-y-4">
+    <div className="px-4 mt-3 pb-4 space-y-4">
       <div className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-card to-card p-4">
         <p className="text-sm font-bold">🗂️ 프로젝트</p>
         <div className="mt-3 grid grid-cols-3 gap-2">
