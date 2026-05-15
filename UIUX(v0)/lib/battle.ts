@@ -294,6 +294,7 @@ export function buildPlayerCombatStats(
   let bonusCritRate = 0, bonusCritDmg = 0
   let doubleAtkChance = 0, lifeStealRatio = 0, defIgnoreRatio = 0, reflectRatio = 0
   let bonusAccuracy = 0, bonusEvasion = 0
+  const itemPassiveCounts: Record<string, number> = {}
 
   // 모든 장비 옵션 문자열 파싱
   for (const raw of equippedOptions) {
@@ -306,13 +307,10 @@ export function buildPlayerCombatStats(
     for (const line of lines) {
       if (typeof line !== "string") continue
 
-      // 패시브 능력치: "[더블어택]" 형식 → 최대값만 유지 (중복 장비 대비)
+      // 아이템 패시브: "[스킬명]" → 해당 스킬 invested +1 누적
       if (line.startsWith("[") && line.endsWith("]")) {
         const name = line.slice(1, -1)
-        if (name === "더블어택")  doubleAtkChance = Math.max(doubleAtkChance, 0.25)
-        else if (name === "생명흡수") lifeStealRatio  = Math.max(lifeStealRatio,  0.05)
-        else if (name === "방어무시") defIgnoreRatio  = Math.max(defIgnoreRatio,  0.1)
-        else if (name === "반사")     reflectRatio    = Math.max(reflectRatio,    0.05)
+        itemPassiveCounts[name] = (itemPassiveCounts[name] ?? 0) + 1
         continue
       }
 
@@ -348,8 +346,12 @@ export function buildPlayerCombatStats(
   const intTotal = char.int_stat + eInt
   const vitTotal = char.vit + eVit
 
-  // 패시브 스킬 보너스 적용 (% 또는 고정값)
-  const pb = computePassiveBonuses(skills)
+  // 아이템 패시브 invested 합산 후 패시브 보너스 계산
+  const skillsWithItemBonus = skills.map(s => ({
+    ...s,
+    invested: s.invested + (itemPassiveCounts[s.name] ?? 0),
+  }))
+  const pb = computePassiveBonuses(skillsWithItemBonus)
 
   // 기초 스탯 계산: 속성(STR/INT/VIT) + 아이템 보너스 → 전투 스탯 변환
   const basePatk = strTotal * strToPatk + ePatk

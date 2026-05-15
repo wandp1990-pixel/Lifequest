@@ -27,6 +27,8 @@ export async function getAbilityPool(category?: string) {
 
 export async function getPassivePool() {
   const db = getClient()
-  const res = await db.execute("SELECT * FROM item_passive_pool WHERE is_active = 1")
+  const res = await db.execute(
+    "SELECT id, name, description FROM skill_table WHERE type = 'passive' AND is_active = 1"
+  )
   return res.rows
 }
