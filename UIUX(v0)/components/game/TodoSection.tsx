@@ -175,6 +175,9 @@ export default function TodoSection({
       )}
 
       {[...todoItems].sort((a, b) => {
+        const aDone = !!a.is_completed
+        const bDone = !!b.is_completed
+        if (aDone !== bDone) return aDone ? 1 : -1
         if (!a.due_time && !b.due_time) return 0
         if (!a.due_time) return -1
         if (!b.due_time) return 1
