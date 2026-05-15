@@ -191,18 +191,14 @@ export default function TasksTab({
         ))}
       </div>
 
-      {/* 루틴 섹션 */}
-      {(taskFilter === "all" || taskFilter === "routine") && (
-        <RoutineSection
-          routines={routines}
-          setRoutines={setRoutines}
-          checkedRoutineItemIds={checkedRoutineItemIds}
-          setCheckedRoutineItemIds={setCheckedRoutineItemIds}
-          bonusRoutineIds={bonusRoutineIds}
-          setBonusRoutineIds={setBonusRoutineIds}
+      {/* 할 일 섹션 */}
+      {(taskFilter === "all" || taskFilter === "todo") && (
+        <TodoSection
+          todoItems={todoItems}
+          setTodoItems={setTodoItems}
+          setCompletedTodoCount={setCompletedTodoCount}
           onConfirmDelete={setConfirmDelete}
           onExpGained={onExpGained}
-          chapters={chapters}
         />
       )}
 
@@ -222,14 +218,18 @@ export default function TasksTab({
         />
       )}
 
-      {/* 할 일 섹션 */}
-      {(taskFilter === "all" || taskFilter === "todo") && (
-        <TodoSection
-          todoItems={todoItems}
-          setTodoItems={setTodoItems}
-          setCompletedTodoCount={setCompletedTodoCount}
+      {/* 루틴 섹션 */}
+      {(taskFilter === "all" || taskFilter === "routine") && (
+        <RoutineSection
+          routines={routines}
+          setRoutines={setRoutines}
+          checkedRoutineItemIds={checkedRoutineItemIds}
+          setCheckedRoutineItemIds={setCheckedRoutineItemIds}
+          bonusRoutineIds={bonusRoutineIds}
+          setBonusRoutineIds={setBonusRoutineIds}
           onConfirmDelete={setConfirmDelete}
           onExpGained={onExpGained}
+          chapters={chapters}
         />
       )}
 
