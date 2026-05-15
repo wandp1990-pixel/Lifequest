@@ -47,7 +47,7 @@ export default function GachaBanner({ drawTickets, rolling, lastResult, onRoll, 
                   style={{ background: "rgba(255,87,87,0.18)", color: "#FF9E9E" }}
                   title="연속 폐기 시 상위 등급 확률 증가. 장착 시 0으로 초기화."
                 >
-                  🔥 {pityCount}연속 폐기 · 고급 {highTierChanceAt(grades, pityCount).toFixed(1)}%
+                  🔥 {pityCount}연속 폐기 · 확률 보정 중 {highTierChanceAt(grades, pityCount).toFixed(1)}%
                 </span>
               )}
             </div>
