@@ -153,10 +153,10 @@ CREATE TABLE IF NOT EXISTS game_config (
     description  TEXT,
     updated_at   TEXT
 );
--- DEAD: not used; generateMonster() uses inline GRADE_META/RACES instead (lib/battle.ts)
--- seed.ts:seedMonsterTable still inserts 10 rows but no SELECT/JOIN reads this table.
--- Kept to avoid DROP risk on existing prod DBs. Mark with this comment to prevent
--- contributors from adding rows expecting them to appear in battles.
+-- DEAD: not used — generateMonster() uses inline GRADE_META/RACES instead (lib/battle.ts)
+-- seed.ts:seedMonsterTable still inserts rows but no SELECT/JOIN reads this table
+-- Kept to avoid DROP risk on existing prod DBs. Comment marks dead status
+-- WARNING: do not put semicolons inside comments — SCHEMA.split() will break
 CREATE TABLE IF NOT EXISTS monster_table (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT,
