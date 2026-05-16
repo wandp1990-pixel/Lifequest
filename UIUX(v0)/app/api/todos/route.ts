@@ -31,7 +31,7 @@ export const PATCH = withInit(async (req: NextRequest) => {
   const items = await getTodoItems()
   const item = items.find((i) => i.id === id)
   if (!item) return notFound("항목 없음")
-  if (item.is_completed) return badRequest("이미 완료된 항목입니다")
+  if (item.is_completed) return badRequest("이미 완료된 항목입니다", "already_completed")
 
   let baseExp = (item.suggested_exp as number) ?? DEFAULT_ITEM_EXP
   let comment = "할 일 완료!"
@@ -50,7 +50,7 @@ export const PATCH = withInit(async (req: NextRequest) => {
 
   // race/재완료 방어: completeTodoItem 이 false 면 다른 요청이 먼저 완료시킨 것
   const claimed = await completeTodoItem(id, exp, comment)
-  if (!claimed) return badRequest("이미 완료된 항목입니다")
+  if (!claimed) return badRequest("이미 완료된 항목입니다", "already_completed")
 
   const levelResult = await applyReward({
     source: "todo",

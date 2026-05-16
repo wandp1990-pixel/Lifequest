@@ -17,14 +17,14 @@ export function ok<T>(data: T): NextResponse {
   return NextResponse.json(data)
 }
 
-/** 에러 응답: { error: string }. 기본 status 500. */
-export function err(msg: string, status = 500): NextResponse {
-  return NextResponse.json({ error: msg }, { status })
+/** 에러 응답: { error: string, code? }. 기본 status 500. code 는 클라이언트 분기용 식별자. */
+export function err(msg: string, status = 500, code?: string): NextResponse {
+  return NextResponse.json(code ? { error: msg, code } : { error: msg }, { status })
 }
 
-/** 400 Bad Request. */
-export function badRequest(msg: string): NextResponse {
-  return err(msg, 400)
+/** 400 Bad Request. code 는 클라이언트가 케이스를 구분하기 위한 식별자. */
+export function badRequest(msg: string, code?: string): NextResponse {
+  return err(msg, 400, code)
 }
 
 /** 404 Not Found. */

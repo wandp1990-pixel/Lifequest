@@ -32,7 +32,7 @@ export default function TodoSection({
   onConfirmDelete,
   onExpGained,
 }: TodoSectionProps) {
-  const { showExp, showPenalty } = useToast()
+  const { showExp, showPenalty, showError } = useToast()
   const [completing, setCompleting] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState("")
@@ -47,40 +47,64 @@ export default function TodoSection({
   const addTodo = async () => {
     if (!newName.trim()) return
     const dueTimeVal = newDueTime ? newDueTime.replace("T", " ") + ":00" : null
-    const res = await fetch("/api/todos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName, suggested_exp: newExp, due_time: dueTimeVal }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setTodoItems(data.items ?? data)
+    try {
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName, suggested_exp: newExp, due_time: dueTimeVal }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        showError(data?.error ?? "할 일 추가 실패")
+        return
+      }
+      setTodoItems(data?.items ?? data ?? [])
+      setNewName("")
+      setNewExp(0)
+      setNewDueTime("")
+      setAdding(false)
+    } catch {
+      showError("네트워크 오류 — 잠시 후 다시 시도하세요")
     }
-    setNewName("")
-    setNewExp(0)
-    setNewDueTime("")
-    setAdding(false)
   }
 
   const saveTodoName = async (id: number) => {
     if (!editingName.trim()) return
-    const res = await fetch("/api/todos", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: editingName, suggested_exp: editingExp }),
-    })
-    if (res.ok) setTodoItems(await res.json())
-    setEditingId(null)
+    try {
+      const res = await fetch("/api/todos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name: editingName, suggested_exp: editingExp }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        showError(data?.error ?? "이름 수정 실패")
+        return
+      }
+      setTodoItems(Array.isArray(data) ? data : data?.items ?? [])
+      setEditingId(null)
+    } catch {
+      showError("네트워크 오류 — 잠시 후 다시 시도하세요")
+    }
   }
 
   const saveNotifyTime = async (id: number, time: string | null) => {
-    const res = await fetch("/api/todos", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, notify_time: time }),
-    })
-    if (res.ok) setTodoItems(await res.json())
-    setNotifyEditId(null)
+    try {
+      const res = await fetch("/api/todos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, notify_time: time }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        showError(data?.error ?? "알림 저장 실패")
+        return
+      }
+      setTodoItems(Array.isArray(data) ? data : data?.items ?? [])
+      setNotifyEditId(null)
+    } catch {
+      showError("네트워크 오류 — 잠시 후 다시 시도하세요")
+    }
   }
 
   const completeTodo = async (item: TodoItem) => {
@@ -99,12 +123,19 @@ export default function TodoSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: item.id }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
       if (!res.ok) {
+        // 다른 디바이스/탭이 먼저 완료 → DB는 완료, UI도 완료로 유지
+        if (data?.code === "already_completed") {
+          setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 1 } : t))
+          if (isAi) setCompletedTodoCount((prev) => prev + 1)
+          return
+        }
         if (!isAi) {
           setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
           setCompletedTodoCount((prev) => Math.max(0, prev - 1))
         }
+        showError(data?.error ?? "완료 처리 실패")
         return
       }
       if (isAi) setCompletedTodoCount((prev) => prev + 1)
@@ -120,6 +151,7 @@ export default function TodoSection({
         setTodoItems((prev) => prev.map((t) => t.id === item.id ? { ...t, is_completed: 0 } : t))
         setCompletedTodoCount((prev) => Math.max(0, prev - 1))
       }
+      showError("네트워크 오류 — 잠시 후 다시 시도하세요")
     } finally {
       if (isAi) setCompleting(null)
     }
