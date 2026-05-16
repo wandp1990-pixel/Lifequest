@@ -3,16 +3,19 @@ import { getAllSkillsDb, createSkillDb, updateSkillDb, deleteSkillDb } from "@/l
 import { ok, badRequest, withInit } from "@/lib/api/respond"
 
 /**
- * 쓰기 요청 인증 가드.
- * - `ADMIN_SECRET` 환경변수가 설정되어 있으면 `Authorization: Bearer <secret>` 헤더를 강제.
- * - 미설정이면 skip (cron/notify 패턴과 동일: env 있을 때만 enforce).
+ * 쓰기 요청 인증 가드 (fail-closed).
+ * - `ADMIN_SECRET` 환경변수가 미설정이면 503 반환 (외부 임의 호출 차단).
+ * - 설정되어 있으면 `Authorization: Bearer <secret>` 헤더를 강제 (실패 시 401).
  * - GET 은 면제 (UI 에서 호출, settings 패널 표시용).
+ * - `/api/battle-config` PUT 과 동일 정책. SkillDbPanel UI 가 헤더를 보내도록 추가 작업 필요.
  *
- * 인증 통과 시 null, 실패 시 401 NextResponse 반환.
+ * 인증 통과 시 null, 실패 시 503/401 NextResponse 반환.
  */
 function requireAdmin(req: NextRequest): NextResponse | null {
   const secret = process.env.ADMIN_SECRET
-  if (!secret) return null
+  if (!secret) {
+    return NextResponse.json({ error: "ADMIN_SECRET not configured" }, { status: 503 })
+  }
   const authHeader = req.headers.get("authorization")
   if (authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
