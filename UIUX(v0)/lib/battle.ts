@@ -342,7 +342,7 @@ export function buildPlayerCombatStats(
       // 옵션명별로 해당 변수에 누적
       if (k === "물리 공격력")                      ePatk += v
       else if (k === "마법 공격력")                 eMatk += v
-      else if (k === "방어력" || k === "물리방어력") ePdef += v
+      else if (k === "방어력")                      ePdef += v
       else if (k === "마법방어력")                  eMdef += v
       else if (k === "DEX(민첩)")                   eDex  += v
       else if (k === "LUK(운)")                     eLuk  += v

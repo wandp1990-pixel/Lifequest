@@ -10,7 +10,6 @@ export async function seedIfEmpty(db: Client) {
   await seedItemGradeTable(db)
   await seedItemSlotTable(db)
   await seedItemAbilityPool(db)
-  // item_passive_pool seed 제거 (SoT = skill_table, 옵션 A 확정). 테이블 자체는 schema 에 유지.
   await seedMonsterTable(db)
   await seedPrompt(db)
   await seedChecklistItems(db)
@@ -23,7 +22,6 @@ export async function ensureItemSeeds(db: Client) {
   await seedItemGradeTable(db)
   await seedItemSlotTable(db)
   await seedItemAbilityPool(db)
-  // item_passive_pool seed 제거 (SoT = skill_table, 옵션 A 확정).
 }
 
 export async function ensureChecklistItems(db: Client) {
@@ -173,16 +171,17 @@ async function seedItemGradeTable(db: Client) {
 }
 
 async function seedItemSlotTable(db: Client) {
+  // "물리방어력" 은 ability_pool 에 없는 dead 키 — "방어력" 이 물리방어력 역할을 한다
   const data = [
-    ["weapon", "무기", "물리 공격력", JSON.stringify(["방어력", "물리방어력", "마법방어력", "마법 공격력"])],
+    ["weapon", "무기", "물리 공격력", JSON.stringify(["방어력", "마법방어력", "마법 공격력"])],
     ["helmet", "투구", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["armor", "갑옷", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["pants", "바지", "마법방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
     ["belt", "벨트", "방어력", JSON.stringify(["물리 공격력", "마법 공격력"])],
-    ["glove", "장갑", "명중률", JSON.stringify(["마법 공격력", "방어력", "물리방어력", "마법방어력"])],
-    ["shoe", "신발", "회피율", JSON.stringify(["물리 공격력", "마법 공격력", "방어력", "물리방어력", "마법방어력"])],
-    ["necklace", "목걸이", "치명타확률", JSON.stringify(["치명타피해", "물리 공격력", "방어력", "물리방어력", "마법방어력"])],
-    ["ring", "반지", "치명타피해", JSON.stringify(["치명타확률", "물리 공격력", "방어력", "물리방어력", "마법방어력"])],
+    ["glove", "장갑", "명중률", JSON.stringify(["마법 공격력", "방어력", "마법방어력"])],
+    ["shoe", "신발", "회피율", JSON.stringify(["물리 공격력", "마법 공격력", "방어력", "마법방어력"])],
+    ["necklace", "목걸이", "치명타확률", JSON.stringify(["치명타피해", "물리 공격력", "방어력", "마법방어력"])],
+    ["ring", "반지", "치명타피해", JSON.stringify(["치명타확률", "물리 공격력", "방어력", "마법방어력"])],
   ]
   for (const row of data) {
     await db.execute({

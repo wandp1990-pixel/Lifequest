@@ -94,12 +94,6 @@ CREATE TABLE IF NOT EXISTS item_ability_pool (
     category   TEXT,
     is_active  INTEGER DEFAULT 1
 );
-CREATE TABLE IF NOT EXISTS item_passive_pool (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT,
-    description TEXT,
-    is_active   INTEGER DEFAULT 1
-);
 CREATE TABLE IF NOT EXISTS todo_item (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL,
@@ -484,13 +478,12 @@ export async function initDb() {
       "UPDATE battle_config SET config_value='0.003' WHERE config_key='accuracy_per_dex'",
       "UPDATE battle_config SET config_value='0.002' WHERE config_key='evasion_per_dex'",
       "UPDATE battle_config SET config_value='0.0'   WHERE config_key='crit_multiplier_per_int'",
-      "UPDATE item_passive_pool SET description='25% 확률 추가타격' WHERE name='더블어택'",
-      "UPDATE item_passive_pool SET description='받은 피해의 5% 반사' WHERE name='반사'",
       "UPDATE skill_table SET base_effect_value=18, effect_coeff=3.5 WHERE id='ACTIVE_RAGE_01'",
       "UPDATE skill_table SET base_effect_value=30, effect_coeff=2.5 WHERE id='ACTIVE_CHAIN_01'",
       "UPDATE skill_table SET base_effect_value=12, effect_coeff=2.5 WHERE id='ACTIVE_FIRST_STRIKE_01'",
       "UPDATE skill_table SET base_effect_value=30, effect_coeff=5.0 WHERE id='ACTIVE_MANA_BURST_01'",
       "UPDATE skill_table SET base_effect_value=22, effect_coeff=4.0 WHERE id='ACTIVE_SPARK_01'",
+      // 과거 item_passive_pool UPDATE 2건 — 테이블 DROP 으로 제거 (drop_item_passive_pool_v1 migration)
     ], "write")
   })
 
@@ -536,10 +529,7 @@ export async function initDb() {
     await db.execute("UPDATE battle_config SET config_value='0.1' WHERE config_key='min_damage_ratio_by_defense'")
     await db.execute("UPDATE item_slot_table SET main_ability='마법방어력' WHERE slot='pants'")
     await db.execute("UPDATE item_slot_table SET main_ability='방어력' WHERE slot='belt'")
-    await db.execute("UPDATE item_passive_pool SET description='25% 확률 추가타격' WHERE name='더블어택'")
-    await db.execute("UPDATE item_passive_pool SET description='피해의 5% 회복' WHERE name='생명흡수'")
-    await db.execute("UPDATE item_passive_pool SET description='상대 DEF 10% 무시' WHERE name='방어무시'")
-    await db.execute("UPDATE item_passive_pool SET description='받은 피해의 5% 반사' WHERE name='반사'")
+    // 과거 item_passive_pool UPDATE 4건 — 테이블 DROP 으로 제거 (drop_item_passive_pool_v1 migration)
   })
 
   await runMigration("item_stat_nerf_v1", async () => {
@@ -659,5 +649,32 @@ export async function initDb() {
     await db.execute(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_routine_bonus_log_routine_date ON routine_bonus_log(routine_id, DATE(granted_at))"
     )
+  })
+
+  // 기존 row 의 excluded JSON 에서 dead 키 "물리방어력" 제거 (seed.ts 갱신 동기화)
+  await runMigration("item_slot_excluded_cleanup_v1", async () => {
+    const res = await db.execute("SELECT slot, excluded FROM item_slot_table")
+    for (const row of res.rows) {
+      const slot = row.slot as string
+      const raw = row.excluded as string | null
+      if (!raw) continue
+      let arr: string[]
+      try {
+        const parsed = JSON.parse(raw)
+        if (!Array.isArray(parsed)) continue
+        arr = parsed.filter((x) => typeof x === "string" && x !== "물리방어력")
+      } catch {
+        continue
+      }
+      await db.execute({
+        sql: "UPDATE item_slot_table SET excluded=? WHERE slot=?",
+        args: [JSON.stringify(arr), slot],
+      })
+    }
+  })
+
+  // item_passive_pool 테이블 자체 제거 — SoT 는 skill_table, seed/queries/schema 모두 정리됨
+  await runMigration("drop_item_passive_pool_v1", async () => {
+    await db.execute("DROP TABLE IF EXISTS item_passive_pool")
   })
 }

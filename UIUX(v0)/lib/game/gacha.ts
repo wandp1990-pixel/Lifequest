@@ -120,6 +120,8 @@ export function formatOpt(name: string, value: number, unit: string): string {
 /**
  * 능력치 값 롤링.
  * - % 단위: base_value * ratio * (1 + random) (즉 ratio ~ 2*ratio)
+ * - HP/MP 단위: Pt 와 동일한 등급 스케일에 base_value/10 정규화 배수를 곱한다
+ *   (물리공격력 base_value=10 기준. HP증가 base_value=50 → 5× 스케일)
  * - Pt 단위: [floor(stat_min * STAT_MIN_RATIO * ratio), floor(stat_max * STAT_MAX_RATIO * ratio)] 중 정수 랜덤
  *
  * 출처: app/api/inventory/route.ts:75-83
@@ -129,8 +131,9 @@ export function rollAbilityValue(ability: AbilityRow, grade: GradeRow, ratio: nu
     const value = ability.base_value * ratio * (1 + Math.random())
     return formatOpt(ability.name, value, "%")
   }
-  const low = Math.max(0, Math.floor(grade.stat_min * STAT_MIN_RATIO * ratio))
-  const high = Math.max(low, Math.floor(grade.stat_max * STAT_MAX_RATIO * ratio))
+  const scale = ability.unit === "HP" || ability.unit === "MP" ? ability.base_value / 10 : 1
+  const low = Math.max(0, Math.floor(grade.stat_min * STAT_MIN_RATIO * ratio * scale))
+  const high = Math.max(low, Math.floor(grade.stat_max * STAT_MAX_RATIO * ratio * scale))
   return formatOpt(ability.name, randBetween(low, high), "Pt")
 }
 
