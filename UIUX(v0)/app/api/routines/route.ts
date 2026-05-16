@@ -89,7 +89,13 @@ export const PUT = withInit(async (req: NextRequest) => {
   if (action === "updateItemName") {
     const name = (body.name ?? "").trim()
     if (typeof body.itemId !== "number" || !name) return badRequest("필수값 누락")
-    await updateRoutineItemName(body.itemId, name, body.fixedExp !== undefined ? Number(body.fixedExp) : undefined)
+    let fixedExp: number | undefined = undefined
+    if (body.fixedExp != null) {
+      const n = Number(body.fixedExp)
+      if (!Number.isFinite(n) || n <= 0) return badRequest("fixedExp는 양수여야 합니다")
+      fixedExp = n
+    }
+    await updateRoutineItemName(body.itemId, name, fixedExp)
     return ok(await getRoutines())
   }
   return badRequest("알 수 없는 action")

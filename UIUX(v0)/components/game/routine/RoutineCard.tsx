@@ -1,7 +1,7 @@
 /**
  * @module components/game/routine/RoutineCard
  * @purpose 단일 루틴 카드. 헤더(이름 편집/펼침/마감/묶음) + 진행률 + 항목 목록 + footer.
- *          drag 상태는 본 카드 내부에서만 보유(루틴 간 이동 없음).
+ *          항목 순서 변경은 ↑↓ 버튼(모바일/데스크탑 공통).
  *          mutate/complete 콜백은 부모(RoutineSection)에서 주입.
  */
 
@@ -52,8 +52,6 @@ export default function RoutineCard({
   const [addingItem, setAddingItem] = useState(false)
   const [newItemName, setNewItemName] = useState("")
   const [newItemExp, setNewItemExp] = useState(10)
-  const [dragging, setDragging] = useState<number | null>(null)
-  const [dragOver, setDragOver] = useState<number | null>(null)
 
   const total = r.items.length
   const checked = r.items.filter((it) => checkedItemIds.has(it.id)).length
@@ -72,23 +70,28 @@ export default function RoutineCard({
     setNewItemName(""); setNewItemExp(10); setAddingItem(false)
   }
 
-  const handleDrop = async (e: React.DragEvent, targetItemId: number) => {
-    e.preventDefault()
-    const fromId = dragging
-    setDragging(null); setDragOver(null)
-    if (!fromId || fromId === targetItemId) return
+  const moveItem = async (itemId: number, direction: "up" | "down") => {
+    const idx = r.items.findIndex((it) => it.id === itemId)
+    if (idx < 0) return
+    const newIdx = idx + (direction === "up" ? -1 : 1)
+    if (newIdx < 0 || newIdx >= r.items.length) return
+    const prevItems = r.items
     const items = [...r.items]
-    const fromIdx = items.findIndex((it) => it.id === fromId)
-    const toIdx = items.findIndex((it) => it.id === targetItemId)
-    if (fromIdx < 0 || toIdx < 0) return
-    const [moved] = items.splice(fromIdx, 1)
-    items.splice(toIdx, 0, moved)
+    const [moved] = items.splice(idx, 1)
+    items.splice(newIdx, 0, moved)
     setRoutines((prev) => prev.map((x) => x.id === r.id ? { ...x, items } : x))
-    await fetch("/api/routines", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "reorderItems", routineId: r.id, orderedItemIds: items.map((it) => it.id) }),
-    })
+    try {
+      const res = await fetch("/api/routines", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reorderItems", routineId: r.id, orderedItemIds: items.map((it) => it.id) }),
+      })
+      if (!res.ok) {
+        setRoutines((prev) => prev.map((x) => x.id === r.id ? { ...x, items: prevItems } : x))
+      }
+    } catch {
+      setRoutines((prev) => prev.map((x) => x.id === r.id ? { ...x, items: prevItems } : x))
+    }
   }
 
   return (
@@ -158,19 +161,17 @@ export default function RoutineCard({
           {r.items.length === 0 && !addingItem && (
             <p className="text-center text-muted-foreground text-xs py-3">하위 항목을 추가하세요</p>
           )}
-          {r.items.map((item) => (
+          {r.items.map((item, idx) => (
             <RoutineItemRow
               key={item.id}
               item={item}
               done={checkedItemIds.has(item.id)}
               isLoading={completing === item.id}
               isCompletingAny={completing !== null}
-              isDragging={dragging === item.id}
-              isDragOver={dragOver === item.id && dragging !== item.id}
-              onDragStart={(e) => { setDragging(item.id); e.dataTransfer.effectAllowed = "move" }}
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(item.id) }}
-              onDrop={(e) => handleDrop(e, item.id)}
-              onDragEnd={() => { setDragging(null); setDragOver(null) }}
+              canMoveUp={idx > 0}
+              canMoveDown={idx < r.items.length - 1}
+              onMoveUp={() => moveItem(item.id, "up")}
+              onMoveDown={() => moveItem(item.id, "down")}
               onComplete={() => onCompleteItem(item)}
               mutate={mutate}
               onConfirmDelete={onConfirmDelete}

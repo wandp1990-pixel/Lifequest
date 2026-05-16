@@ -1,12 +1,12 @@
 /**
  * @module components/game/routine/RoutineItemRow
- * @purpose 루틴 단일 항목 행. 인라인 이름/EXP 편집 + 완료 버튼. drag props는 부모(RoutineCard)에서 주입.
+ * @purpose 루틴 단일 항목 행. 인라인 이름/EXP 편집 + 완료 버튼. 순서 변경은 ↑↓ 버튼(모바일/데스크탑 공통).
  */
 
 "use client"
 
 import { useState } from "react"
-import { GripVertical, X, Pencil } from "lucide-react"
+import { ChevronUp, ChevronDown, X, Pencil } from "lucide-react"
 import type { RoutineItem, DeleteTarget } from "./types"
 
 interface Props {
@@ -14,12 +14,10 @@ interface Props {
   done: boolean
   isLoading: boolean
   isCompletingAny: boolean
-  isDragging: boolean
-  isDragOver: boolean
-  onDragStart: (e: React.DragEvent) => void
-  onDragOver: (e: React.DragEvent) => void
-  onDrop: (e: React.DragEvent) => void
-  onDragEnd: () => void
+  canMoveUp: boolean
+  canMoveDown: boolean
+  onMoveUp: () => void
+  onMoveDown: () => void
   onComplete: () => void
   mutate: (body: object) => Promise<void>
   onConfirmDelete: (target: DeleteTarget) => void
@@ -27,7 +25,7 @@ interface Props {
 
 export default function RoutineItemRow({
   item, done, isLoading, isCompletingAny,
-  isDragging, isDragOver, onDragStart, onDragOver, onDrop, onDragEnd,
+  canMoveUp, canMoveDown, onMoveUp, onMoveDown,
   onComplete, mutate, onConfirmDelete,
 }: Props) {
   const [editing, setEditing] = useState(false)
@@ -41,18 +39,24 @@ export default function RoutineItemRow({
   }
 
   return (
-    <div
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      className={`flex items-center gap-2.5 px-3 py-2.5 border-b border-teal-50 last:border-b-0 transition-colors ${isDragOver ? "bg-teal-50" : ""} ${isDragging ? "opacity-30" : ""}`}
-    >
-      <div
-        draggable
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
-      >
-        <GripVertical className="w-3.5 h-3.5 text-gray-300" />
+    <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-teal-50 last:border-b-0">
+      <div className="flex flex-col flex-shrink-0">
+        <button
+          onClick={onMoveUp}
+          disabled={!canMoveUp}
+          className="p-0.5 text-gray-300 hover:text-teal-400 disabled:opacity-30 disabled:hover:text-gray-300 active:scale-90 transition-all"
+          aria-label="위로 이동"
+        >
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={onMoveDown}
+          disabled={!canMoveDown}
+          className="p-0.5 text-gray-300 hover:text-teal-400 disabled:opacity-30 disabled:hover:text-gray-300 active:scale-90 transition-all"
+          aria-label="아래로 이동"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
       </div>
       <button
         onClick={onComplete}
