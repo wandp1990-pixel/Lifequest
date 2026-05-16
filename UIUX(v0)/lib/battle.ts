@@ -354,6 +354,10 @@ export function buildPlayerCombatStats(
       else if (k === "치명타피해")                  bonusCritDmg  += v
       else if (k === "명중률")                      bonusAccuracy += v / 100
       else if (k === "회피율")                      bonusEvasion  += v / 100
+      else if (process.env.NODE_ENV === "development") {
+        // unknown option key — silent fail in production, dev 경고로 새 능력 추가 시 파서 누락 감지
+        console.warn(`[buildPlayerCombatStats] unknown ability option key: "${k}" (line: "${line}"). item_ability_pool 추가 시 이 if-else 체인을 함께 갱신해야 함`)
+      }
     }
   }
 
