@@ -14,7 +14,7 @@ export {
   setItemGroup, reorderHabitGroups,
 } from "./queries/checklist"
 export type { HabitGroup } from "./queries/checklist"
-export { getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem, updateTodoExp, updateTodoName } from "./queries/todo"
+export { getTodoItems, cleanupCompletedTodos, addTodoItem, claimTodoItem, setTodoReward, deleteTodoItem, updateTodoExp, updateTodoName } from "./queries/todo"
 export {
   getTodoTemplates,
   addTodoTemplate,

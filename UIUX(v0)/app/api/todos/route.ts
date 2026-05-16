@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import {
-  getTodoItems, cleanupCompletedTodos, addTodoItem, completeTodoItem, deleteTodoItem,
+  getTodoItems, cleanupCompletedTodos, addTodoItem, claimTodoItem, setTodoReward, deleteTodoItem,
   updateTodoExp, updateTodoName, updateTodoNotifyTime,
   generateRecurringTodosIfNeeded,
 } from "@/lib/db"
@@ -33,6 +33,12 @@ export const PATCH = withInit(async (req: NextRequest) => {
   if (!item) return notFound("항목 없음")
   if (item.is_completed) return badRequest("이미 완료된 항목입니다", "already_completed")
 
+  // race-guard 를 가장 먼저: winner 확정 전까지 AI 호출 / due bonus 계산 하지 않음
+  // (이전에는 AI 호출 후 claim 시도 → race 패자에서 Gemini 쿼터 낭비)
+  const claimed = await claimTodoItem(id as number)
+  if (!claimed) return badRequest("이미 완료된 항목입니다", "already_completed")
+
+  // 여기서부터 이 PATCH 는 winner. 외부 호출/계산 안전.
   let baseExp = (item.suggested_exp as number) ?? DEFAULT_ITEM_EXP
   let comment = "할 일 완료!"
   if (baseExp === 0) {
@@ -48,9 +54,8 @@ export const PATCH = withInit(async (req: NextRequest) => {
   if (bonusExp > 0) comment = `⏰ 기한 내 완료! ${comment}`
   else if (penaltyApplied) comment = `⌛ 기한 초과 (EXP 절반)`
 
-  // race/재완료 방어: completeTodoItem 이 false 면 다른 요청이 먼저 완료시킨 것
-  const claimed = await completeTodoItem(id, exp, comment)
-  if (!claimed) return badRequest("이미 완료된 항목입니다", "already_completed")
+  // claim 단계에서 exp/comment 는 null 로 남아있으므로 finalize.
+  await setTodoReward(id as number, exp, comment)
 
   const levelResult = await applyReward({
     source: "todo",

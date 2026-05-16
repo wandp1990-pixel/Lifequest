@@ -24,14 +24,24 @@ export async function addTodoItem(name: string, suggestedExp: number, dueTime?: 
   return Number(res.lastInsertRowid)
 }
 
-// race/재완료 방어: 미완료 상태에서만 통과. true면 새로 완료된 것.
-export async function completeTodoItem(id: number, exp: number, comment: string): Promise<boolean> {
+// race-guard claim: 미완료 상태에서만 통과. true면 이 호출이 winner.
+// exp_gained / ai_comment 는 setTodoReward 로 별도 finalize (AI 호출 후에 채워야 하므로 분리).
+export async function claimTodoItem(id: number): Promise<boolean> {
   const db = getClient()
   const res = await db.execute({
-    sql: "UPDATE todo_item SET is_completed=1, exp_gained=?, ai_comment=?, completed_at=? WHERE id=? AND is_completed=0",
-    args: [exp, comment, now(), id],
+    sql: "UPDATE todo_item SET is_completed=1, completed_at=? WHERE id=? AND is_completed=0",
+    args: [now(), id],
   })
   return res.rowsAffected > 0
+}
+
+// claim 이후 보상값 finalize. claim winner 만 호출하므로 race-guard 불필요.
+export async function setTodoReward(id: number, exp: number, comment: string): Promise<void> {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE todo_item SET exp_gained=?, ai_comment=? WHERE id=?",
+    args: [exp, comment, id],
+  })
 }
 
 export async function updateTodoExp(id: number, suggestedExp: number) {
