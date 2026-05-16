@@ -6,6 +6,14 @@ export async function getItemGrades() {
   return res.rows
 }
 
+export async function updateItemGradeWeight(grade: string, weight: number) {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE item_grade_table SET weight = ? WHERE grade = ?",
+    args: [weight, grade],
+  })
+}
+
 export async function getItemSlots() {
   const db = getClient()
   const res = await db.execute("SELECT * FROM item_slot_table")
