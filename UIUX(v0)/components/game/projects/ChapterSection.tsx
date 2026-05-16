@@ -56,9 +56,13 @@ export default function ChapterSection({
   const [newProjPriority, setNewProjPriority] = useState<"low" | "medium" | "high">("medium")
   const [completing, setCompleting] = useState(false)
 
-  const pct = ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
-  const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
   const chProjects = projects.filter((p) => p.chapter_id === ch.id)
+  const totalTasks = chProjects.reduce((s, p) => s + p.tasks.length, 0)
+  const doneTasks  = chProjects.reduce((s, p) => s + p.tasks.filter(t => t.is_completed !== 0).length, 0)
+  const pct = totalTasks > 0
+    ? Math.round((doneTasks / totalTasks) * 100)
+    : ch.total_projects === 0 ? 0 : Math.round((ch.done_projects / ch.total_projects) * 100)
+  const allDone = ch.total_projects > 0 && ch.done_projects === ch.total_projects
   const available = projects.filter((p) => p.chapter_id !== ch.id && p.status !== "done")
 
   const handleComplete = async () => {
@@ -135,7 +139,9 @@ export default function ChapterSection({
             {isDueSoon(ch.end_date) ? "⚠ " : ""}{formatDate(ch.end_date)}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground shrink-0">{ch.done_projects}/{ch.total_projects}</span>
+        <span className="text-[10px] text-muted-foreground shrink-0">
+          {totalTasks > 0 ? `${doneTasks}/${totalTasks}` : `${ch.done_projects}/${ch.total_projects}`}
+        </span>
         {expanded ? <ChevronDown size={14} className="text-muted-foreground shrink-0" /> : <ChevronRight size={14} className="text-muted-foreground shrink-0" />}
       </button>
 
