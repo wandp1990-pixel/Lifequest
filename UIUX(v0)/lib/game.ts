@@ -1,3 +1,4 @@
+import type { Transaction } from "@libsql/client"
 import * as db from "./db"
 import { getClient, now } from "./db/client"
 import { computeEffectiveStats } from "./character/stats"
@@ -39,15 +40,18 @@ export function recalcHpMp(
 //
 // cfg/bcfg/skills는 변경 빈도가 낮아 트랜잭션 외부 read 유지.
 // equipment는 장착/뽑기로 자주 바뀌므로 트랜잭션 안에서 재read해 stale max_hp 방지.
-export async function gainExp(expAmount: number) {
+//
+// externalTx 가 주어지면 그 트랜잭션 안에서 실행 (commit/rollback 은 호출자 책임).
+// 주어지지 않으면 기존처럼 자체 트랜잭션 생성·관리.
+export async function gainExp(expAmount: number, externalTx?: Transaction) {
   const [cfg, bcfg, allSkills] = await Promise.all([
     db.getGameConfig(),
     db.getBattleConfig(),
     db.getSkillsWithInvestment(),
   ])
 
-  const client = getClient()
-  const tx = await client.transaction("write")
+  const ownsTx = !externalTx
+  const tx = externalTx ?? (await getClient().transaction("write"))
   try {
     const charRes = await tx.execute("SELECT * FROM character WHERE id = 1")
     const char = charRes.rows[0] as unknown as db.Character
@@ -110,7 +114,7 @@ export async function gainExp(expAmount: number) {
     const sets = Object.keys(updates).map((k) => `${k} = ?`).join(", ")
     const vals = [...Object.values(updates), 1]
     await tx.execute({ sql: `UPDATE character SET ${sets} WHERE id = ?`, args: vals })
-    await tx.commit()
+    if (ownsTx) await tx.commit()
 
     return {
       leveledUp,
@@ -123,7 +127,7 @@ export async function gainExp(expAmount: number) {
       },
     }
   } catch (e) {
-    await tx.rollback()
+    if (ownsTx) await tx.rollback()
     throw e
   }
 }

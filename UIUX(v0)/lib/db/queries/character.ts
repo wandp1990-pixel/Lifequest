@@ -1,3 +1,4 @@
+import type { Transaction } from "@libsql/client"
 import { getClient, now } from "../client"
 import type { Character } from "../types"
 
@@ -18,7 +19,8 @@ export async function updateCharacter(fields: Partial<Character>) {
 }
 
 // 일일 완료 작업 수 증가 (체크리스트/투두 완료 시 호출)
-export async function incrementTaskCount() {
-  const db = getClient()
-  await db.execute("UPDATE character SET task_count = COALESCE(task_count,0) + 1 WHERE id = 1")
+// t 가 주어지면 그 트랜잭션 안에서 실행.
+export async function incrementTaskCount(t?: Transaction) {
+  const exec = t ?? getClient()
+  await exec.execute("UPDATE character SET task_count = COALESCE(task_count,0) + 1 WHERE id = 1")
 }

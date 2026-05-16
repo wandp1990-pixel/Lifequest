@@ -1,3 +1,4 @@
+import type { Transaction } from "@libsql/client"
 import { getClient, now, todayKST } from "../client"
 
 export async function cleanupCompletedTodos() {
@@ -36,9 +37,15 @@ export async function claimTodoItem(id: number): Promise<boolean> {
 }
 
 // claim 이후 보상값 finalize. claim winner 만 호출하므로 race-guard 불필요.
-export async function setTodoReward(id: number, exp: number, comment: string): Promise<void> {
-  const db = getClient()
-  await db.execute({
+// t 가 주어지면 그 트랜잭션 안에서 실행 — applyReward 시퀀스와 묶기 위함.
+export async function setTodoReward(
+  id: number,
+  exp: number,
+  comment: string,
+  t?: Transaction,
+): Promise<void> {
+  const exec = t ?? getClient()
+  await exec.execute({
     sql: "UPDATE todo_item SET exp_gained=?, ai_comment=? WHERE id=?",
     args: [exp, comment, id],
   })
