@@ -23,7 +23,76 @@ UIUX(v0)/
 │   ├── page.tsx                 # 메인 셸 (탭 라우팅, 캐릭터 fetch)
 │   ├── globals.css
 │   └── api/                     # REST API → §5 모듈별 지도 참조
-├── components/game/             # 모든 화면 컴포넌트 → §4 탭 지도
+├── components/game/
+│   ├── TopHeader.tsx            # 타이틀 + 햄버거
+│   ├── CharacterPanel.tsx       # HP/MP 바 (상단 공통)
+│   ├── LevelBar.tsx             # 레벨/EXP/뽑기권 바
+│   ├── QuestBanner.tsx          # 데일리 진행도 (home 외 표시)
+│   ├── BottomNav.tsx            # 하단 탭 네비
+│   ├── SettingsDrawer.tsx       # 설정 드로어 (진입점)
+│   ├── PushSetup.tsx            # 푸시 권한/구독 UI
+│   ├── HomeTab.tsx / TasksTab.tsx / BattleTab.tsx / CharacterTab.tsx / ItemsTab.tsx
+│   ├── HabitSection.tsx / RoutineSection.tsx / TodoSection.tsx  # TasksTab 섹션 분리
+│   ├── ProjectsTab.tsx          # TasksTab 안에 임베드
+│   ├── SkillDetailSheet.tsx     # 스킬 카드 탭 시 뜨는 도감 모달
+│   ├── battle/                  # BattleTab 서브 뷰
+│   │   ├── LobbyView.tsx        # 전투 준비 화면
+│   │   ├── ResultView.tsx       # 전투 결과
+│   │   └── TurnItem.tsx         # 턴 로그 행
+│   ├── character/               # CharacterTab 서브 뷰
+│   │   ├── StatView.tsx         # 스탯 분배
+│   │   ├── SkillView.tsx        # 스킬 목록
+│   │   ├── SkillCard.tsx        # 스킬 카드
+│   │   ├── CombatStatsCard.tsx  # 전투 스탯 요약
+│   │   └── constants.tsx        # 스탯/아이콘 상수
+│   ├── habit/                   # 습관 서브 컴포넌트
+│   │   ├── HabitGroupCard.tsx
+│   │   └── HabitItem.tsx
+│   ├── home/                    # HomeTab 서브 컴포넌트
+│   │   ├── ActivitySection.tsx
+│   │   ├── AttendanceCard.tsx
+│   │   ├── StatsGrid.tsx
+│   │   └── UrgentProjectsCard.tsx
+│   ├── items/                   # ItemsTab 서브 컴포넌트
+│   │   ├── GachaBanner.tsx
+│   │   ├── EquippedGrid.tsx
+│   │   ├── UnequippedGrid.tsx
+│   │   ├── ItemDetailSheet.tsx
+│   │   ├── ReplaceModal.tsx
+│   │   └── parts.tsx            # 공통 UI 조각
+│   ├── projects/                # ProjectsTab 서브 컴포넌트
+│   │   ├── ChapterSection.tsx
+│   │   ├── ProjectCard.tsx
+│   │   ├── DoneSection.tsx
+│   │   ├── AddProjectForm.tsx
+│   │   └── AddChapterForm.tsx
+│   ├── routine/                 # 루틴 서브 컴포넌트
+│   │   ├── RoutineCard.tsx
+│   │   ├── RoutineItemRow.tsx
+│   │   └── RoutineFooter.tsx
+│   └── settings/                # SettingsDrawer 패널 모음
+│       ├── SettingsSection.tsx  # 패널 진입점/레이아웃
+│       ├── CharacterPanel.tsx   # 캐릭터 수치 편집
+│       ├── ConfigPanel.tsx      # game_config 인라인 에디터
+│       ├── BattleConfigPanel.tsx
+│       ├── ItemGradePanel.tsx   # /api/item-grades 관리
+│       ├── PromptPanel.tsx
+│       ├── SkillDbPanel.tsx
+│       ├── SkillsPanel.tsx
+│       ├── ResetPanel.tsx
+│       ├── TodoTemplatesPanel.tsx
+│       └── TodoTemplateForm.tsx
+├── contexts/
+│   ├── CharacterContext.tsx     # 캐릭터 전역 상태 (useCharacterCtx)
+│   └── ToastContext.tsx
+├── hooks/
+│   ├── useApi.ts                # apiGet/apiPost 래퍼
+│   ├── useCharacter.ts
+│   ├── useChecklist.ts
+│   ├── useMidnightRefresh.ts
+│   ├── useProjects.ts
+│   ├── useRoutines.ts
+│   └── useTodos.ts
 ├── lib/
 │   ├── db/
 │   │   ├── client.ts            # Turso 연결
@@ -31,16 +100,27 @@ UIUX(v0)/
 │   │   ├── seed.ts              # 초기 데이터 (item, skill, prompt 등)
 │   │   ├── types.ts             # Chapter, Project 등 도메인 타입
 │   │   ├── index.ts             # 쿼리 재export 진입점
-│   │   └── queries/             # 도메인별 쿼리 (§5)
+│   │   └── queries/             # 도메인별 쿼리 (§5), _helpers.ts 포함
+│   ├── admin/token.ts           # 관리자 토큰 검증
+│   ├── api/respond.ts           # API 응답 헬퍼
+│   ├── api/validate.ts          # 요청 유효성 검증
+│   ├── character/stats.ts       # 캐릭터 스탯 계산
+│   ├── constants/               # 전역 상수 (ai, battle, exp, gacha, quest, time, ui)
+│   ├── game/
+│   │   ├── exp-bonus.ts         # EXP 보너스 계산
+│   │   ├── gacha.ts             # 가챠 로직
+│   │   └── rewards.ts           # 보상 지급 로직
+│   ├── skills/
+│   │   ├── skill-info.ts        # 스킬 도감 텍스트 (id 기준)
+│   │   └── triggers.ts          # 스킬 발동 조건
+│   ├── time/kst.ts              # KST 시간 유틸 (currentTimeKST 등)
 │   ├── ai.ts                    # Gemini 판정 (judgeActivity, judgeProjectExp)
-│   ├── game.ts                  # requiredExp / recalcHpMp / gainExp
 │   ├── battle.ts                # generateMonster / runBattle / 패시브 계산
+│   ├── game.ts                  # requiredExp / recalcHpMp / gainExp
 │   ├── regen.ts                 # calcRegen — HP/MP 시간 회복
 │   └── utils.ts
 ├── public/                      # 정적 자산
 ├── styles/
-├── ARCHITECTURE.md              # (deprecated, 삭제 예정)
-├── IMPLEMENTATION_SPEC.md       # (deprecated, 삭제 예정)
 ├── DESIGN_GUIDE.md              # 색상/이모지 디테일 레퍼런스 (보존)
 ├── MAP.md                       # ← 이 파일
 ├── vercel.json
@@ -72,7 +152,7 @@ UI(components/game/*.tsx)
 | home | `HomeTab.tsx` | `/api/activities`, `/api/attendance`, `/api/checklist`, `/api/todos`, `/api/routines`, `/api/projects` | 활동 입력 + 출석 + 4섹션 미니 도넛 |
 | tasks | `TasksTab.tsx` (+ `ProjectsTab.tsx` 임베드) | `/api/checklist`, `/api/todos`, `/api/routines`, `/api/projects` | 루틴/습관/할일/프로젝트 통합 |
 | battle | `BattleTab.tsx` | `/api/battle`, `/api/battle-config`, `/api/chapters` | 몬스터 전투 시뮬 |
-| skills | `CharacterTab.tsx` (+ `SkillsTab.tsx`) | `/api/character`, `/api/skills`, `/api/skill-db` | 스탯 분배 + 스킬 |
+| skills | `CharacterTab.tsx` (+ `character/StatView.tsx`, `character/SkillView.tsx`) | `/api/character`, `/api/skills`, `/api/skill-db` | 스탯 분배 + 스킬 |
 | items | `ItemsTab.tsx` | `/api/inventory` | 가챠 + 장비 |
 
 탭 외 공통 컴포넌트:
@@ -80,8 +160,10 @@ UI(components/game/*.tsx)
 - `CharacterPanel.tsx` — HP/MP 바 (탭 무관 상단)
 - `LevelBar.tsx` — 레벨/EXP/뽑기권 바
 - `QuestBanner.tsx` — 데일리 진행도 (home 탭 외 표시)
-- `SettingsDrawer.tsx` — 캐릭터 수치 직접 편집 + game_config 인라인 에디터
+- `SettingsDrawer.tsx` — 설정 드로어 진입점 (`settings/` 패널들 조합)
 - `PushSetup.tsx` — 푸시 권한/구독 UI
+
+탭 내부 서브컴포넌트는 §5 모듈별 지도에 명시. 서브뷰 폴더: `battle/`, `character/`, `habit/`, `home/`, `items/`, `projects/`, `routine/`, `settings/`.
 
 ---
 
@@ -93,9 +175,10 @@ UI(components/game/*.tsx)
 
 - **DB**: `character`(1행), `activity_log` (최대 30개 보존)
 - **쿼리**: `lib/db/queries/character.ts`, `activity.ts`
-- **로직**: `lib/game.ts` (`gainExp`, `recalcHpMp`, `requiredExp`), `lib/regen.ts` (`calcRegen`)
+- **로직**: `lib/game.ts` (`gainExp`, `recalcHpMp`, `requiredExp`), `lib/regen.ts` (`calcRegen`), `lib/character/stats.ts` (스탯 계산), `lib/game/rewards.ts` (보상 지급)
 - **API**: `/api/character` (GET/PUT/DELETE), `/api/activities` (GET/POST)
-- **UI**: `CharacterPanel.tsx`, `CharacterTab.tsx`, `LevelBar.tsx`, `SettingsDrawer.tsx`
+- **UI**: `CharacterPanel.tsx`, `CharacterTab.tsx` → `character/StatView.tsx`, `LevelBar.tsx`, `settings/CharacterPanel.tsx`
+- **전역 상태**: `contexts/CharacterContext.tsx` (`useCharacterCtx` 훅으로 접근)
 
 레벨업 시 stat/skill points 지급, 뽑기권 +1, HP/MP 풀회복은 `gainExp` 안에서 처리.
 
@@ -104,7 +187,8 @@ UI(components/game/*.tsx)
 - **DB**: `checklist_item`, `checklist_log`
 - **쿼리**: `lib/db/queries/checklist.ts`
 - **API**: `/api/checklist` (GET/POST/PUT/DELETE)
-- **UI**: `TasksTab.tsx` 습관 섹션
+- **UI**: `HabitSection.tsx` → `habit/HabitGroupCard.tsx`, `habit/HabitItem.tsx`
+- **훅**: `hooks/useChecklist.ts`
 - **AI 사용 안 함** (고정 EXP). streak/패널티 로직은 쿼리 파일에 있음.
 
 ### 5.3 데일리 — 루틴
@@ -112,7 +196,8 @@ UI(components/game/*.tsx)
 - **DB**: `routine`, `routine_item`, `routine_log`, `routine_bonus_log`
 - **쿼리**: `lib/db/queries/routine.ts`
 - **API**: `/api/routines` (GET/POST)
-- **UI**: `TasksTab.tsx` 루틴 섹션 (아코디언)
+- **UI**: `RoutineSection.tsx` → `routine/RoutineCard.tsx`, `routine/RoutineItemRow.tsx`, `routine/RoutineFooter.tsx`
+- **훅**: `hooks/useRoutines.ts`
 - **보상 산식 (의도된 디자인)**: 항목별 `fixed_exp` 1배 + 모든 항목 완수 시 합계만큼 추가 보너스. `deadline_time` 내 완료면 합계의 **2배** 추가 → 마감 외 총 **2배** / 마감 내 총 **3배** 적립. 루틴 완수 보상을 강하게 설계한 것이라 산식 변경 금지.
 - **자정 넘김 마감**: `deadline_time < "06:00"`이고 `currentTimeKST() >= "18:00"`이면 통과(전날 저녁 시작 → 다음날 새벽 마감 의도). 그 외엔 `currentTimeKST() <= deadline_time`.
 
@@ -121,7 +206,8 @@ UI(components/game/*.tsx)
 - **DB**: `todo_item`, `todo_template`, `todo_template_log`
 - **쿼리**: `lib/db/queries/todo.ts`, `todo-template.ts`
 - **API**: `/api/todos` (GET/POST/PATCH/PUT/DELETE), `/api/todo-templates` (반복 규칙 CRUD)
-- **UI**: `TasksTab.tsx` 할일 섹션, `SettingsDrawer.tsx` 반복 할 일 자동 생성 섹션
+- **UI**: `TodoSection.tsx` (할일 섹션), `settings/TodoTemplatesPanel.tsx` + `settings/TodoTemplateForm.tsx` (반복 할 일 관리)
+- **훅**: `hooks/useTodos.ts`
 - 완료 시 `suggested_exp`가 0이면 AI 판정. 마감 내 완료 +50% 보너스.
 - 반복 할 일은 사이드 메뉴에서 **주간/월간 규칙**으로 저장한다. 앱이 열릴 때 오늘 날짜에 맞는 템플릿이 있으면 `todo_item`으로 자동 생성되며, 같은 날짜에는 `todo_template_log`로 중복 생성 방지.
 
@@ -131,7 +217,8 @@ UI(components/game/*.tsx)
 - **쿼리**: `lib/db/queries/project.ts`
 - **API**: `/api/projects` (CRUD), `/api/projects/[id]` (단건), `/api/projects/[id]/tasks` (서브태스크), `/api/projects/ai-judge` (완료 EXP 판정)
 - **로직**: `lib/ai.ts` `judgeProjectExp`
-- **UI**: `ProjectsTab.tsx` (TasksTab 안에 임베드, 색상 violet)
+- **UI**: `ProjectsTab.tsx` (TasksTab 안에 임베드) → `projects/ChapterSection.tsx`, `projects/ProjectCard.tsx`, `projects/DoneSection.tsx`, `projects/AddProjectForm.tsx`, `projects/AddChapterForm.tsx`
+- **훅**: `hooks/useProjects.ts`
 - **보상 산식 (현재 기준)**: 하위 작업은 생성 시 EXP를 직접 지정할 수 있다. `0`이면 할 일과 동일하게 **완료 시점 AI 산정**을 사용하고, 산정된 값이 해당 작업 EXP로 저장된다. 프로젝트 완료 보너스는 **해당 프로젝트 작업 EXP 합계와 동일**하게 지급한다. 즉 작업을 모두 끝내면 프로젝트는 총 `2배` 적립 구조다. 루틴/습관의 `개별 적립 + 완주 보너스` 철학을 그대로 따른다.
 
 ### 5.6 챕터 (프로젝트 묶음 진행도)
@@ -145,25 +232,28 @@ UI(components/game/*.tsx)
 ### 5.7 활동 로그 / AI 판정
 
 - **DB**: `activity_log` (input_type: `daily` | `todo` | `ai`)
-- **로직**: `lib/ai.ts` (Gemini 호출, 프롬프트는 `prompt` 테이블에서 동적 로드)
+- **로직**: `lib/ai.ts` (Gemini 호출, 프롬프트는 `prompt` 테이블에서 동적 로드). AI 상수는 `lib/constants/ai.ts`
 - **API**: `/api/activities`, `/api/prompt`
-- **UI**: `HomeTab.tsx` 오늘의 활동 입력
-- 프롬프트는 DB에 있어 재배포 없이 수정 가능 (`/api/prompt` PUT)
+- **UI**: `home/ActivitySection.tsx` (오늘의 활동 입력), `home/AttendanceCard.tsx`, `home/StatsGrid.tsx`, `home/UrgentProjectsCard.tsx`
+- 프롬프트는 DB에 있어 재배포 없이 수정 가능 (`/api/prompt` PUT → `settings/PromptPanel.tsx`)
 
 ### 5.8 전투
 
 - **DB**: `monster_table`, `battle_log`, `battle_config`, `chapter`(클리어 등급 추적)
 - **쿼리**: `lib/db/queries/battle.ts`, `config.ts` (배틀 설정)
-- **로직**: `lib/battle.ts` (`generateMonster`, `runBattle`, `buildPlayerCombatStats`, `computePassiveBonuses`)
+- **로직**: `lib/battle.ts` (`generateMonster`, `runBattle`, `buildPlayerCombatStats`, `computePassiveBonuses`). 상수는 `lib/constants/battle.ts`
 - **API**: `/api/battle`, `/api/battle-config`, `/api/quest/reward`
-- **UI**: `BattleTab.tsx`
+- **UI**: `BattleTab.tsx` → `battle/LobbyView.tsx` (전투 준비), `battle/ResultView.tsx` (결과), `battle/TurnItem.tsx` (턴 로그)
+- **설정**: `settings/BattleConfigPanel.tsx`
 
 ### 5.9 아이템 · 장비 · 가챠
 
 - **DB**: `equipment`, `item_grade_table`, `item_slot_table`, `item_ability_pool`, `item_passive_pool`
 - **쿼리**: `lib/db/queries/equipment.ts`, `items.ts`
-- **API**: `/api/inventory` (GET 보유 / POST 가챠 뽑기 / PATCH 장착·해제·삭제)
-- **UI**: `ItemsTab.tsx`
+- **로직**: `lib/game/gacha.ts` (가챠 로직). 상수는 `lib/constants/gacha.ts`
+- **API**: `/api/inventory` (GET 보유 / POST 가챠 뽑기 / PATCH 장착·해제·삭제), `/api/item-grades` (등급 설정 CRUD)
+- **UI**: `ItemsTab.tsx` → `items/GachaBanner.tsx`, `items/EquippedGrid.tsx`, `items/UnequippedGrid.tsx`, `items/ItemDetailSheet.tsx`, `items/ReplaceModal.tsx`, `items/parts.tsx`
+- **설정**: `settings/ItemGradePanel.tsx`
 - 등급: C/B/A/S/SR/SSR/UR — 슬롯: 무기/투구/갑옷/바지/벨트/장갑/신발/반지/목걸이
 
 ### 5.10 스킬
@@ -173,7 +263,9 @@ UI(components/game/*.tsx)
 - **API**: `/api/skills` (GET/PUT 보유 스킬), `/api/skill-db` (정의 CRUD)
 - **로직**: `lib/battle.ts` `computePassiveBonuses`, `getActiveSkills`
 - **도감 텍스트**: `lib/skills/skill-info.ts` (id 기준으로 `concept` / `trigger_explanation` / `effect_explanation` 정의)
-- **UI**: `CharacterTab.tsx` (스킬 투자 뷰 + 카드), `SkillDetailSheet.tsx` (스킬 카드 탭 시 뜨는 도감 모달)
+- **트리거 조건**: `lib/skills/triggers.ts`
+- **UI**: `character/SkillView.tsx` → `character/SkillCard.tsx` (스킬 카드), `SkillDetailSheet.tsx` (도감 모달)
+- **설정**: `settings/SkillDbPanel.tsx` (스킬 DB 관리), `settings/SkillsPanel.tsx`
 - 패시브(violet)와 액티브(purple) 구분 — DESIGN_GUIDE §4.9
 - **규칙 (필독)**: `skill_table` 항목을 추가/수정/삭제할 때마다 `lib/skills/skill-info.ts` 의 같은 id 항목도 함께 갱신한다. id가 누락되면 도감 모달에 "설명이 작성되지 않았습니다" 폴백이 노출됨. 효과 수치는 DB가 SoT, 도감 텍스트는 `skill-info.ts` 가 SoT — 두 곳을 분리해 둔 이유는 수치 튜닝과 문구 수정의 흐름이 다르기 때문이다.
 
@@ -191,15 +283,15 @@ UI(components/game/*.tsx)
 - **API**: `/api/push` (POST 구독 / DELETE 해제), `/api/cron/notify` (정기 알림 트리거)
 - **UI**: `PushSetup.tsx` (`SettingsDrawer.tsx`에서 진입)
 - 외부 cron-job.org에서 `/api/cron/notify`를 분 단위로 호출 (Hobby 플랜 Vercel Cron은 일 1회 제한이라 분 단위 알림은 외부 서비스 사용)
-- Bearer 토큰: `CRON_SECRET` env로 검증
+- Bearer 토큰: `lib/admin/token.ts`로 검증 (`CRON_SECRET` env)
 
 ### 5.13 게임 설정 / 프롬프트
 
 - **DB**: `game_config`(key/value/description), `prompt`
 - **쿼리**: `lib/db/queries/config.ts`, `prompt.ts`
 - **API**: `/api/config` (GET/PUT), `/api/prompt` (GET/PUT)
-- **UI**: `SettingsDrawer.tsx` 인라인 에디터
-- 모든 게임 수치는 DB에 있어 코드 수정 없이 튜닝 가능
+- **UI**: `settings/ConfigPanel.tsx` (game_config), `settings/PromptPanel.tsx` (AI 프롬프트), `settings/ResetPanel.tsx` (초기화)
+- 모든 게임 수치는 DB에 있어 코드 수정 없이 튜닝 가능. UI 상수(색상 등)는 `lib/constants/ui.ts`
 
 ---
 
@@ -273,5 +365,8 @@ STR=red · VIT=emerald · DEX=sky · INT=violet · LUK=amber
 3. **"색깔/이모지 뭐 쓰지?"** → §7 요약 → `DESIGN_GUIDE.md` 디테일
 4. **"DB 어떤 테이블?"** → §6 인덱스 → `lib/db/schema.ts` 직접
 5. **"배포가 안 보여"** → §8 + `DEPLOY_NOTES.md`
+6. **"전역 상태 어디서 읽어?"** → `contexts/CharacterContext.tsx` (캐릭터), `contexts/ToastContext.tsx` (토스트)
+7. **"서브컴포넌트 어디?"** → §2 디렉토리 지도 `components/game/` 하위 폴더 참조
+8. **"상수 어디 정의돼?"** → `lib/constants/` (game 수치는 DB `game_config`가 SoT)
 
 이 문서는 **코드의 네비게이션 인덱스**다. 코드가 진실의 원천(SoT)이므로, 이 지도와 코드가 충돌하면 코드를 믿고 이 문서를 갱신하라.
