@@ -66,7 +66,6 @@ export type Character = {
   max_hp: number
   current_mp: number
   max_mp: number
-  attendance_streak: number
   max_cleared_grade: string | null
   last_regen_at: string | null
   pending_battle_monster: string | null
