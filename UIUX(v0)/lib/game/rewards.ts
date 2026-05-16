@@ -10,7 +10,9 @@
  *   - 응답 shape 변경 (route 들이 의존)
  */
 
+import type { Transaction } from "@libsql/client"
 import { addActivityLog, incrementTaskCount } from "@/lib/db"
+import { tx } from "@/lib/db/queries/_helpers"
 import { gainExp } from "@/lib/game"
 
 /** 보상의 출처. activity_log.type 칼럼에 그대로 들어간다. */
@@ -26,18 +28,25 @@ export interface RewardResult {
 /**
  * 보상 적용 표준 시퀀스: activity_log 기록 → task_count 증가 → gainExp.
  *
- * 호출 순서·SQL 트랜잭션 경계는 기존 route 패턴과 동일.
- * gainExp 의 반환값을 그대로 통과시킨다 (route 응답에서 spread 가능).
+ * 세 단계 모두 단일 트랜잭션 안에서 실행 — 일부 실패 시 전체 rollback.
+ * externalTx 가 주어지면 호출자 트랜잭션에 합류 (route 가 setTodoReward 등과 묶을 때).
+ * 없으면 자체 tx() 로 묶는다.
  *
  * exp === 0 이어도 모두 호출한다 (기존 동작 유지 — 그룹 보너스 0 케이스 등).
  */
-export async function applyReward(opts: {
-  source: RewardSource
-  label: string
-  exp: number
-  comment: string
-}): Promise<RewardResult> {
-  await addActivityLog(opts.label, opts.source, opts.exp, opts.comment)
-  await incrementTaskCount()
-  return await gainExp(opts.exp)
+export async function applyReward(
+  opts: {
+    source: RewardSource
+    label: string
+    exp: number
+    comment: string
+  },
+  externalTx?: Transaction,
+): Promise<RewardResult> {
+  const run = async (t: Transaction) => {
+    await addActivityLog(opts.label, opts.source, opts.exp, opts.comment, t)
+    await incrementTaskCount(t)
+    return await gainExp(opts.exp, t)
+  }
+  return externalTx ? await run(externalTx) : await tx(run)
 }

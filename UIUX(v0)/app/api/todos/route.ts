@@ -8,6 +8,7 @@ import { now } from "@/lib/time/kst"
 import { judgeActivity } from "@/lib/ai"
 import { calcDueBonus } from "@/lib/game/exp-bonus"
 import { applyReward } from "@/lib/game/rewards"
+import { tx } from "@/lib/db/queries/_helpers"
 import { ok, badRequest, notFound, withInit } from "@/lib/api/respond"
 import { DEFAULT_ITEM_EXP } from "@/lib/constants/exp"
 
@@ -54,14 +55,14 @@ export const PATCH = withInit(async (req: NextRequest) => {
   if (bonusExp > 0) comment = `⏰ 기한 내 완료! ${comment}`
   else if (penaltyApplied) comment = `⌛ 기한 초과 (EXP 절반)`
 
-  // claim 단계에서 exp/comment 는 null 로 남아있으므로 finalize.
-  await setTodoReward(id as number, exp, comment)
-
-  const levelResult = await applyReward({
-    source: "todo",
-    label: item.name as string,
-    exp,
-    comment,
+  // setTodoReward + applyReward 를 동일 트랜잭션 안에서 묶어 부분 실패 방지.
+  // 어느 한 단계라도 실패하면 전체 rollback — is_completed=1 은 claim 단계라 별개.
+  const levelResult = await tx(async (t) => {
+    await setTodoReward(id as number, exp, comment, t)
+    return await applyReward(
+      { source: "todo", label: item.name as string, exp, comment },
+      t,
+    )
   })
 
   return ok({ exp, comment, bonusExp, penaltyApplied, ...levelResult })
