@@ -17,6 +17,7 @@ import SkillsPanel from "./settings/SkillsPanel"
 import SkillDbPanel from "./settings/SkillDbPanel"
 import ConfigPanel from "./settings/ConfigPanel"
 import BattleConfigPanel from "./settings/BattleConfigPanel"
+import ItemGradePanel from "./settings/ItemGradePanel"
 import ResetPanel from "./settings/ResetPanel"
 
 interface SettingsDrawerProps {
@@ -51,6 +52,7 @@ export default function SettingsDrawer({ onDataChanged, onClose }: SettingsDrawe
           <SkillDbPanel />
           <ConfigPanel />
           <BattleConfigPanel />
+          <ItemGradePanel />
           <ResetPanel onClose={onClose} />
         </div>
       </div>
