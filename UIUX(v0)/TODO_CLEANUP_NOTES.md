@@ -1,8 +1,8 @@
 # 할일 체크 기능 코드 리뷰 및 개선 작업
 
-**세션 날짜**: 2026-05-16 (1차) + 2026-05-16 (2차)  
+**세션 날짜**: 2026-05-16 (1차/2차/3차)  
 **모델**: Claude Opus 4.7 → Haiku 4.5 → Opus 4.7  
-**상태**: #1 부분 / #2 / #4 / #5 완료 — #1 완전 해결(전체 트랜잭션 통합)은 별도 RFC
+**상태**: #2 / #3 / #4 / #5 완료, #1 부분 — #1 완전 해결만 다음 세션에서 진행
 
 ---
 
@@ -218,35 +218,182 @@ try {
 
 ---
 
-## 참고: 원래 코드 리뷰 전체 (완료 + 미완료)
+## 3차 세션 완료 내역 (#3)
+
+### #3: PUT/DELETE 응답 shape 통일 — 완료
+
+**파일**: `app/api/todos/route.ts`, `components/game/TodoSection.tsx`, `components/game/TasksTab.tsx`, `hooks/useTodos.ts`
+
+#### 핵심 변경
+
+이전 불일치:
+- GET / POST → `ok({ items })` (객체)
+- PUT / DELETE → `ok(await getTodoItems())` (배열 직접) ← 불일치
+
+수정 후:
+```ts
+// app/api/todos/route.ts
+export const PUT = withInit(async (req) => {
+  // ...
+  return ok({ items: await getTodoItems() })  // ← { items } 로 통일
+})
+
+export const DELETE = withInit(async (req) => {
+  await deleteTodoItem(id)
+  return ok({ items: await getTodoItems() })  // ← 동일
+})
+```
+
+#### 클라이언트 영향
+
+- `TodoSection.saveTodoName`/`saveNotifyTime` — `Array.isArray(data) ? data : data?.items ?? []` 의 폴백 제거. `data?.items ?? []` 만 사용
+- `TodoSection.addTodo` — `data?.items ?? data ?? []` → `data?.items ?? []`
+- `TasksTab.executeDelete` — `apiDelete<TodoItem[]>` → `apiDelete<{ items: TodoItem[] }>`
+- `useTodos.refetch` — `{ items?: TodoItem[] } | TodoItem[]` union → `{ items: TodoItem[] }` 단일 타입
+
+#### 효과
+
+- 4개 메서드(GET/POST/PUT/DELETE) 응답 shape 일관성. `/api/checklist`, `/api/routines` 와 동일 패턴
+- 클라이언트의 `Array.isArray()` 방어 코드 제거 → 가독성 향상
+- 응답 구조 확장(예: `{ items, meta }` 추가)이 자연스러워짐
+
+---
+
+## 3차 배포 상태
+
+| 항목 | 값 |
+|------|-----|
+| 커밋 | (자동 watcher 가 처리, 아래 다음 세션 체크리스트의 git log 참조) |
+| 상태 | ✓ Ready / Production |
+| 변경 파일 | `app/api/todos/route.ts`, `components/game/TodoSection.tsx`, `components/game/TasksTab.tsx`, `hooks/useTodos.ts` |
+
+**검증**: `npx tsc --noEmit` ✅, `npx next build` ✅ (23 routes).
+
+---
+
+## 참고: 원래 코드 리뷰 전체
 
 | # | 제목 | 우선순위 | 상태 | 세션 |
 |----|------|----------|------|-----|
 | #1 | 트랜잭션 경계 부재 | 높음 | ◐ 부분 (race 해결, 보상 시퀀스는 RFC) | 2차 |
 | #2 | 다른 탭 race UX | 높음 | ✓ 완료 | 1차 |
-| #3 | PUT 응답 shape 불일치 | 낮음 | - | - |
+| #3 | PUT 응답 shape 불일치 | 낮음 | ✓ 완료 | 3차 |
 | #4 | fetch 실패 토스트 없음 | 중 | ✓ 완료 | 1차 |
 | #5 | AI 호출 순서 | 중 | ✓ 완료 | 2차 |
-| ... | (기타 소수 이슈) | 낮음 | - | 나중 |
 
 ---
 
-## 별도 RFC 필요 항목
+## 다음 세션 작업: #1 완전 해결 (보상 시퀀스 트랜잭션 통합)
 
-### #1 완전 해결: 보상 시퀀스 전체 트랜잭션 통합
+### 현재 상태
 
-**범위**: `claim → setTodoReward → addActivityLog → incrementTaskCount → gainExp` 를 한 BEGIN..COMMIT 으로 묶기.
+`PATCH /api/todos` 의 보상 시퀀스:
+```
+1. claimTodoItem(id)              ← UPDATE is_completed=1 (atomic race-guard)
+2. judgeActivity (winner 만)      ← Gemini AI (외부 IO)
+3. calcDueBonus                   ← 순수 계산
+4. setTodoReward(id, exp, comment) ← UPDATE exp_gained, ai_comment
+5. applyReward({...})              ← 내부적으로:
+   5.1 addActivityLog              ← INSERT activity_log
+   5.2 incrementTaskCount          ← UPDATE character.task_count
+   5.3 gainExp(exp)                ← 자체 트랜잭션 (lib/game.ts:42-123)
+       - SELECT character
+       - 레벨업 루프 (순수 계산)
+       - SELECT equipment (레벨업 시)
+       - UPDATE character
+       - COMMIT
+```
 
-**난점**: `gainExp` (lib/game.ts:42-123) 가 자체 트랜잭션 + 레벨업 루프 + equipment 재read 로 max_hp 갱신. REFACTOR_PLAN 의 "건드리지 말아야 할 것" 목록 1번. 시그니처 변경(외부 Transaction 인자 받기) 또는 본문 추출 필요.
+**잔여 리스크**: 4~5.2 단계 중 일부 실패 시
+- `is_completed=1` 은 반영됨 (claim 단계)
+- `exp_gained` 가 null 인 채 todo 가 완료 표시될 가능성 (setTodoReward 실패)
+- `addActivityLog`/`incrementTaskCount` 중 일부만 적용될 가능성
+- `gainExp` 자체는 자체 트랜잭션이라 부분 실패 위험 낮음
 
-**선택지**:
-- A) `gainExp(exp, t?: Transaction)` 로 외부 트랜잭션 주입 가능하게 변경
-- B) `applyReward` 를 `tx()` 래핑 + 내부의 모든 호출을 t.execute 로 마이그레이션
-- C) 보상 실패 시 retry 큐 (Vercel cron + retry_log 테이블)
+현재까지 보상 부분 실패 incident 보고 없음 → 우선순위 낮음. 그러나 EXP 시스템 신뢰성 보강 차원에서 향후 진행 가치.
 
-**의사결정 트리거**: 실제로 보상 부분 실패 사례가 관측되면 진행. 현재까지 incident 보고 없음 → 우선순위 낮음.
+### 해결 옵션
+
+#### 옵션 A) gainExp 시그니처 확장 (선택 인자)
+
+```ts
+// lib/game.ts
+export async function gainExp(
+  expAmount: number,
+  t?: Transaction,  // 외부 트랜잭션 주입 가능
+): Promise<RewardResult> {
+  const ownsTx = !t
+  const client = getClient()
+  t = t ?? await client.transaction("write")
+  try {
+    // 기존 SELECT/UPDATE 본문을 t.execute 로 통일
+    // ...
+    if (ownsTx) await t.commit()
+    return result
+  } catch (e) {
+    if (ownsTx) await t.rollback()
+    throw e
+  }
+}
+```
+
+`addActivityLog`, `incrementTaskCount` 도 동일 패턴(`t?: Transaction`)으로 확장.
+
+`applyReward` 를 `tx()` 안에서 호출하도록 변경:
+```ts
+// lib/game/rewards.ts
+export async function applyReward(opts) {
+  return await tx(async (t) => {
+    await addActivityLog(opts.label, opts.source, opts.exp, opts.comment, t)
+    await incrementTaskCount(t)
+    return await gainExp(opts.exp, t)
+  })
+}
+```
+
+route.ts 의 `setTodoReward` 도 트랜잭션 안에 합치려면 `applyReward` 가 추가 SQL 받게 시그니처 확장 필요. 또는 `tx()` 를 route 레벨에서 열고 `setTodoReward(id, exp, comment, t)` + `applyReward(opts, t)` 호출.
+
+#### 옵션 C) Retry queue
+
+`retry_log` 테이블 (todo_id, exp, comment, attempted_at, status) 신규.
+`applyReward` catch 에서 실패 시 `retry_log` INSERT.
+Vercel cron 으로 N분마다 pending 항목 재시도.
+
+장점: 기존 코드 시그니처 무수정. 단점: 새 테이블 + cron + 모니터링 필요.
+
+#### 추천
+
+- 변경 범위 작고 컴파일 타임 검증 강한 옵션 A 우선
+- 옵션 C 는 옵션 A 후에도 발생하는 잔여 실패 (예: equipment race) 에 대한 안전망으로 추가
+
+### 영향 범위 (옵션 A)
+
+`gainExp` 의 호출자 (트랜잭션 인자 추가에 영향 없음 — 기존 호출은 `t` 생략):
+```
+grep -rn "gainExp(" lib/ app/
+```
+호출 위치들 (route.ts, applyReward 등) 그대로 작동. 단 `applyReward` 만 트랜잭션으로 묶도록 변경.
+
+`addActivityLog`, `incrementTaskCount` 의 호출자도 동일하게 옵션 인자 추가는 무영향.
+
+### 다음 세션 체크리스트
+
+- [ ] 이 문서 + REFACTOR 작업 컨텍스트 복기
+- [ ] `lib/game.ts` 의 gainExp 시그니처 확장 (선택 인자 `t?: Transaction`)
+- [ ] `lib/db/queries/activity.ts` 의 addActivityLog 시그니처 확장
+- [ ] `lib/db/queries/character.ts` 의 incrementTaskCount 시그니처 확장
+- [ ] `lib/game/rewards.ts` 의 applyReward 를 `tx()` 래핑
+- [ ] `app/api/todos/route.ts` PATCH 의 setTodoReward + applyReward 를 `tx()` 안에 합치기
+- [ ] 다른 보상 호출자 (battle, attendance, projects, checklist, routines, quest) 의 영향 확인 — gainExp/addActivityLog/incrementTaskCount 호출자 모두 무수정 동작 확인
+- [ ] typecheck + build + 로컬 시나리오 검증
+
+### 위험도 / 회귀 시나리오
+
+- `gainExp` 본문은 REFACTOR_PLAN 의 "건드리지 말아야 할 것" 목록이었음 (레벨업 루프 + equipment 재read). 본문 자체는 보존하고 외부 트랜잭션만 주입하는 형태로 안전 확보
+- 회귀 가능성: 외부 트랜잭션 안에서 cfg/bcfg/skills read 가 일어나는 부분. 이건 read-only 영역이라 트랜잭션 외부 read 유지가 적절 (현재 코드 주석 그대로)
+- 회귀 검증: 5가지 핵심 시나리오 (체크리스트 7일 streak, todo due time 보너스/페널티, routine 마감, 가챠 1회/10회, 출석 7일 연속) 실행 후 character.total_exp 동일성 확인
 
 ---
 
 **작성자**: Claude Opus 4.7  
-**최종 수정**: 2026-05-16 11:00 KST (2차 세션)
+**최종 수정**: 2026-05-16 11:15 KST (3차 세션)
