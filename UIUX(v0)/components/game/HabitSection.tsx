@@ -35,7 +35,7 @@ export default function HabitSection({
   habitGroups, setHabitGroups, bonusGroupIds, setBonusGroupIds,
   onConfirmDelete, onExpGained,
 }: Props) {
-  const { showExp } = useToast()
+  const { showExp, showError } = useToast()
   const [completing, setCompleting] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState("")
@@ -75,19 +75,20 @@ export default function HabitSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemId: item.id }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
       if (!res.ok) {
+        // 다른 디바이스/탭이 먼저 완료 → DB는 완료, UI도 완료로 유지
+        if (data?.code === "already_completed") {
+          if (isAi) setCheckedDailyIds((prev) => new Set([...prev, item.id]))
+          return
+        }
         if (!isAi) setCheckedDailyIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+        showError(data?.error ?? "완료 처리 실패")
         return
       }
-      if (isAi) setCheckedDailyIds((prev) => new Set([...prev, item.id]))
-      setDailyItems((prev) => prev.map((d) => d.id === item.id ? { ...d, streak: data.streak } : d))
-      setHabitGroups((prev) => prev.map((g) => ({
-        ...g,
-        items: g.items.map((it) => it.id === item.id ? { ...it, streak: data.streak } : it),
-      })))
+      // 응답 shape 가 GET 와 동일 (items/checkedIds/groups/bonusGroupIds 포함) — 한 번에 전체 동기화
+      refreshFromResponse(data)
       if (data.groupBonus && item.group_id) {
-        setBonusGroupIds((prev) => new Set([...prev, item.group_id!]))
         showExp(data.exp, data.comment, undefined, data.penaltyExp > 0 ? data.penaltyExp : undefined)
         setTimeout(() => {
           showExp(data.groupBonus, `'${data.groupName}' 스택 완성!`, data.groupBonus)
@@ -98,6 +99,7 @@ export default function HabitSection({
       onExpGained?.()
     } catch {
       if (!isAi) setCheckedDailyIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+      showError("네트워크 오류 — 잠시 후 다시 시도하세요")
     } finally {
       if (isAi) setCompleting(null)
     }

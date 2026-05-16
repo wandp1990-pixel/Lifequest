@@ -1,5 +1,10 @@
+import type { Transaction } from "@libsql/client"
 import { getClient } from "../client"
 import { now, todayKST, yesterdayKST } from "@/lib/time/kst"
+import { calcStreakBonus } from "@/lib/game/exp-bonus"
+
+type Exec = Pick<Transaction, "execute">
+const runner = (t?: Exec): Exec => t ?? getClient()
 
 export interface HabitGroup {
   id: number
@@ -70,37 +75,20 @@ export async function getChecklistItems() {
   return res.rows
 }
 
-// missedDays = days_since_last - 1 (어제 완료=miss 0, 2일 전=miss 1, ...)
-export function penaltyExpForMissedDays(missedDays: number, baseExp: number): number {
-  if (missedDays <= 0) return 0
-  const pct = Math.min(missedDays * 0.1, 0.5)
-  return Math.floor(baseExp * pct)
-}
-
-export function streakBonusExp(streak: number, baseExp: number): number {
-  let pct = 0
-  if (streak >= 100) pct = 1.0
-  else if (streak >= 60) pct = 0.75
-  else if (streak >= 30) pct = 0.5
-  else if (streak >= 14) pct = 0.25
-  else if (streak >= 7) pct = 0.1
-  return Math.floor(baseExp * pct)
-}
-
-export async function updateChecklistStreak(itemId: number): Promise<{ streak: number; bonusExp: number; isReturn: boolean }> {
-  const db = getClient()
+// t 가 주어지면 트랜잭션 안에서 실행 (route 가 보상 시퀀스를 한 묶음으로 묶을 때).
+// libsql write transaction 은 직렬이라 SELECT 두 번을 Promise.all 로 못 묶고 await 직렬로 처리.
+export async function updateChecklistStreak(itemId: number, t?: Exec): Promise<{ streak: number; bonusExp: number; isReturn: boolean }> {
+  const r = runner(t)
   const yesterday = yesterdayKST()
 
-  const [yesterdayRes, itemRes] = await Promise.all([
-    db.execute({
-      sql: "SELECT 1 FROM checklist_log WHERE item_id=? AND checked_at LIKE ? LIMIT 1",
-      args: [itemId, `${yesterday}%`],
-    }),
-    db.execute({
-      sql: "SELECT streak, best_streak, fixed_exp FROM checklist_item WHERE id=?",
-      args: [itemId],
-    }),
-  ])
+  const yesterdayRes = await r.execute({
+    sql: "SELECT 1 FROM checklist_log WHERE item_id=? AND checked_at LIKE ? LIMIT 1",
+    args: [itemId, `${yesterday}%`],
+  })
+  const itemRes = await r.execute({
+    sql: "SELECT streak, best_streak, fixed_exp FROM checklist_item WHERE id=?",
+    args: [itemId],
+  })
 
   const item = itemRes.rows[0]
   const currentStreak = (item?.streak as number) ?? 0
@@ -112,18 +100,18 @@ export async function updateChecklistStreak(itemId: number): Promise<{ streak: n
   const newBest = Math.max(bestStreak, newStreak)
   const isReturn = !hadYesterday && currentStreak > 0
 
-  await db.execute({
+  await r.execute({
     sql: "UPDATE checklist_item SET streak=?, best_streak=? WHERE id=?",
     args: [newStreak, newBest, itemId],
   })
 
-  return { streak: newStreak, bonusExp: streakBonusExp(newStreak, baseExp), isReturn }
+  return { streak: newStreak, bonusExp: calcStreakBonus(newStreak, baseExp).bonus, isReturn }
 }
 
 // 오늘 자리 선점 (race 방어). 이미 있으면 null 반환.
-export async function claimChecklistLog(itemId: number): Promise<number | null> {
-  const db = getClient()
-  const res = await db.execute({
+// 트랜잭션 안에서 호출되면 그룹 보너스 카운트 검사가 같은 시점 스냅샷을 보장 (libsql write tx 직렬 격리).
+export async function claimChecklistLog(itemId: number, t?: Exec): Promise<number | null> {
+  const res = await runner(t).execute({
     sql: "INSERT OR IGNORE INTO checklist_log (item_id,exp_gained,checked_at) VALUES (?,0,?)",
     args: [itemId, now()],
   })
@@ -131,9 +119,8 @@ export async function claimChecklistLog(itemId: number): Promise<number | null> 
   return Number(res.lastInsertRowid)
 }
 
-export async function setChecklistLogExp(logId: number, exp: number) {
-  const db = getClient()
-  await db.execute({
+export async function setChecklistLogExp(logId: number, exp: number, t?: Exec) {
+  await runner(t).execute({
     sql: "UPDATE checklist_log SET exp_gained=? WHERE id=?",
     args: [exp, logId],
   })
@@ -269,28 +256,30 @@ export async function getTodayBonusGroupIds(): Promise<Set<number>> {
   return new Set(res.rows.map((r) => r.group_id as number))
 }
 
-export async function claimHabitGroupBonus(groupId: number): Promise<number | null> {
-  const db = getClient()
+// 트랜잭션 안에서 호출 권장 — 같은 그룹의 다른 항목이 claim 한 직후 시점에서도
+// SELECT count 가 그 변경을 봐 "다 끝났는데 보너스 미적립" race 가 해소된다 (libsql 직렬 격리).
+export async function claimHabitGroupBonus(groupId: number, t?: Exec): Promise<number | null> {
+  const r = runner(t)
   const today = todayKST()
 
-  const allItems = await db.execute({
+  const allItems = await r.execute({
     sql: "SELECT id, fixed_exp FROM checklist_item WHERE is_active=1 AND group_id=?",
     args: [groupId],
   })
   if (allItems.rows.length === 0) return null
 
-  const ids = allItems.rows.map((r) => r.id as number)
+  const ids = allItems.rows.map((row) => row.id as number)
   const ip = ids.map(() => "?").join(",")
-  const checkedRes = await db.execute({
+  const checkedRes = await r.execute({
     sql: `SELECT COUNT(*) as cnt FROM checklist_log WHERE item_id IN (${ip}) AND checked_at LIKE ?`,
     args: [...ids, `${today}%`],
   })
   const checkedCount = checkedRes.rows[0]?.cnt as number ?? 0
   if (checkedCount < allItems.rows.length) return null
 
-  const bonusExp = allItems.rows.reduce((sum, r) => sum + (r.fixed_exp as number), 0)
+  const bonusExp = allItems.rows.reduce((sum, row) => sum + (row.fixed_exp as number), 0)
 
-  const claimRes = await db.execute({
+  const claimRes = await r.execute({
     sql: "INSERT OR IGNORE INTO habit_group_bonus_log (group_id, bonus_exp, granted_at) VALUES (?,?,?)",
     args: [groupId, bonusExp, now()],
   })

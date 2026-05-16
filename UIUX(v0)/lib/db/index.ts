@@ -7,8 +7,7 @@ export { addActivityLog, getRecentActivities } from "./queries/activity"
 export {
   getChecklistItems, addChecklistLog, claimChecklistLog, setChecklistLogExp,
   addChecklistItem, deleteChecklistItem, getTodayCheckedItemIds,
-  updateChecklistStreak, streakBonusExp, updateChecklistItemName,
-  penaltyExpForMissedDays,
+  updateChecklistStreak, updateChecklistItemName,
   getHabitGroups, getTodayBonusGroupIds, claimHabitGroupBonus,
   addHabitGroup, updateHabitGroupName, deleteHabitGroup,
   setItemGroup, reorderHabitGroups,

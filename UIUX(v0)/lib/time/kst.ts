@@ -29,7 +29,9 @@ export function todayKST(): string {
 /** 어제 날짜를 "YYYY-MM-DD" KST 문자열로 반환. */
 export function yesterdayKST(): string {
   const d = kstDate()
-  d.setDate(d.getDate() - 1)
+  // UTC accessor 사용 — kstDate() 가 epoch ms 에 +9h 한 가짜 Date 라 KST 정보는 UTC accessor 로만 정확.
+  // setDate/getDate (로컬 TZ) 는 서버 TZ 가 UTC 가 아닐 때 어긋남.
+  d.setUTCDate(d.getUTCDate() - 1)
   return d.toISOString().slice(0, 10)
 }
 
