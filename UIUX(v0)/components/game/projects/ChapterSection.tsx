@@ -129,25 +129,28 @@ export default function ChapterSection({
   return (
     <div className="rounded-xl border border-violet-500/30 bg-card overflow-hidden">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2.5 active:bg-muted/40 transition-colors"
+        className="w-full flex flex-col px-3 pt-2.5 pb-2 active:bg-muted/40 transition-colors"
         onClick={toggleExpanded}
       >
-        <BookOpen size={14} className="text-violet-400 shrink-0" />
-        <span className="text-xs font-bold text-violet-400 flex-1 text-left truncate">{ch.name}</span>
-        {ch.end_date && (
-          <span className={`text-[10px] shrink-0 ${isDueSoon(ch.end_date) ? "text-red-400 font-bold" : "text-muted-foreground"}`}>
-            {isDueSoon(ch.end_date) ? "⚠ " : ""}{formatDate(ch.end_date)}
+        <div className="flex items-center gap-2 w-full">
+          <BookOpen size={14} className="text-violet-400 shrink-0" />
+          <span className="text-xs font-bold text-violet-400 flex-1 text-left truncate">{ch.name}</span>
+          {ch.end_date && (
+            <span className={`text-[10px] shrink-0 ${isDueSoon(ch.end_date) ? "text-red-400 font-bold" : "text-muted-foreground"}`}>
+              {isDueSoon(ch.end_date) ? "⚠ " : ""}{formatDate(ch.end_date)}
+            </span>
+          )}
+          {expanded ? <ChevronDown size={14} className="text-muted-foreground shrink-0" /> : <ChevronRight size={14} className="text-muted-foreground shrink-0" />}
+        </div>
+        <div className="flex items-center gap-2 w-full mt-1.5 pl-5">
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <span className="text-[10px] text-muted-foreground shrink-0">
+            {totalTasks > 0 ? `${doneTasks}/${totalTasks}` : `${ch.done_projects}/${ch.total_projects}`}
           </span>
-        )}
-        <span className="text-[10px] text-muted-foreground shrink-0">
-          {totalTasks > 0 ? `${doneTasks}/${totalTasks}` : `${ch.done_projects}/${ch.total_projects}`}
-        </span>
-        {expanded ? <ChevronDown size={14} className="text-muted-foreground shrink-0" /> : <ChevronRight size={14} className="text-muted-foreground shrink-0" />}
+        </div>
       </button>
-
-      <div className="h-1 bg-muted">
-        <div className="h-full bg-violet-500 transition-all" style={{ width: `${pct}%` }} />
-      </div>
 
       {expanded && (
         <div className="px-3 pb-3 pt-2 space-y-2 border-t border-border/50">
