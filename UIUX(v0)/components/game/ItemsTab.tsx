@@ -117,8 +117,11 @@ export default function ItemsTab({ refreshTick }: Props) {
 
   const handleEquipFromStash = async (item: EquipmentItem) => {
     const cur = equippedMap[item.slot]
-    if (cur) await patchInventory({ action: "delete", itemId: cur.id })
+    // 주의: handleReplace 와 동일 순서(equip new → delete old) 유지.
+    //       반대 순서로 호출하면 1차 PATCH 직후 effective max HP 가 일시 감소해
+    //       서버측 current_hp 캡으로 인한 영구 손실이 발생함. (검증 보고서 HIGH 2)
     await patchInventory({ action: "equip", itemId: item.id })
+    if (cur) await patchInventory({ action: "delete", itemId: cur.id })
     await fetchInventory()
     refetch()
   }

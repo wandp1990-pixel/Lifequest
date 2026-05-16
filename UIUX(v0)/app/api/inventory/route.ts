@@ -62,13 +62,16 @@ export const PATCH = withInit(async (req: NextRequest) => {
   const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, boostedSkills)
   const effMaxHp = Math.round(cs.max_hp)
   const effMaxMp = Math.round(cs.max_mp)
-  // 장비 제거로 max 가 감소했을 때 current_hp 가 초과하면 new max 로 캡
+  // 정책: 장비 변경은 회복 기준점으로 취급 (last_regen_at 리셋).
+  // 누락 시: 장비 해제로 max 감소했으나 current 가 cap 에 안 걸린 경우,
+  // 직후 calcRegen 이 과거 시각 기준 elapsed 로 비정상 회복하는 버그.
+  // max 변경 여부와 무관하게 모든 장비 변경 액션 후 갱신.
+  const updateFields: Record<string, number | string> = { last_regen_at: now() }
   if (char.current_hp > effMaxHp || char.current_mp > effMaxMp) {
-    await updateCharacter({
-      current_hp: Math.min(char.current_hp, effMaxHp),
-      current_mp: Math.min(char.current_mp, effMaxMp),
-    })
+    updateFields.current_hp = Math.min(char.current_hp, effMaxHp)
+    updateFields.current_mp = Math.min(char.current_mp, effMaxMp)
   }
+  await updateCharacter(updateFields)
   return ok({ ok: true, pity_count: char.pity_count ?? 0 })
 })
 

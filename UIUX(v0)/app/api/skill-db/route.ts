@@ -1,6 +1,24 @@
-import { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getAllSkillsDb, createSkillDb, updateSkillDb, deleteSkillDb } from "@/lib/db"
 import { ok, badRequest, withInit } from "@/lib/api/respond"
+
+/**
+ * 쓰기 요청 인증 가드.
+ * - `ADMIN_SECRET` 환경변수가 설정되어 있으면 `Authorization: Bearer <secret>` 헤더를 강제.
+ * - 미설정이면 skip (cron/notify 패턴과 동일: env 있을 때만 enforce).
+ * - GET 은 면제 (UI 에서 호출, settings 패널 표시용).
+ *
+ * 인증 통과 시 null, 실패 시 401 NextResponse 반환.
+ */
+function requireAdmin(req: NextRequest): NextResponse | null {
+  const secret = process.env.ADMIN_SECRET
+  if (!secret) return null
+  const authHeader = req.headers.get("authorization")
+  if (authHeader !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  return null
+}
 
 export const GET = withInit(async () => {
   const skills = await getAllSkillsDb()
@@ -8,6 +26,8 @@ export const GET = withInit(async () => {
 })
 
 export const POST = withInit(async (req: NextRequest) => {
+  const unauth = requireAdmin(req)
+  if (unauth) return unauth
   const data = await req.json()
   await createSkillDb(data)
   const skills = await getAllSkillsDb()
@@ -15,6 +35,8 @@ export const POST = withInit(async (req: NextRequest) => {
 })
 
 export const PUT = withInit(async (req: NextRequest) => {
+  const unauth = requireAdmin(req)
+  if (unauth) return unauth
   const { id, ...data } = await req.json()
   if (!id) return badRequest("id required")
   await updateSkillDb(id, data)
@@ -23,6 +45,8 @@ export const PUT = withInit(async (req: NextRequest) => {
 })
 
 export const DELETE = withInit(async (req: NextRequest) => {
+  const unauth = requireAdmin(req)
+  if (unauth) return unauth
   const { searchParams } = new URL(req.url)
   const id = searchParams.get("id")
   if (!id) return badRequest("id required")

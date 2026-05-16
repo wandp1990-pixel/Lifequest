@@ -30,7 +30,6 @@ export {
   updateRoutineName, updateRoutineItemName, updateRoutineChapter,
 } from "./queries/routine"
 export { getEquipment, addEquipment, equipItem, unequipItem, deleteEquipment } from "./queries/equipment"
-export { addBattleLog } from "./queries/battle"
 export { getGameConfig, getGameConfigFull, updateGameConfigValue, getBattleConfig, getBattleConfigFull, updateBattleConfigValue } from "./queries/config"
 export { getActivePrompt, updatePromptContent } from "./queries/prompt"
 export { getItemGrades, getItemSlots, getAbilityPool, getPassivePool, updateItemGradeWeight } from "./queries/items"

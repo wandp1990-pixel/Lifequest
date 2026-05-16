@@ -4,6 +4,7 @@ import { requiredExp, recalcHpMp } from "@/lib/game"
 import { buildPlayerCombatStats, parseEquippedStatBonuses } from "@/lib/battle"
 import { ensureChecklistItems } from "@/lib/db/seed"
 import { ok, notFound, withInit } from "@/lib/api/respond"
+import { now } from "@/lib/time/kst"
 
 // 캐릭터 정보 조회 + 장비/스킬 포함 effective 스탯 계산
 // effective: buildPlayerCombatStats로 계산한 아이템/패시브 보너스 포함 최종 스탯
@@ -142,13 +143,19 @@ export const PUT = withInit(async (req: NextRequest) => {
     const effMaxHp = Math.round(cs.max_hp)
     const effMaxMp = Math.round(cs.max_mp)
 
-    await updateCharacter({
+    // current_hp / current_mp 가 수동 편집된 경우, 회복 기준점(last_regen_at)도 함께 리셋.
+    // 누락 시: 수동 편집 후 calcRegen 호출이 과거 시각 기준 elapsed 로 비정상 회복하는 버그.
+    const updateFields: Record<string, number | string> = {
       ...fields,
       max_hp: maxHp,
       max_mp: maxMp,
       current_hp: Math.min(merged.current_hp, effMaxHp),
       current_mp: Math.min(merged.current_mp, effMaxMp),
-    })
+    }
+    if ("current_hp" in fields || "current_mp" in fields) {
+      updateFields.last_regen_at = now()
+    }
+    await updateCharacter(updateFields)
   }
   const char = await getCharacter()
   const cfg = await getGameConfig()

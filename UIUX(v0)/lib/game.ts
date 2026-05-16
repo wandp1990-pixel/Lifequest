@@ -99,6 +99,9 @@ export async function gainExp(expAmount: number) {
       const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)
       updates.current_hp = Math.round(cs.max_hp)
       updates.current_mp = Math.round(cs.max_mp)
+      // 풀회복 시 회복 기준점도 함께 리셋. 누락 시 풀회복 직후 HP 감소가 발생하면
+      // calcRegen 이 레벨업 이전 시각 기준 elapsed 로 비정상 회복 계산함.
+      updates.last_regen_at = now()
     }
 
     const sets = Object.keys(updates).map((k) => `${k} = ?`).join(", ")

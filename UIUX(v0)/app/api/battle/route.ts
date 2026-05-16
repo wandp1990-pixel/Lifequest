@@ -74,7 +74,12 @@ export async function POST() {
     // DB 설정에서 등급별 뽑기권 보상값 덮어쓰기
     monster.ticket_reward = parseInt(gameCfg[`monster_grade_${monster.grade_code}_tickets`] ?? "1")
 
-    // 전투 후 HP/MP 회복 정책: "full"(풀회복) / "half"(50%+현재) / "none"(현재 유지)
+    // 전투 후 HP/MP 회복 정책:
+    // - "full": 전투 시작 시 풀회복 (이중 회복 없음)
+    // - "half": 전투 시작 시 max/2 보장 (자연회복이 더 크면 자연회복 유지). 전투 종료 후 추가 회복 없음
+    // - "none": 자연회복(calcRegen) 값으로 시작, 종료 후 추가 회복 없음
+    // 회복 시계(last_regen_at)는 "none"에서는 갱신하지 않아 회복 진행이 리셋되지 않도록 함.
+    // "full"/"half"는 전투 시작 시 자연회복 또는 max 보정으로 시계가 의미 없어지므로 갱신.
     const restoreMode = (battleCfg.restore_hp_after_battle ?? "full").toLowerCase()
 
     // last_regen_at 기준 자연회복 적용 (서버-클라이언트 HP 표시 일치 보장)
@@ -84,21 +89,27 @@ export async function POST() {
     const regenedHp = calcRegen(char.current_hp, effMaxHp, char.vit + itemBonus.vit, char.last_regen_at)
     const regenedMp = calcRegen(char.current_mp, effMaxMp, char.int_stat + itemBonus.int_stat, char.last_regen_at)
 
-    // "full" 모드: 풀회복으로 시작 / "none"/"half": regen 값으로 시작
-    const startHp = restoreMode === "full" ? undefined : regenedHp
-    const startMp = restoreMode === "full" ? undefined : regenedMp
+    // startHp/startMp 결정 — 이중 회복 방지를 위해 finalHp 후처리는 제거하고 모드별로 시작값에 정책 반영
+    // "full": undefined → runBattle 내부에서 max로 시작
+    // "half": max(regenedHp, effMax/2) — 자연회복이 절반 이상이면 자연회복 유지
+    // "none": regenedHp 그대로
+    const startHp = restoreMode === "full" ? undefined
+                  : restoreMode === "half" ? Math.max(regenedHp, Math.floor(effMaxHp / 2))
+                  : regenedHp
+    const startMp = restoreMode === "full" ? undefined
+                  : restoreMode === "half" ? Math.max(regenedMp, Math.floor(effMaxMp / 2))
+                  : regenedMp
     const result = runBattle(playerCombat, monster, battleCfg, activeSkills, 30, startHp, startMp)
 
-    // 전투 후 HP/MP 최종값 결정 (모드별 분기)
-    // "full": 풀회복 / "half": 현재 + 50% (상한은 max) / "none": 현재값 유지
-    const finalHp = restoreMode === "full" ? Math.round(playerCombat.max_hp)
-                  : restoreMode === "half" ? Math.min(Math.round(playerCombat.max_hp), result.player_final_hp + Math.round(playerCombat.max_hp / 2))
-                  : result.player_final_hp
-    const finalMp = restoreMode === "full" ? Math.round(playerCombat.max_mp)
-                  : restoreMode === "half" ? Math.min(Math.round(playerCombat.max_mp), result.player_final_mp + Math.round(playerCombat.max_mp / 2))
-                  : result.player_final_mp
+    // 전투 후 HP/MP 최종값 = 전투 결과 그대로. 추가 회복은 시작값에 이미 반영됨
+    // "full" 모드만 풀회복 유지 (시작 max, 종료도 max로 통일 — 회복 정책)
+    const finalHp = restoreMode === "full" ? Math.round(playerCombat.max_hp) : result.player_final_hp
+    const finalMp = restoreMode === "full" ? Math.round(playerCombat.max_mp) : result.player_final_mp
 
+    // last_regen_at 갱신 정책: "none"은 회복 시계 유지 (사용자에게 불리한 시계 리셋 방지)
+    // "full"/"half"는 시작 시 회복 정책으로 자연회복 시계가 의미 없어지므로 now() 로 리셋
     const regenAt = now()
+    const newLastRegenAt = restoreMode === "none" ? (char.last_regen_at ?? regenAt) : regenAt
     const db = getClient()
     const tx = await db.transaction("write")
     try {
@@ -118,7 +129,7 @@ export async function POST() {
             (char.clear_count ?? 0) + 1,
             finalHp,
             finalMp,
-            regenAt,
+            newLastRegenAt,
             newMaxGrade,
             regenAt,
           ],
@@ -134,7 +145,7 @@ export async function POST() {
           args: [
             finalHp,
             finalMp,
-            regenAt,
+            newLastRegenAt,
             JSON.stringify(monster),
             regenAt,
           ],
