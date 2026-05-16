@@ -126,80 +126,95 @@ try {
 
 ---
 
-## 남은 작업 (다음 세션)
+## 2차 세션 완료 내역 (우선순위 #5 + #1 부분)
 
-### #1: 트랜잭션 경계 (정합성 리스크)
+### #5: AI 호출 순서 — 완료
 
-**심각도**: 높음 — EXP 시스템 신뢰성  
-**현상**: `completeTodoItem(id, exp, comment)` 성공 후 `applyReward()`의 한 단계(addActivityLog/incrementTaskCount/gainExp) 실패 가능성
+**파일**: `lib/db/queries/todo.ts`, `lib/db/index.ts`, `app/api/todos/route.ts`
 
-```
-1. completeTodoItem() — UPDATE is_completed=1 ✓
-2. applyReward()
-   2.1 addActivityLog()       ← 실패 가능
-   2.2 incrementTaskCount()   ← 실패 가능
-   2.3 gainExp()              ← 실패 가능
-```
+#### 핵심 변경
 
-**해결 방안**:
-- **A) 트랜잭션**: `completeTodoItem` + `applyReward` 의 주요 호출을 한 BEGIN...COMMIT으로 래핑 (DB 지원 필요)
-- **B) 롤백 큐**: `applyReward` 실패 시 todo 자동 롤백 (별도 cron job)
-- **C) 보상 재시도**: 실패한 보상을 큐에 넣어 나중에 재시도
+기존 `completeTodoItem(id, exp, comment)` 단일 호출을 **claim-then-finalize** 2단계로 분리.
 
-**추천**: A + C 하이브리드 (Vercel 환경과 DB 지원 확인 필요)
-
-**관련 파일**:
-- `app/api/todos/route.ts:52-62` (PATCH)
-- `lib/game/rewards.ts:34-43` (applyReward)
-- `lib/db/queries/todo.ts:28-35` (completeTodoItem)
-
----
-
-### #5: AI 호출 순서 (쿼터 낭비)
-
-**심각도**: 중 — 성능/비용  
-**현상**: 동시 두 PATCH 진입 → 둘 다 Gemini 호출 → 한쪽만 `completeTodoItem` 성공 → Gemini 호출 낭비
-
-```
-현재 순서:
-1. getTodoItems() & validation
-2. judgeActivity() ← Gemini 호출 (느림, 쿼터 사용)
-3. calcDueBonus()
-4. completeTodoItem() ← race 실패 가능
-```
-
-**개선 순서**:
-```
-1. getTodoItems() & validation
-2. completeTodoItem() ← race 방어 먼저
-3. if (claimed) {
-     judgeActivity() ← 성공한 쪽만 호출
-     ...applyReward()
-   } else {
-     return badRequest(..., "already_completed")
+1. **`lib/db/queries/todo.ts`** — 2개 함수로 분리
+   ```ts
+   // race-guard 마킹만 (exp/comment 는 nullable 컬럼이라 null 로 둠)
+   export async function claimTodoItem(id: number): Promise<boolean> {
+     const res = await db.execute({
+       sql: "UPDATE todo_item SET is_completed=1, completed_at=? WHERE id=? AND is_completed=0",
+       args: [now(), id],
+     })
+     return res.rowsAffected > 0
    }
-```
 
-**주의**: AI 모드일 때 exp/comment가 비동기로 UPDATE되므로 응답 shape 변경 필요
-- 현재: `{ exp, comment, bonusExp, penaltyApplied, ...levelResult }`
-- 변경: `{ exp?, comment?, [...기존], expediting: true }` (또는 다른 마킹)
+   // claim winner 만 호출. race-guard 불필요
+   export async function setTodoReward(id: number, exp: number, comment: string): Promise<void> {
+     await db.execute({
+       sql: "UPDATE todo_item SET exp_gained=?, ai_comment=? WHERE id=?",
+       args: [exp, comment, id],
+     })
+   }
+   ```
 
-**관련 파일**:
-- `app/api/todos/route.ts:29-63` (PATCH)
-- `lib/ai.ts:190-224` (judgeActivity)
+2. **`app/api/todos/route.ts`** — PATCH 순서 재배치
+   ```ts
+   // 1. race-guard 를 가장 먼저
+   const claimed = await claimTodoItem(id)
+   if (!claimed) return badRequest("이미 완료된 항목입니다", "already_completed")
+
+   // 2. winner 만 도달 — AI 호출 / due bonus 계산 안전
+   if (baseExp === 0) {
+     const aiResult = await judgeActivity(item.name)
+     baseExp = aiResult.exp
+     comment = aiResult.comment
+   }
+   const due = calcDueBonus(...)
+
+   // 3. finalize
+   await setTodoReward(id, exp, comment)
+
+   // 4. 보상
+   const levelResult = await applyReward({...})
+   ```
+
+#### 효과
+
+- **Gemini 쿼터 절감**: race 패자는 claim 단계에서 `already_completed` 반환 후 즉시 종료. AI 호출 안 함
+- **응답 shape 무변동**: `{ exp, comment, bonusExp, penaltyApplied, ...levelResult }` 동일. 클라이언트(TodoSection) 무수정
+- **스키마 호환**: `exp_gained INTEGER` / `ai_comment TEXT` 가 nullable 이므로 claim 단계에서 null 로 두는 것 안전
 
 ---
 
-## 다음 세션 체크리스트
+### #1: 트랜잭션 경계 — 부분 해결
 
-- [ ] 이 문서 읽기 (context 복기)
-- [ ] #1 해결 방안 검토
-  - [ ] DB가 트랜잭션 지원하는지 확인 (`lib/db/client.ts`)
-  - [ ] Vercel + D1 조합에서 트랜잭션 가능 여부
-- [ ] #1 또는 #5 중 하나 먼저 선택 (순서: #1 권장)
-- [ ] 관련 테스트 케이스 검토
-  - [ ] completeTodoItem 경합 조건
-  - [ ] applyReward 부분 실패 시뮬레이션
+**진전**: race 측면은 #5 의 claim-first 패턴으로 해결. winner 가 1명으로 보장되므로 중복 보상 없음.
+
+**남은 리스크**: `setTodoReward → applyReward(addActivityLog → incrementTaskCount → gainExp)` 시퀀스 중 일부 실패 시
+- `is_completed=1` 은 이미 반영됨 (claim 단계)
+- `exp_gained` 가 null 인 채로 todo 가 완료 표시될 가능성 (setTodoReward 실패)
+- `addActivityLog`/`incrementTaskCount`/`gainExp` 중 일부만 적용될 가능성
+
+**완전 해결을 위해선** lib/game.ts:42-123 `gainExp` 트랜잭션 본문을 분해해서 외부 트랜잭션과 합쳐야 함 — **보존 영역**이라 별도 RFC 필요. 현재 코드에선:
+- `gainExp` 자체 트랜잭션 (레벨업 루프 + equipment 재read + max_hp 갱신)이 가장 위험한 부분
+- `addActivityLog`/`incrementTaskCount` 는 각각 단일 UPDATE/INSERT — 부분 실패 가능성 낮음
+- 따라서 실용적 신뢰성은 충분히 확보
+
+**향후 RFC 항목**:
+- A) `gainExp` 본문을 트랜잭션 fn 으로 받게 시그니처 변경 → 외부 트랜잭션 합치기
+- C) 실패 시 retry 큐 (Vercel cron 기반)
+
+---
+
+## 2차 배포 상태
+
+| 항목 | 값 |
+|------|-----|
+| 커밋 | `1f01767` (Auto-deploy: 2026-05-16 10:52) |
+| URL | `https://lifequest-5ipk6k7qh-wandp1990-8450s-projects.vercel.app` |
+| 상태 | ✓ Ready / Production (23s) |
+| 변경 파일 | `lib/db/queries/todo.ts`, `lib/db/index.ts`, `app/api/todos/route.ts` |
+
+**검증**: `npx tsc --noEmit` ✅, `npx next build` ✅ (23 routes), `/api/todos` GET 정상 응답.
 
 ---
 
