@@ -47,7 +47,7 @@ export default function ActivitySection({ refreshTick, onExpGained }: Props) {
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? "오류"); return }
       setText("")
-      setToast({ exp: data.exp, comment: data.comment })
+      setToast({ exp: data.exp ?? 0, comment: data.comment ?? "" })
       setTimeout(() => setToast(null), 3000)
       onExpGained()
       fetchLogs()
@@ -87,7 +87,13 @@ export default function ActivitySection({ refreshTick, onExpGained }: Props) {
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return
+              // 한글 IME 조합 중 Enter는 조합 확정용 — submit으로 흘리지 않는다
+              if (e.nativeEvent.isComposing) return
+              submit()
+            }}
+            maxLength={1000}
             placeholder="오늘 한 일을 입력하세요..."
             style={{ fontSize: "16px" }}
             className="flex-1 min-w-0 bg-muted border border-border rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-amber-300 transition"

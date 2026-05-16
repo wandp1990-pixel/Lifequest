@@ -49,6 +49,8 @@ export default function AttendanceCard({ refreshTick, onExpGained }: Props) {
     }
   }
 
+  // 보너스는 7/14일에만 — 그 이후는 별도 마일스톤 없이 "유지" 상태로 표시
+  const reachedMax = streak >= 14
   const nextMilestone = streak < 7 ? 7 : 14
   const milestoneBonus = nextMilestone === 7 ? 5 : 10
   const daysLeft = nextMilestone - Math.min(streak, nextMilestone)
@@ -91,7 +93,11 @@ export default function AttendanceCard({ refreshTick, onExpGained }: Props) {
 
       <div className="flex items-center justify-between mt-2.5 relative">
         <span className="text-[11px] text-muted-foreground">
-          {daysLeft > 0 ? `${daysLeft}일 더 모으면 뽑기권 +${milestoneBonus}` : `🎉 ${nextMilestone}일 달성!`}
+          {reachedMax
+            ? `🔥 14일 달성 유지중 · ${streak}일째`
+            : daysLeft > 0
+              ? `${daysLeft}일 더 모으면 뽑기권 +${milestoneBonus}`
+              : `🎉 ${nextMilestone}일 달성!`}
         </span>
         <button
           onClick={handleAttend}
