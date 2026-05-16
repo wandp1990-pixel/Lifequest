@@ -47,7 +47,7 @@ export interface RolledItem {
 }
 
 /** 연속 폐기 시 가산되는 상위 등급 집합 + 1회당 가중치 보너스 */
-export const PITY_BONUS_PER_DRAW = 0.5
+export const PITY_BONUS_PER_DRAW = 0.1
 export const PITY_BONUS_GRADES = new Set(["S", "SR", "SSR", "UR"])
 
 /** pity 가중치 적용된 등급 테이블 반환 (원본 미변경) */
