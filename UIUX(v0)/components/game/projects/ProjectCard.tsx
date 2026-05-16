@@ -195,9 +195,7 @@ export default function ProjectCard({
                 style={{ width: `${project.progress}%` }}
               />
             </div>
-            <span className="text-[10px] text-muted-foreground shrink-0">
-              {project.tasks.filter((t) => t.is_completed).length}/{project.tasks.length}
-            </span>
+            <span className="text-[10px] text-muted-foreground shrink-0">{project.progress}%</span>
           </div>
         </div>
         <div className="shrink-0">

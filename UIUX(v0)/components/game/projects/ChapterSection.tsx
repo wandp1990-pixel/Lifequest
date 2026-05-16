@@ -146,9 +146,7 @@ export default function ChapterSection({
           <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
-          <span className="text-[10px] text-muted-foreground shrink-0">
-            {totalTasks > 0 ? `${doneTasks}/${totalTasks}` : `${ch.done_projects}/${ch.total_projects}`}
-          </span>
+          <span className="text-[10px] text-muted-foreground shrink-0">{pct}%</span>
         </div>
       </button>
 
