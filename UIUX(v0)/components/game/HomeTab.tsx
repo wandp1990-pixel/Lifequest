@@ -15,9 +15,10 @@ interface Props {
   onExpGained: () => void
   refreshTick?: number
   onTabChange?: (tab: "home" | "tasks" | "battle" | "items" | "skills") => void
+  onNavigateToTasks?: (filter: "todo" | "habit" | "routine" | "project") => void
 }
 
-export default function HomeTab({ onExpGained, refreshTick, onTabChange }: Props) {
+export default function HomeTab({ onExpGained, refreshTick, onTabChange, onNavigateToTasks }: Props) {
   const [projects, setProjects] = useState<UrgentProject[]>([])
 
   const fetchProjects = useCallback(async () => {
@@ -32,7 +33,7 @@ export default function HomeTab({ onExpGained, refreshTick, onTabChange }: Props
   return (
     <div className="flex flex-col gap-0 pb-6">
       <AttendanceCard refreshTick={refreshTick} onExpGained={onExpGained} />
-      <StatsGrid refreshTick={refreshTick} onTabChange={onTabChange} projects={projects} />
+      <StatsGrid refreshTick={refreshTick} onTabChange={onTabChange} onNavigateToTasks={onNavigateToTasks} projects={projects} />
       <UrgentProjectsCard projects={projects} />
       <ActivitySection refreshTick={refreshTick} onExpGained={onExpGained} />
     </div>

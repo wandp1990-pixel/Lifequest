@@ -27,6 +27,7 @@ interface TasksTabProps {
   questTotal?: number
   questRewardMin?: number
   questRewardMax?: number
+  initialFilter?: "all" | "todo" | "habit" | "routine" | "project"
 }
 
 export default function TasksTab({
@@ -37,6 +38,7 @@ export default function TasksTab({
   questTotal,
   questRewardMin = 50,
   questRewardMax = 100,
+  initialFilter = "all",
 }: TasksTabProps) {
   // ── 도메인 데이터 훅 (각 훅이 자체 fetch + state 보유) ───────────────────
   const checklist = useChecklist()
@@ -62,7 +64,7 @@ export default function TasksTab({
 
   // ── 공유 UI 상태 ──────────────────────────────────────────────────────────
   const [confirmDelete, setConfirmDelete] = useState<DeleteTarget | null>(null)
-  const [taskFilter, setTaskFilter] = useState<"all" | "routine" | "habit" | "todo" | "project">("all")
+  const [taskFilter, setTaskFilter] = useState<"all" | "routine" | "habit" | "todo" | "project">(initialFilter)
   const [loading, setLoading] = useState(true)
 
   // ── 초기 데이터 로드 ──────────────────────────────────────────────────────

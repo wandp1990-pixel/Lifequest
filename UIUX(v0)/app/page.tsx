@@ -27,6 +27,7 @@ const TAB_TITLES: Record<TabType, string> = {
 
 export default function GamePage() {
   const [activeTab, setActiveTab] = useState<TabType>("home")
+  const [tasksInitialFilter, setTasksInitialFilter] = useState<"all" | "todo" | "habit" | "routine" | "project">("all")
   const { char, refetch: fetchChar } = useCharacterCtx()
   const [tasksCount, setTasksCount] = useState(0)
   const [dailyCompleted, setDailyCompleted] = useState(0)
@@ -80,8 +81,8 @@ export default function GamePage() {
   const renderTabContent = () => {
     return (
       <>
-        {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} onTabChange={setActiveTab} />}
-        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} questTotal={questTotal} questRewardMin={questRewardMin} questRewardMax={questRewardMax} />}
+        {activeTab === "home"   && <HomeTab onExpGained={handleExpGained} refreshTick={refreshTick} onTabChange={setActiveTab} onNavigateToTasks={(filter) => { setTasksInitialFilter(filter); setActiveTab("tasks") }} />}
+        {activeTab === "tasks"  && <TasksTab onExpGained={handleExpGained} onCountChange={setTasksCount} onDailyCompletedChange={setDailyCompleted} refreshTick={refreshTick} questTotal={questTotal} questRewardMin={questRewardMin} questRewardMax={questRewardMax} initialFilter={tasksInitialFilter} />}
         {activeTab === "skills" && <CharacterTab />}
         {activeTab === "items"  && <ItemsTab refreshTick={refreshTick} />}
         <div className={activeTab === "battle" ? "block" : "hidden"}>
@@ -140,7 +141,7 @@ export default function GamePage() {
         <div className="flex-shrink-0">
           <BottomNav
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={(tab) => { if (tab === "tasks") setTasksInitialFilter("all"); setActiveTab(tab) }}
             tasksCount={tasksCount}
           />
         </div>

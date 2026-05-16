@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback } from "react"
 interface Props {
   refreshTick?: number
   onTabChange?: (tab: "home" | "tasks" | "battle" | "items" | "skills") => void
+  onNavigateToTasks?: (filter: "todo" | "habit" | "routine" | "project") => void
   projects: { status: string }[]
 }
 
@@ -23,9 +24,10 @@ interface StatEntry {
   bg: string
   border: string
   trackColor: string
+  filter: "todo" | "habit" | "routine" | "project"
 }
 
-export default function StatsGrid({ refreshTick, onTabChange, projects }: Props) {
+export default function StatsGrid({ refreshTick, onTabChange, onNavigateToTasks, projects }: Props) {
   const [habitsDone, setHabitsDone] = useState(0)
   const [habitsTotal, setHabitsTotal] = useState(0)
   const [routinesDone, setRoutinesDone] = useState(0)
@@ -63,23 +65,23 @@ export default function StatsGrid({ refreshTick, onTabChange, projects }: Props)
   useEffect(() => { fetchAll() }, [fetchAll, refreshTick])
 
   const stats: StatEntry[] = [
-    { label: "할 일",    done: todosDone,    total: todosTotal,    color: "#fbbf24", icon: "📋", bg: "bg-amber-50 dark:bg-amber-950/40",   border: "border-amber-200 dark:border-amber-800",   trackColor: "#fde68a" },
-    { label: "습관",     done: habitsDone,   total: habitsTotal,   color: "#22c55e", icon: "☀️", bg: "bg-green-50 dark:bg-green-950/40",   border: "border-green-200 dark:border-green-800",   trackColor: "#bbf7d0" },
-    { label: "루틴",     done: routinesDone, total: routinesTotal, color: "#818cf8", icon: "🔁", bg: "bg-indigo-50 dark:bg-indigo-950/40", border: "border-indigo-200 dark:border-indigo-800", trackColor: "#c7d2fe" },
-    { label: "프로젝트", done: projectsDone, total: projectsTotal, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", trackColor: "#ddd6fe" },
+    { label: "할 일",    done: todosDone,    total: todosTotal,    color: "#fbbf24", icon: "📋", bg: "bg-amber-50 dark:bg-amber-950/40",   border: "border-amber-200 dark:border-amber-800",   trackColor: "#fde68a", filter: "todo" },
+    { label: "습관",     done: habitsDone,   total: habitsTotal,   color: "#22c55e", icon: "☀️", bg: "bg-green-50 dark:bg-green-950/40",   border: "border-green-200 dark:border-green-800",   trackColor: "#bbf7d0", filter: "habit" },
+    { label: "루틴",     done: routinesDone, total: routinesTotal, color: "#818cf8", icon: "🔁", bg: "bg-indigo-50 dark:bg-indigo-950/40", border: "border-indigo-200 dark:border-indigo-800", trackColor: "#c7d2fe", filter: "routine" },
+    { label: "프로젝트", done: projectsDone, total: projectsTotal, color: "#a78bfa", icon: "🗂️", bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", trackColor: "#ddd6fe", filter: "project" },
   ]
   const R = 22, C = 50, stroke = 4
   const circ = 2 * Math.PI * R
 
   return (
     <div className="mx-4 mt-3 grid grid-cols-4 gap-2">
-      {stats.map(({ label, done, total, color, icon, bg, border, trackColor }) => {
+      {stats.map(({ label, done, total, color, icon, bg, border, trackColor, filter }) => {
         const pct = total > 0 ? done / total : 0
         const offset = circ * (1 - pct)
         return (
           <button
             key={label}
-            onClick={() => onTabChange?.("tasks")}
+            onClick={() => onNavigateToTasks ? onNavigateToTasks(filter) : onTabChange?.("tasks")}
             className={`rounded-xl border ${bg} ${border} py-3 flex flex-col items-center gap-1.5 shadow-sm active:scale-95 transition-transform`}
           >
             <div className="relative" style={{ width: C, height: C }}>
