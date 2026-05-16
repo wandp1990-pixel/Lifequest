@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS character (
     base_hp      INTEGER  DEFAULT 100,
     base_mp      INTEGER  DEFAULT 50,
     current_hp   INTEGER  DEFAULT 110,
+    -- max_hp / max_mp 는 base only (base_hp + VIT*vit_to_max_hp / base_mp + INT*int_to_max_mp)
+    -- effective max (장비 + 스킬 패시브 포함) 는 computeEffectiveStats(...).combatStats 로 항상 재계산
+    -- 주의: 주석 내 세미콜론 금지 (SCHEMA.split() 분할 충돌)
     max_hp       INTEGER  DEFAULT 110,
     current_mp   INTEGER  DEFAULT 55,
     max_mp       INTEGER  DEFAULT 55,

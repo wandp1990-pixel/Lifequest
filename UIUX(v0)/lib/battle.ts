@@ -13,6 +13,7 @@ export type SkillData = {
   mp_cost: number
   mp_cost_coeff: number
   invested: number
+  max_skp: number
 }
 
 // 모든 패시브 스킬의 보너스를 합산 (%, 고정값 포함)
@@ -44,7 +45,8 @@ export function getActiveSkills(skills: SkillData[]): SkillData[] {
   return skills.filter((s) => s.type === "active" && s.invested > 0)
 }
 
-// 장착 장비 옵션의 [스킬명] 패시브를 해당 스킬 invested에 +1 합산하여 반환
+// 장착 장비 옵션의 [스킬명] 패시브를 해당 스킬 invested에 +1 합산하여 반환.
+// invested 는 max_skp 로 캡 — 장비를 다수 장착해도 효과 계수가 의도 이상으로 폭증하지 않도록 함.
 export function applyItemPassives(skills: SkillData[], equippedOptions: string[]): SkillData[] {
   const counts: Record<string, number> = {}
   for (const raw of equippedOptions) {
@@ -55,7 +57,11 @@ export function applyItemPassives(skills: SkillData[], equippedOptions: string[]
         counts[line.slice(1, -1)] = (counts[line.slice(1, -1)] ?? 0) + 1
     }
   }
-  return skills.map(s => ({ ...s, invested: s.invested + (counts[s.name] ?? 0) }))
+  return skills.map(s => {
+    const raw = s.invested + (counts[s.name] ?? 0)
+    const capped = Number.isFinite(s.max_skp) && s.max_skp > 0 ? Math.min(raw, s.max_skp) : raw
+    return { ...s, invested: capped }
+  })
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
