@@ -99,7 +99,7 @@ export async function DELETE(req: NextRequest) {
               base_hp=100, base_mp=50,
               current_hp=100, max_hp=100, current_mp=50, max_mp=50,
               pending_battle_monster=NULL, pity_count=0,
-              attendance_streak=0, max_cleared_grade=NULL,
+              max_cleared_grade=NULL,
               last_regen_at=?, updated_at=?
               WHERE id=1`,
         args: [now(), now()],

@@ -42,6 +42,25 @@ export async function ensureSkills(db: Client) {
   await seedSkillTable(db)
 }
 
+// 기존 환경에 game_config 신규 키 backfill (INSERT OR IGNORE 라 기존 값 보존).
+// seedIfEmpty 는 테이블이 비었을 때만 도므로, 운영중인 DB에는 새 키가 안 들어가서 별도 필요.
+export async function ensureGameConfigKeys(db: Client) {
+  const t = now()
+  const data: [string, string, string][] = [
+    ["attendance_daily_ticket", "1", "출석 시 매일 기본 뽑기권"],
+    ["attendance_milestone_7_bonus", "3", "월 7일 출석 보너스 뽑기권"],
+    ["attendance_milestone_14_bonus", "5", "월 14일 출석 보너스 뽑기권"],
+    ["attendance_milestone_21_bonus", "8", "월 21일 출석 보너스 뽑기권"],
+    ["attendance_milestone_30_bonus", "15", "월 30일 출석 보너스 뽑기권"],
+  ]
+  for (const [key, val, desc] of data) {
+    await db.execute({
+      sql: "INSERT OR IGNORE INTO game_config (config_key, config_value, description, updated_at) VALUES (?,?,?,?)",
+      args: [key, val, desc, t],
+    })
+  }
+}
+
 async function seedSkillTable(db: Client) {
   // [id, name, type, max_skp, unlock_level, base_effect_value, effect_coeff,
   //  mp_cost, mp_cost_coeff, effect_code, trigger_condition, description]
@@ -112,6 +131,11 @@ async function seedGameConfig(db: Client) {
     ["daily_quest_total", "10", "데일리 완료 목표 횟수"],
     ["daily_quest_exp_min", "50", "데일리 퀘스트 보상 최소 EXP"],
     ["daily_quest_exp_max", "100", "데일리 퀘스트 보상 최대 EXP"],
+    ["attendance_daily_ticket", "1", "출석 시 매일 기본 뽑기권"],
+    ["attendance_milestone_7_bonus", "3", "월 7일 출석 보너스 뽑기권"],
+    ["attendance_milestone_14_bonus", "5", "월 14일 출석 보너스 뽑기권"],
+    ["attendance_milestone_21_bonus", "8", "월 21일 출석 보너스 뽑기권"],
+    ["attendance_milestone_30_bonus", "15", "월 30일 출석 보너스 뽑기권"],
   ]
   for (const [key, val, desc] of data) {
     await db.execute({

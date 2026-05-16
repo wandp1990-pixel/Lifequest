@@ -273,8 +273,14 @@ UI(components/game/*.tsx)
 
 - **DB**: `attendance_log`
 - **쿼리**: `lib/db/queries/attendance.ts`
-- **API**: `/api/attendance` (GET/POST)
-- **UI**: `HomeTab.tsx` 출석 카드 (스트릭, 마일스톤마다 뽑기권)
+- **API**: `/api/attendance` (GET/POST) — POST 는 alreadyChecked 케이스도 200+flag
+- **UI**: `home/AttendanceCard.tsx` — 우측 스트릭 칩(무제한 누적) + 이번 달 마일스톤 게이지
+- **보상 (월간)**:
+  - 매일 +`attendance_daily_ticket` (기본 1)
+  - 이번 달 출석일이 7/14/21/30 도달 시 추가 +`attendance_milestone_{N}_bonus` (각 3/5/8/15)
+  - 매월 1일 카운터 자동 리셋 (`attendance_log.checked_date` 의 YYYY-MM prefix 로 집계)
+  - 모든 수치 `game_config` 동적, SettingsDrawer 의 ConfigPanel 에서 튜닝
+- **게이지 = 월 사이클**, **스트릭 = 무제한**. 둘은 의도적으로 분리됨 (스트릭 끊겨도 월간 보상은 누적)
 
 ### 5.12 푸시 알림
 

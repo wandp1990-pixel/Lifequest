@@ -1,5 +1,5 @@
 import { getClient, now } from "./client"
-import { seedIfEmpty, seedCharacter, ensureChecklistItems, ensurePrompt, ensureItemSeeds, ensureSkills, ensureBattleConfig } from "./seed"
+import { seedIfEmpty, seedCharacter, ensureChecklistItems, ensurePrompt, ensureItemSeeds, ensureSkills, ensureBattleConfig, ensureGameConfigKeys } from "./seed"
 
 let _initialized = false
 let _schemaInitialized = false
@@ -355,6 +355,7 @@ export async function initDb() {
   await ensureItemSeeds(db)
   await ensureSkills(db)
   await ensureBattleConfig(db)
+  await ensureGameConfigKeys(db)
 
   // 데이터 마이그레이션: migration_log에서 버전 추적, 1회만 실행
   async function runMigration(version: string, fn: () => Promise<void>) {
