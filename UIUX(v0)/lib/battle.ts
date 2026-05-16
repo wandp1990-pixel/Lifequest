@@ -532,11 +532,216 @@ function calcMagicSkillDamage(
   return Math.max(0, Math.round(raw))
 }
 
+// ─── Trigger dispatchers ──────────────────────────────────────────────────────
+
+type BattleCtx = {
+  cfg: Record<string, string>
+  playerCombat: CombatStats
+  monCombat: Combatant
+  activeSkills: SkillData[]
+  skillUsed: Set<string>
+  playerHp: number
+  playerMp: number
+  monsterHp: number
+  playerTurnCount: number
+  battleStartPatkBonus: number
+  first: "플레이어" | "몬스터"
+}
+
+type TurnAccum = { dmg: number; lifeSteal: number; mpCost: number; skillNames: string[] }
+
+function resultLabel(res: ReturnType<typeof attack>): TurnLog["result"] {
+  if (!res.hit) return res.reason
+  if (res.critical && res.double_attack) return "crit_double"
+  if (res.critical) return "crit"
+  if (res.double_attack) return "double"
+  return "hit"
+}
+
+function pushTurnLog(
+  logs: TurnLog[], turn: number, attacker: "플레이어" | "몬스터",
+  attack_type: "normal" | "skill", res: ReturnType<typeof attack>,
+  acc: TurnAccum, ctx: BattleCtx,
+): void {
+  logs.push({
+    turn, attacker, attack_type,
+    result: resultLabel(res),
+    damage: acc.dmg, crit: res.critical, double: res.double_attack,
+    life_steal: acc.lifeSteal, mp_cost: acc.mpCost,
+    player_hp: ctx.playerHp, player_mp: ctx.playerMp, monster_hp: ctx.monsterHp,
+    active_skill: acc.skillNames.length > 0 ? acc.skillNames.join(" + ") : null,
+  })
+}
+
+// 전투 시작 / 선공 획득 PATK 보정 — 루프 진입 전 1회 계산
+function computeBattleStartPatkBonus(
+  activeSkills: SkillData[], first: "플레이어" | "몬스터",
+): number {
+  let bonus = 1.0
+  for (const s of activeSkills) {
+    if (s.invested <= 0) continue
+    if (s.effect_code !== "PATK_PCT") continue
+    const val = getSkillValue(s)
+    if (s.trigger_condition === SKILL_TRIGGERS.BATTLE_START) bonus *= 1 + val / 100
+    if (s.trigger_condition === SKILL_TRIGGERS.FIRST_STRIKE && first === "플레이어") {
+      bonus *= 1 + val / 100
+    }
+  }
+  return bonus
+}
+
+// HP 25% 이하 자가 회복 — 플레이어 차례 진입 시점, 본 공격 전.
+// 발동되면 skill-use 로그 1개 추가 + ctx mutate (playerHp 회복) + acc.mpCost 증가.
+function applyHpBelow25Heal(ctx: BattleCtx, turn: number, acc: TurnAccum, logs: TurnLog[]): void {
+  if (ctx.playerHp / ctx.playerCombat.max_hp > 0.25) return
+  for (const s of ctx.activeSkills) {
+    if (s.trigger_condition !== SKILL_TRIGGERS.HP_BELOW_25 || s.effect_code !== "HP_HEAL") continue
+    if (ctx.skillUsed.has(s.id) || s.invested <= 0) continue
+    const cost = getSkillMpCost(s)
+    if (ctx.playerMp - acc.mpCost < cost) break
+    const healAmt = Math.round(ctx.playerCombat.max_hp * getSkillValue(s) / 100)
+    ctx.playerHp = Math.min(ctx.playerHp + healAmt, ctx.playerCombat.max_hp)
+    acc.mpCost += cost
+    ctx.skillUsed.add(s.id)
+    // player_mp 는 의도적으로 미차감 상태로 기록 — 차감은 턴 종료 시 일괄 적용
+    logs.push({
+      turn, attacker: "플레이어", attack_type: "skill", result: "hit",
+      damage: 0, crit: false, double: false, life_steal: healAmt, mp_cost: cost,
+      player_hp: ctx.playerHp, player_mp: ctx.playerMp, monster_hp: ctx.monsterHp,
+      active_skill: s.name,
+    })
+    break
+  }
+}
+
+// 매 3턴 마법 추가타 — playerTurnCount % 3 === 0 일 때 모든 대상 스킬 발동.
+function applyEvery3TurnsBonus(ctx: BattleCtx, acc: TurnAccum): void {
+  if (ctx.playerTurnCount % 3 !== 0) return
+  for (const s of ctx.activeSkills) {
+    if (s.trigger_condition !== SKILL_TRIGGERS.EVERY_3_TURNS) continue
+    if (s.invested <= 0 || s.effect_code !== "MATK_PCT") continue
+    const cost = getSkillMpCost(s)
+    if (ctx.playerMp - acc.mpCost < cost) continue
+    acc.mpCost += cost
+    acc.dmg += calcMagicSkillDamage(ctx.cfg, ctx.playerCombat, ctx.monCombat, getSkillValue(s))
+    acc.skillNames.push(s.name)
+  }
+}
+
+// 치명타 시 마법 추가타 — crit 한정, 모든 대상 스킬 발동.
+function applyOnCritBonus(ctx: BattleCtx, acc: TurnAccum): void {
+  for (const s of ctx.activeSkills) {
+    if (s.trigger_condition !== SKILL_TRIGGERS.ON_CRIT) continue
+    if (s.invested <= 0 || s.effect_code !== "MATK_PCT") continue
+    const cost = getSkillMpCost(s)
+    if (ctx.playerMp - acc.mpCost < cost) continue
+    acc.mpCost += cost
+    acc.dmg += calcMagicSkillDamage(ctx.cfg, ctx.playerCombat, ctx.monCombat, getSkillValue(s))
+    acc.skillNames.push(s.name)
+  }
+}
+
+// 명중 시 추가 일격 — 첫 매칭 스킬 1개만 확률 판정 (성공/실패 무관 break).
+function applyOnHitExtra(ctx: BattleCtx, acc: TurnAccum, atk: Combatant, def: Combatant): void {
+  for (const s of ctx.activeSkills) {
+    if (s.trigger_condition !== SKILL_TRIGGERS.ON_HIT || s.effect_code !== "EXTRA_HIT") continue
+    if (s.invested <= 0) continue
+    const cost = getSkillMpCost(s)
+    if (ctx.playerMp - acc.mpCost < cost) break
+    if (Math.random() < getSkillValue(s) / 100) {
+      const extraRes = attack(ctx.cfg, atk, def, "normal")
+      acc.dmg += extraRes.total_damage
+      acc.lifeSteal += extraRes.life_steal
+      acc.mpCost += cost
+      acc.skillNames.push(s.name)
+    }
+    break
+  }
+}
+
+// 사망 시 1회 부활 — playerHp 가 이미 0 이하인 시점에만 호출. 1회성.
+function applyOnDeathSurvive(ctx: BattleCtx, acc: TurnAccum): void {
+  if (ctx.playerHp > 0) return
+  for (const s of ctx.activeSkills) {
+    if (s.trigger_condition !== SKILL_TRIGGERS.ON_DEATH || s.effect_code !== "SURVIVE") continue
+    if (ctx.skillUsed.has(s.id) || s.invested <= 0) continue
+    ctx.playerHp = 1
+    ctx.skillUsed.add(s.id)
+    acc.skillNames.push(s.name)
+    break
+  }
+}
+
+// 회피 시 반격 — 몬스터 공격을 회피했을 때 별도 로그 entry 로 카운터 일격.
+function applyOnEvadeCounter(ctx: BattleCtx, turn: number, logs: TurnLog[]): void {
+  for (const s of ctx.activeSkills) {
+    if (s.trigger_condition !== SKILL_TRIGGERS.ON_EVADE || s.effect_code !== "EXTRA_HIT") continue
+    if (s.invested <= 0) break
+    const cost = getSkillMpCost(s)
+    if (ctx.playerMp < cost) break
+    if (Math.random() < getSkillValue(s) / 100) {
+      const cRes = attack(ctx.cfg, ctx.playerCombat, ctx.monCombat, "normal")
+      const cDmg = cRes.hit ? Math.round(cRes.total_damage * ctx.battleStartPatkBonus) : 0
+      ctx.playerMp = Math.max(0, ctx.playerMp - cost)
+      ctx.monsterHp = Math.max(0, ctx.monsterHp - cDmg)
+      ctx.playerHp = Math.min(ctx.playerHp + cRes.life_steal, ctx.playerCombat.max_hp)
+      const acc: TurnAccum = { dmg: cDmg, lifeSteal: cRes.life_steal, mpCost: cost, skillNames: [s.name] }
+      pushTurnLog(logs, turn, "플레이어", "normal", cRes, acc, ctx)
+    }
+    break
+  }
+}
+
+function runPlayerTurn(ctx: BattleCtx, turn: number, logs: TurnLog[]): void {
+  ctx.playerTurnCount++
+  const acc: TurnAccum = { dmg: 0, lifeSteal: 0, mpCost: 0, skillNames: [] }
+
+  applyHpBelow25Heal(ctx, turn, acc, logs)
+
+  const res = attack(ctx.cfg, ctx.playerCombat, ctx.monCombat, "normal")
+  acc.dmg = res.total_damage
+  acc.lifeSteal = res.life_steal
+
+  if (res.hit) {
+    acc.dmg = Math.round(acc.dmg * ctx.battleStartPatkBonus)
+    applyEvery3TurnsBonus(ctx, acc)
+    if (res.critical) applyOnCritBonus(ctx, acc)
+    applyOnHitExtra(ctx, acc, ctx.playerCombat, ctx.monCombat)
+  }
+
+  ctx.monsterHp = Math.max(0, ctx.monsterHp - acc.dmg)
+  ctx.playerHp = Math.min(ctx.playerHp + acc.lifeSteal, ctx.playerCombat.max_hp)
+  ctx.playerMp = Math.max(0, ctx.playerMp - acc.mpCost)
+
+  pushTurnLog(logs, turn, "플레이어", "normal", res, acc, ctx)
+}
+
+function runMonsterTurn(ctx: BattleCtx, turn: number, logs: TurnLog[]): void {
+  const acc: TurnAccum = { dmg: 0, lifeSteal: 0, mpCost: 0, skillNames: [] }
+
+  const res = attack(ctx.cfg, ctx.monCombat, ctx.playerCombat, "normal")
+  acc.dmg = res.total_damage
+  acc.lifeSteal = res.life_steal
+
+  ctx.playerHp = Math.max(0, ctx.playerHp - acc.dmg)
+  ctx.monsterHp = Math.min(ctx.monsterHp + acc.lifeSteal, ctx.monCombat.max_hp)
+  if (ctx.playerCombat.reflect_ratio > 0 && acc.dmg > 0) {
+    ctx.monsterHp = Math.max(0, ctx.monsterHp - Math.round(acc.dmg * ctx.playerCombat.reflect_ratio))
+  }
+  applyOnDeathSurvive(ctx, acc)
+
+  pushTurnLog(logs, turn, "몬스터", "normal", res, acc, ctx)
+
+  if (!res.hit && res.reason === "evaded") {
+    applyOnEvadeCounter(ctx, turn, logs)
+  }
+}
+
 // ─── Main battle simulation ────────────────────────────────────────────────────
 
-// 턴 기반 전투 시뮬레이션 (최대 30턴, 1턴에 1공격)
-// 선공은 first_strike_mode(기본: dex 비교) 결정, 그 후 교대로 공격
-// 턴 로그 배열 반환 (UI용 상세 기록)
+// 턴 기반 전투 시뮬레이션 (최대 30턴, 1턴에 1공격).
+// 선공은 first_strike_mode(기본: dex 비교) 결정, 그 후 교대로 공격.
+// 턴별 트리거 적용 로직은 runPlayerTurn / runMonsterTurn 으로 위임.
 export function runBattle(
   playerCombat: CombatStats,
   monster: Monster,
@@ -557,13 +762,9 @@ export function runBattle(
     defense_ignore_ratio: 0, reflect_ratio: 0,
     bonus_accuracy: 0, bonus_evasion: 0,
   }
-  const plyCombat: Combatant = playerCombat
 
-  let playerHp  = startHp !== undefined ? Math.min(startHp, playerCombat.max_hp) : playerCombat.max_hp
-  let playerMp  = startMp !== undefined ? Math.min(startMp, playerCombat.max_mp) : playerCombat.max_mp
-  const playerStartHp = playerHp
-  const playerStartMp = playerMp
-  let monsterHp = monster.stats.HP
+  const playerStartHp = startHp !== undefined ? Math.min(startHp, playerCombat.max_hp) : playerCombat.max_hp
+  const playerStartMp = startMp !== undefined ? Math.min(startMp, playerCombat.max_mp) : playerCombat.max_mp
 
   // 선공 결정: dex 높은 쪽 먼저 공격, 동일하면 50% 확률
   const firstMode = (battleCfg.first_strike_mode ?? "dex").toLowerCase()
@@ -575,22 +776,31 @@ export function runBattle(
   } else if (firstMode === "random") {
     first = Math.random() < 0.5 ? "플레이어" : "몬스터"
   } else {
-    // dex 비교 (기본값)
     first = playerCombat.dex > monCombat.dex ? "플레이어"
           : monCombat.dex > playerCombat.dex ? "몬스터"
           : Math.random() < 0.5 ? "플레이어" : "몬스터"
   }
 
+  const ctx: BattleCtx = {
+    cfg: battleCfg,
+    playerCombat, monCombat,
+    activeSkills,
+    skillUsed: new Set<string>(),
+    playerHp: playerStartHp,
+    playerMp: playerStartMp,
+    monsterHp: monster.stats.HP,
+    playerTurnCount: 0,
+    battleStartPatkBonus: computeBattleStartPatkBonus(activeSkills, first),
+    first,
+  }
+
+  const logs: TurnLog[] = []
+
   const buildResult = (
     resultWinner: BattleResult["winner"],
     completedTurns: number,
-    logs: TurnLog[],
-    finalPlayerHp: number,
-    finalPlayerMp: number,
-    finalMonsterHp: number,
   ): BattleResult => ({
-    monster,
-    logs,
+    monster, logs,
     winner: resultWinner,
     turns: completedTurns,
     ticket_reward: resultWinner === "플레이어" ? monster.ticket_reward : 0,
@@ -599,8 +809,8 @@ export function runBattle(
     player_start_mp: Math.max(0, Math.round(playerStartMp)),
     player_max_hp:   Math.round(playerCombat.max_hp),
     player_max_mp:   Math.round(playerCombat.max_mp),
-    player_final_hp: Math.max(0, Math.round(finalPlayerHp)),
-    player_final_mp: Math.max(0, Math.round(finalPlayerMp)),
+    player_final_hp: Math.max(0, Math.round(ctx.playerHp)),
+    player_final_mp: Math.max(0, Math.round(ctx.playerMp)),
     monster_max_hp: monster.stats.HP,
     player_stats: {
       patk:   Math.round(playerCombat.patk),
@@ -614,28 +824,7 @@ export function runBattle(
     },
   })
 
-  // ── 액티브 스킬 상태 추적 ──
-  const skillUsed = new Set<string>()  // 1회성 스킬 사용 여부
-  let playerTurnCount = 0
-
-  // "전투 시작" / "선공 획득" 스킬 → 물리 공격 보정값 미리 계산
-  let battleStartPatkBonus = 1.0
-  for (const s of activeSkills) {
-    if (s.invested <= 0) continue
-    const val = getSkillValue(s)
-    if (s.trigger_condition === SKILL_TRIGGERS.BATTLE_START) {
-      if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
-    }
-    if (s.trigger_condition === SKILL_TRIGGERS.FIRST_STRIKE && first === "플레이어") {
-      if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
-    }
-  }
-
-  const logs: TurnLog[] = []
-
-  if (playerHp <= 0) {
-    return buildResult("몬스터", 0, logs, playerHp, playerMp, monsterHp)
-  }
+  if (ctx.playerHp <= 0) return buildResult("몬스터", 0)
 
   let winner: "플레이어" | "몬스터" | "시간초과" | null = null
   let completedTurns = 0
@@ -643,162 +832,14 @@ export function runBattle(
   for (let turn = 1; turn <= maxTurns; turn++) {
     const attLabel: "플레이어" | "몬스터" =
       (turn % 2 === 1) === (first === "플레이어") ? "플레이어" : "몬스터"
-    const atk = attLabel === "플레이어" ? plyCombat : monCombat
-    const def = attLabel === "플레이어" ? monCombat : plyCombat
 
-    const kind: "normal" | "skill" = "normal"
-    let mpCost = 0
-    const activeSkillNames: string[] = []
+    if (attLabel === "플레이어") runPlayerTurn(ctx, turn, logs)
+    else runMonsterTurn(ctx, turn, logs)
 
-    if (attLabel === "플레이어") {
-      playerTurnCount++
-
-      // "HP 25% 이하" 스킬 처리 (선공격 전 회복)
-      const hpRatio = playerHp / playerCombat.max_hp
-      if (hpRatio <= 0.25) {
-        for (const s of activeSkills) {
-          if (s.trigger_condition !== SKILL_TRIGGERS.HP_BELOW_25 || s.effect_code !== "HP_HEAL") continue
-          if (skillUsed.has(s.id)) continue
-          if (s.invested <= 0) continue
-           const actualMpCost = getSkillMpCost(s)
-           if (playerMp - mpCost < actualMpCost) break
-           const healPct = getSkillValue(s)
-           const healAmt = Math.round(playerCombat.max_hp * healPct / 100)
-           playerHp = Math.min(playerHp + healAmt, playerCombat.max_hp)
-           mpCost += actualMpCost
-          skillUsed.add(s.id)
-          logs.push({ turn, attacker: "플레이어", attack_type: "skill", result: "hit",
-            damage: 0, crit: false, double: false, life_steal: healAmt, mp_cost: actualMpCost,
-            player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
-            active_skill: s.name })
-          break
-        }
-      }
-
-    }
-
-    const res = attack(battleCfg, atk, def, kind)
-    let dmg = res.total_damage
-    let lifeSteal = res.life_steal
-
-    if (attLabel === "플레이어" && res.hit) {
-      dmg = Math.round(dmg * battleStartPatkBonus)
-
-      for (const s of activeSkills) {
-        if (s.trigger_condition !== SKILL_TRIGGERS.EVERY_3_TURNS) continue
-        if (s.invested <= 0 || playerTurnCount % 3 !== 0) continue
-        const val = getSkillValue(s)
-        if (s.effect_code === "MATK_PCT") {
-          const actualMpCost = getSkillMpCost(s)
-          if (playerMp - mpCost < actualMpCost) continue
-          mpCost += actualMpCost
-          dmg += calcMagicSkillDamage(battleCfg, plyCombat, monCombat, val)
-          activeSkillNames.push(s.name)
-        }
-      }
-
-      if (res.critical) {
-        for (const s of activeSkills) {
-          if (s.trigger_condition !== SKILL_TRIGGERS.ON_CRIT) continue
-          if (s.invested <= 0) continue
-          const val = getSkillValue(s)
-          if (s.effect_code === "MATK_PCT") {
-            const actualMpCost = getSkillMpCost(s)
-            if (playerMp - mpCost < actualMpCost) continue
-            mpCost += actualMpCost
-            dmg += calcMagicSkillDamage(battleCfg, plyCombat, monCombat, val)
-            activeSkillNames.push(s.name)
-          }
-        }
-      }
-
-      for (const s of activeSkills) {
-        if (s.trigger_condition !== SKILL_TRIGGERS.ON_HIT || s.effect_code !== "EXTRA_HIT") continue
-        if (s.invested <= 0) continue
-        const actualMpCost = getSkillMpCost(s)
-        if (playerMp - mpCost < actualMpCost) break
-        const extraChance = getSkillValue(s) / 100
-        if (Math.random() < extraChance) {
-          const extraRes = attack(battleCfg, atk, def, kind)
-          dmg += extraRes.total_damage
-          lifeSteal += extraRes.life_steal
-          mpCost += actualMpCost
-          activeSkillNames.push(s.name)
-        }
-        break
-      }
-    }
-
-    if (attLabel === "플레이어") {
-      monsterHp = Math.max(0, monsterHp - dmg)
-      playerHp  = Math.min(playerHp + lifeSteal, playerCombat.max_hp)
-      playerMp  = Math.max(0, playerMp - mpCost)
-    } else {
-      playerHp  = Math.max(0, playerHp - dmg)
-      monsterHp = Math.min(monsterHp + lifeSteal, monCombat.max_hp)
-      if (plyCombat.reflect_ratio > 0 && dmg > 0) {
-        monsterHp = Math.max(0, monsterHp - Math.round(dmg * plyCombat.reflect_ratio))
-      }
-
-      if (playerHp <= 0) {
-        for (const s of activeSkills) {
-          if (s.trigger_condition !== SKILL_TRIGGERS.ON_DEATH || s.effect_code !== "SURVIVE") continue
-          if (skillUsed.has(s.id) || s.invested <= 0) continue
-          playerHp = 1
-          skillUsed.add(s.id)
-          activeSkillNames.push(s.name)
-          break
-        }
-      }
-    }
-
-    let result: TurnLog["result"]
-    if (!res.hit) { result = res.reason }
-    else if (res.critical && res.double_attack) { result = "crit_double" }
-    else if (res.critical)   { result = "crit" }
-    else if (res.double_attack) { result = "double" }
-    else { result = "hit" }
-
-    logs.push({ turn, attacker: attLabel, attack_type: kind, result, damage: dmg,
-      crit: res.critical, double: res.double_attack, life_steal: lifeSteal,
-      mp_cost: mpCost, player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
-      active_skill: activeSkillNames.length > 0 ? activeSkillNames.join(" + ") : null })
     completedTurns = turn
-
-    // "회피 시" 반격: 몬스터 공격을 회피했을 때 즉시 반격
-    if (attLabel === "몬스터" && !res.hit && res.reason === "evaded") {
-      for (const s of activeSkills) {
-        if (s.trigger_condition !== SKILL_TRIGGERS.ON_EVADE || s.effect_code !== "EXTRA_HIT") continue
-        if (s.invested <= 0) break
-        const actualMpCost = getSkillMpCost(s)
-        if (playerMp < actualMpCost) break
-        const extraChance = getSkillValue(s) / 100
-        if (Math.random() < extraChance) {
-          const cRes = attack(battleCfg, plyCombat, monCombat, "normal")
-          const cDmg = cRes.hit ? Math.round(cRes.total_damage * battleStartPatkBonus) : 0
-          playerMp  = Math.max(0, playerMp - actualMpCost)
-          monsterHp = Math.max(0, monsterHp - cDmg)
-          playerHp  = Math.min(playerHp + cRes.life_steal, playerCombat.max_hp)
-          const cResult: TurnLog["result"] = !cRes.hit ? cRes.reason
-            : cRes.critical && cRes.double_attack ? "crit_double"
-            : cRes.critical ? "crit"
-            : cRes.double_attack ? "double" : "hit"
-          logs.push({
-            turn, attacker: "플레이어", attack_type: "normal",
-            result: cResult, damage: cDmg,
-            crit: cRes.critical, double: cRes.double_attack,
-            life_steal: cRes.life_steal, mp_cost: actualMpCost,
-            player_hp: playerHp, player_mp: playerMp, monster_hp: monsterHp,
-            active_skill: s.name,
-          })
-        }
-        break
-      }
-    }
-
-    if (monsterHp <= 0) { winner = "플레이어"; break }
-    if (playerHp  <= 0) { winner = "몬스터";   break }
+    if (ctx.monsterHp <= 0) { winner = "플레이어"; break }
+    if (ctx.playerHp  <= 0) { winner = "몬스터";   break }
   }
 
-  return buildResult(winner ?? "시간초과", completedTurns, logs, playerHp, playerMp, monsterHp)
+  return buildResult(winner ?? "시간초과", completedTurns)
 }

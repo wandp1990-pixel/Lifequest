@@ -8,4 +8,5 @@ UIUX(v0)/node_modules/
 UIUX(v0)/.next/
 UIUX(v0)/.env*.local
 UIUX(v0)/tsconfig.tsbuildinfo
+UIUX(v0)/verification/battle-fixtures/*.json
 .vercel
