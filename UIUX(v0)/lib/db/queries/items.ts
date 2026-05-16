@@ -33,11 +33,9 @@ export async function getAbilityPool(category?: string) {
   return res.rows
 }
 
-// 주의: 함수명과 다르게 skill_table에서 read한다. 가챠 패시브 풀은
-//       item_passive_pool seed가 dead 상태(매칭되는 skill_table.name 없음)라
-//       skill_table을 사용하도록 의도된 것. SoT 정책 결정 후 별도 작업으로
-//       함수명 정리 또는 동작 변경 필요. (검증 보고서 HIGH 1 참조)
-export async function getPassivePool() {
+// skill_table 에서 read — 가챠 패시브 = 보유 스킬 강화 (장비 옵션 [스킬명] → invested 가산).
+// SoT: skill_table (item_passive_pool 테이블은 사용 안 함, 옵션 A 확정).
+export async function getGachaPassiveSource() {
   const db = getClient()
   const res = await db.execute(
     "SELECT id, name, description FROM skill_table WHERE is_active = 1"

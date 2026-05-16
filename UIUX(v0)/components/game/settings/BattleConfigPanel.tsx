@@ -2,6 +2,8 @@
  * @module components/game/settings/BattleConfigPanel
  * @purpose battle_config (VIT→max_hp 등 수식 계수) 일괄 편집. step>0 이면 number+range, else text.
  *          vit_to_max_hp / int_to_max_mp 변경 시 max_hp/max_mp 재계산 위해 char.vit 재 PUT.
+ *          PUT /api/battle-config 는 admin 보호 (fail-closed) → adminRequest 로 Authorization 헤더 부착.
+ *          토큰 입력은 SettingsDrawer 의 관리자 섹션에서 (localStorage).
  */
 
 "use client"
@@ -10,6 +12,8 @@ import { useCallback, useEffect, useState } from "react"
 import { Save } from "lucide-react"
 import SettingsSection from "./SettingsSection"
 import { apiGet, apiPut, ApiError } from "@/hooks/useApi"
+import { adminRequest, AdminFetchError, adminErrorMessage } from "@/lib/admin/token"
+import { useToast } from "@/contexts/ToastContext"
 import { useCharacterCtx } from "@/contexts/CharacterContext"
 
 interface BattleConfigRow {
@@ -22,6 +26,7 @@ interface BattleConfigRow {
 }
 
 export default function BattleConfigPanel() {
+  const { showError } = useToast()
   const { char, refetch } = useCharacterCtx()
   const [configs, setConfigs] = useState<BattleConfigRow[]>([])
   const [edits, setEdits] = useState<Record<string, string>>({})
@@ -44,17 +49,21 @@ export default function BattleConfigPanel() {
   const saveAll = async () => {
     setSaving(true)
     try {
+      // /api/battle-config PUT 은 admin 보호 → adminRequest 사용
       await Promise.all(configs.map((cfg) =>
-        apiPut("/api/battle-config", { key: cfg.config_key, value: edits[cfg.config_key] })
+        adminRequest("PUT", "/api/battle-config", { key: cfg.config_key, value: edits[cfg.config_key] })
       ))
       // vit_to_max_hp / int_to_max_mp 변경이 max_hp/max_mp 에 반영되도록 재계산
+      // /api/character 는 admin 보호 대상 아님 → 기존 apiPut 그대로
       if (char) {
         await apiPut("/api/character", { vit: char.vit })
         refetch()
       }
       await fetchConfig()
     } catch (e) {
-      if (!(e instanceof ApiError)) throw e
+      const msg = adminErrorMessage(e)
+      if (msg) showError(msg)
+      else if (!(e instanceof AdminFetchError) && !(e instanceof ApiError)) throw e
     } finally {
       setSaving(false)
     }

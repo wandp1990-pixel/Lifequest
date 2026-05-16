@@ -10,7 +10,7 @@ export async function seedIfEmpty(db: Client) {
   await seedItemGradeTable(db)
   await seedItemSlotTable(db)
   await seedItemAbilityPool(db)
-  await seedItemPassivePool(db)
+  // item_passive_pool seed 제거 (SoT = skill_table, 옵션 A 확정). 테이블 자체는 schema 에 유지.
   await seedMonsterTable(db)
   await seedPrompt(db)
   await seedChecklistItems(db)
@@ -23,7 +23,7 @@ export async function ensureItemSeeds(db: Client) {
   await seedItemGradeTable(db)
   await seedItemSlotTable(db)
   await seedItemAbilityPool(db)
-  await seedItemPassivePool(db)
+  // item_passive_pool seed 제거 (SoT = skill_table, 옵션 A 확정).
 }
 
 export async function ensureChecklistItems(db: Client) {
@@ -214,21 +214,6 @@ async function seedItemAbilityPool(db: Client) {
     await db.execute({
       sql: "INSERT OR IGNORE INTO item_ability_pool (name,base_value,unit,effect,category) VALUES (?,?,?,?,?)",
       args: row,
-    })
-  }
-}
-
-async function seedItemPassivePool(db: Client) {
-  const data = [
-    ["더블어택", "25% 확률 추가타격"],
-    ["생명흡수", "피해의 5% 회복"],
-    ["방어무시", "상대 DEF 10% 무시"],
-    ["반사", "받은 피해의 5% 반사"],
-  ]
-  for (const [name, desc] of data) {
-    await db.execute({
-      sql: "INSERT OR IGNORE INTO item_passive_pool (name,description) VALUES (?,?)",
-      args: [name, desc],
     })
   }
 }

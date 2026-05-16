@@ -87,6 +87,23 @@ export async function DELETE(req: NextRequest) {
       await db.execute("DELETE FROM routine_item")
       await db.execute("DELETE FROM routine")
       await ensureChecklistItems(db)
+      // 캐릭터 능력치/레벨/exp/티켓도 seedCharacter 초기값으로 리셋
+      // (schema.ts seedCharacter 와 일치 — str/vit/dex/int_stat/luk 는 0, draw_tickets=3,
+      //  base_hp=100/base_mp=50, current/max HP=100, current/max MP=50)
+      // last_regen_at 도 now() 로 리셋해 회복 시계 어긋남 방지
+      await db.execute({
+        sql: `UPDATE character SET
+              name='전사', level=1, total_exp=0, stat_points=0, skill_points=0, draw_tickets=3,
+              clear_count=0, task_count=0,
+              str=0, vit=0, dex=0, int_stat=0, luk=0,
+              base_hp=100, base_mp=50,
+              current_hp=100, max_hp=100, current_mp=50, max_mp=50,
+              pending_battle_monster=NULL, pity_count=0,
+              attendance_streak=0, max_cleared_grade=NULL,
+              last_regen_at=?, updated_at=?
+              WHERE id=1`,
+        args: [now(), now()],
+      })
     } else {
       // 소프트 리셋: 체크리스트 스트릭만 초기화, 항목 유지
       await db.execute("UPDATE checklist_item SET streak=0, best_streak=0")

@@ -2,6 +2,8 @@
  * @module components/game/settings/SkillDbPanel
  * @purpose skill DB 직접 편집(CRUD). PUT/POST/DELETE /api/skill-db.
  *          response shape `{ skills: SkillDbRow[] }` 그대로 사용.
+ *          쓰기 요청은 admin 보호 (fail-closed) → adminRequest 로 Authorization 헤더 부착.
+ *          토큰 입력은 SettingsDrawer 의 관리자 섹션에서 (localStorage).
  */
 
 "use client"
@@ -9,7 +11,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { ChevronDown, ChevronRight, Database, Plus, Save, Trash2 } from "lucide-react"
 import SettingsSection from "./SettingsSection"
-import { apiDelete, apiGet, apiPost, apiPut, ApiError } from "@/hooks/useApi"
+import { apiGet, ApiError } from "@/hooks/useApi"
+import { adminRequest, AdminFetchError, adminErrorMessage } from "@/lib/admin/token"
+import { useToast } from "@/contexts/ToastContext"
 
 interface SkillDbRow {
   id: string
@@ -53,6 +57,7 @@ const EDIT_FIELDS: [keyof SkillDbRow, string, string][] = [
 ]
 
 export default function SkillDbPanel() {
+  const { showError } = useToast()
   const [skillDb, setSkillDb] = useState<SkillDbRow[]>([])
   const [edits, setEdits] = useState<Record<string, SkillDbRow>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -61,6 +66,13 @@ export default function SkillDbPanel() {
   const [newSkill, setNewSkill] = useState<{ id: string } & Omit<SkillDbRow, "id">>({ id: "", ...EMPTY })
   const [adding, setAdding] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  /** admin 보호 라우트 응답에서 401/503 케이스를 toast 로 안내. 그 외 ApiError 는 조용히 무시. */
+  const handleAdminErr = (e: unknown) => {
+    const msg = adminErrorMessage(e)
+    if (msg) showError(msg)
+    else if (!(e instanceof AdminFetchError) && !(e instanceof ApiError)) throw e
+  }
 
   const applyData = (data: { skills: SkillDbRow[] }) => {
     setSkillDb(data.skills)
@@ -82,9 +94,9 @@ export default function SkillDbPanel() {
   const saveRow = async (id: string) => {
     setSavingId(id)
     try {
-      applyData(await apiPut<{ skills: SkillDbRow[] }>("/api/skill-db", edits[id]))
+      applyData(await adminRequest<{ skills: SkillDbRow[] }>("PUT", "/api/skill-db", edits[id]))
     } catch (e) {
-      if (!(e instanceof ApiError)) throw e
+      handleAdminErr(e)
     } finally {
       setSavingId(null)
     }
@@ -94,11 +106,11 @@ export default function SkillDbPanel() {
     if (!newSkill.id.trim() || !newSkill.name.trim()) return
     setAdding(true)
     try {
-      applyData(await apiPost<{ skills: SkillDbRow[] }>("/api/skill-db", newSkill))
+      applyData(await adminRequest<{ skills: SkillDbRow[] }>("POST", "/api/skill-db", newSkill))
       setNewSkill({ id: "", ...EMPTY })
       setShowAdd(false)
     } catch (e) {
-      if (!(e instanceof ApiError)) throw e
+      handleAdminErr(e)
     } finally {
       setAdding(false)
     }
@@ -107,9 +119,14 @@ export default function SkillDbPanel() {
   const removeRow = async (id: string) => {
     setDeletingId(id)
     try {
-      applyData(await apiDelete<{ skills: SkillDbRow[] }>(`/api/skill-db?id=${encodeURIComponent(id)}`))
+      applyData(
+        await adminRequest<{ skills: SkillDbRow[] }>(
+          "DELETE",
+          `/api/skill-db?id=${encodeURIComponent(id)}`,
+        ),
+      )
     } catch (e) {
-      if (!(e instanceof ApiError)) throw e
+      handleAdminErr(e)
     } finally {
       setDeletingId(null)
     }

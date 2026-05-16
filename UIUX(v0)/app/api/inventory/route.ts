@@ -9,7 +9,7 @@ import {
   getItemGrades,
   getItemSlots,
   getAbilityPool,
-  getPassivePool,
+  getGachaPassiveSource,
   getBattleConfig,
   getSkillsWithInvestment,
 } from "@/lib/db"
@@ -86,7 +86,7 @@ export const POST = withInit(async (req: NextRequest) => {
     getItemGrades() as Promise<unknown> as Promise<GradeRow[]>,
     getItemSlots() as Promise<unknown> as Promise<SlotRow[]>,
     getAbilityPool() as Promise<unknown> as Promise<AbilityRow[]>,
-    getPassivePool() as Promise<unknown> as Promise<PassiveRow[]>,
+    getGachaPassiveSource() as Promise<unknown> as Promise<PassiveRow[]>,
   ])
 
   // 가챠 결과를 먼저 모두 결정 (랜덤). DB 쓰기는 트랜잭션 안에서 한 번에.
