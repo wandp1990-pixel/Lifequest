@@ -1,6 +1,6 @@
 import * as db from "./db"
 import { getClient, now } from "./db/client"
-import { buildPlayerCombatStats } from "./battle"
+import { computeEffectiveStats } from "./character/stats"
 
 // 특정 레벨 달성에 필요한 경험치 계산
 // 기본값: base_exp=100, level_multiplier=1.01 → 레벨마다 1% 증가
@@ -93,10 +93,13 @@ export async function gainExp(expAmount: number) {
     // 트랜잭션 안에서 equipment를 재read해 동시 장착 변경으로 인한 max_hp 부풀림 방지.
     if (leveledUp) {
       const equipRes = await tx.execute("SELECT is_equipped, options FROM equipment")
-      const equippedOptions = (equipRes.rows as unknown as { is_equipped: number; options: string }[])
-        .filter((e) => e.is_equipped === 1)
-        .map((e) => e.options)
-      const cs = buildPlayerCombatStats({ ...char, level }, equippedOptions, bcfg, allSkills)
+      // 통일 helper: boostedSkills 자동 적용 — 장비 옵션의 `[스킬명]` 패시브 포함 effective max 산출
+      const { combatStats: cs } = computeEffectiveStats(
+        { ...char, level },
+        equipRes.rows as unknown[],
+        allSkills,
+        bcfg,
+      )
       updates.current_hp = Math.round(cs.max_hp)
       updates.current_mp = Math.round(cs.max_mp)
       // 풀회복 시 회복 기준점도 함께 리셋. 누락 시 풀회복 직후 HP 감소가 발생하면

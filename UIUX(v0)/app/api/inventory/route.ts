@@ -15,7 +15,7 @@ import {
 } from "@/lib/db"
 import { now } from "@/lib/time/kst"
 import { tx } from "@/lib/db/queries/_helpers"
-import { buildPlayerCombatStats } from "@/lib/battle"
+import { computeEffectiveStats } from "@/lib/character/stats"
 import {
   rollGachaItems,
   type GradeRow,
@@ -23,7 +23,6 @@ import {
   type AbilityRow,
   type PassiveRow,
 } from "@/lib/game/gacha"
-import { applyItemPassives } from "@/lib/battle"
 import { MAX_GACHA_COUNT } from "@/lib/constants/gacha"
 import { ok, badRequest, withInit } from "@/lib/api/respond"
 
@@ -55,11 +54,7 @@ export const PATCH = withInit(async (req: NextRequest) => {
   const [char, bcfg, equipment, allSkills] = await Promise.all([
     getCharacter(), getBattleConfig(), getEquipment(), getSkillsWithInvestment(),
   ])
-  const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
-    .filter((e) => e.is_equipped === 1)
-    .map((e) => e.options)
-  const boostedSkills = applyItemPassives(allSkills, equippedOptions)
-  const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, boostedSkills)
+  const { combatStats: cs } = computeEffectiveStats(char, equipment, allSkills, bcfg)
   const effMaxHp = Math.round(cs.max_hp)
   const effMaxMp = Math.round(cs.max_mp)
   // 정책: 장비 변경은 회복 기준점으로 취급 (last_regen_at 리셋).

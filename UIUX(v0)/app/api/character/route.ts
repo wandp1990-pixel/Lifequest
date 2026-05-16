@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initDbSchemaOnly, getCharacter, getGameConfig, updateCharacter, getBattleConfig, getClient, getEquipment, getSkillsWithInvestment } from "@/lib/db"
 import { requiredExp, recalcHpMp } from "@/lib/game"
-import { buildPlayerCombatStats, parseEquippedStatBonuses } from "@/lib/battle"
+import { parseEquippedStatBonuses } from "@/lib/battle"
+import { computeEffectiveStats } from "@/lib/character/stats"
 import { ensureChecklistItems } from "@/lib/db/seed"
 import { ok, notFound, withInit } from "@/lib/api/respond"
 import { now } from "@/lib/time/kst"
@@ -19,14 +20,9 @@ export const GET = withInit(async () => {
   ])
   const nextExp = requiredExp(char.level, cfg)
 
-  // 장착된 장비의 옵션 문자열 추출
-  const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
-    .filter((e) => e.is_equipped === 1)
-    .map((e) => e.options)
-
-  // 전투 스탯 계산 (패시브 스킬 % 보너스 포함)
-  const cs = buildPlayerCombatStats(char, equippedOptions, bcfg, allSkills)
-  // 기초 스탯의 아이템 보너스만 추출
+  // 전투 스탯 계산 — boostedSkills 적용된 통일 경로 (장비 옵션의 `[스킬명]` 패시브 포함)
+  const { equippedOptions, combatStats: cs } = computeEffectiveStats(char, equipment, allSkills, bcfg)
+  // 기초 스탯의 아이템 보너스만 추출 (effective stat 분해 표시용)
   const itemStatBonuses = parseEquippedStatBonuses(equippedOptions)
 
   const finalVit = char.vit + itemStatBonuses.vit
@@ -134,12 +130,9 @@ export const PUT = withInit(async (req: NextRequest) => {
     // 기본 max_hp/mp 계산 (VIT/INT 기반, 아이템 제외)
     const { maxHp, maxMp } = recalcHpMp(merged, bcfg)
 
-    // 장비 + 패시브 스킬 포함 effective max 계산
+    // 장비 + 패시브 스킬 포함 effective max 계산 (boostedSkills 통일 경로)
     // current_hp가 새로운 max를 초과하지 않도록 캡 (단, 아이템으로 부풀린 HP는 보존)
-    const equippedOptions = (equipment as unknown as { is_equipped: number; options: string }[])
-      .filter((e) => e.is_equipped === 1)
-      .map((e) => e.options)
-    const cs = buildPlayerCombatStats(merged, equippedOptions, bcfg, allSkills)
+    const { combatStats: cs } = computeEffectiveStats(merged, equipment, allSkills, bcfg)
     const effMaxHp = Math.round(cs.max_hp)
     const effMaxMp = Math.round(cs.max_mp)
 

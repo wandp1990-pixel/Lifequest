@@ -4,7 +4,8 @@ import {
   getSkillsWithInvestment, getClient,
 } from "@/lib/db"
 import { now } from "@/lib/db/client"
-import { generateMonster, buildPlayerCombatStats, runBattle, getActiveSkills, applyItemPassives, parseEquippedStatBonuses, type Monster } from "@/lib/battle"
+import { generateMonster, runBattle, getActiveSkills, parseEquippedStatBonuses, type Monster } from "@/lib/battle"
+import { computeEffectiveStats } from "@/lib/character/stats"
 import { calcRegen } from "@/lib/regen"
 
 // 타입 가드: 몬스터 스탯 필드 유효성 검사
@@ -53,14 +54,10 @@ export async function POST() {
       getEquipment(), getSkillsWithInvestment(),
     ])
 
-    // 장착된 장비의 옵션 문자열 배열 추출
-    const equippedOptions = equipment
-      .filter((e) => (e.is_equipped as number) === 1)
-      .map((e) => e.options as string)
-
-    const boostedSkills = applyItemPassives(allSkills, equippedOptions)
+    // 통일 helper: 장비 옵션 추출 + 패시브 합산 + 전투 스탯 계산 한 번에
+    const { equippedOptions, boostedSkills, combatStats: playerCombat } =
+      computeEffectiveStats(char, equipment, allSkills, battleCfg)
     const activeSkills = getActiveSkills(boostedSkills)
-    const playerCombat = buildPlayerCombatStats(char, equippedOptions, battleCfg, boostedSkills)
     // 지난 패배에서 저장된 재도전 몬스터 파싱
     const pendingMonster = parsePendingMonster(char.pending_battle_monster)
 
