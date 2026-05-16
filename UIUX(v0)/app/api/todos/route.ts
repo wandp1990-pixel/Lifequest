@@ -80,11 +80,11 @@ export const PUT = withInit(async (req: NextRequest) => {
   } else {
     return badRequest("수정할 필드가 없습니다")
   }
-  return ok(await getTodoItems())
+  return ok({ items: await getTodoItems() })
 })
 
 export const DELETE = withInit(async (req: NextRequest) => {
   const { id } = await req.json()
   await deleteTodoItem(id)
-  return ok(await getTodoItems())
+  return ok({ items: await getTodoItems() })
 })

@@ -58,7 +58,7 @@ export default function TodoSection({
         showError(data?.error ?? "할 일 추가 실패")
         return
       }
-      setTodoItems(data?.items ?? data ?? [])
+      setTodoItems(data?.items ?? [])
       setNewName("")
       setNewExp(0)
       setNewDueTime("")
@@ -81,7 +81,7 @@ export default function TodoSection({
         showError(data?.error ?? "이름 수정 실패")
         return
       }
-      setTodoItems(Array.isArray(data) ? data : data?.items ?? [])
+      setTodoItems(data?.items ?? [])
       setEditingId(null)
     } catch {
       showError("네트워크 오류 — 잠시 후 다시 시도하세요")
@@ -100,7 +100,7 @@ export default function TodoSection({
         showError(data?.error ?? "알림 저장 실패")
         return
       }
-      setTodoItems(Array.isArray(data) ? data : data?.items ?? [])
+      setTodoItems(data?.items ?? [])
       setNotifyEditId(null)
     } catch {
       showError("네트워크 오류 — 잠시 후 다시 시도하세요")

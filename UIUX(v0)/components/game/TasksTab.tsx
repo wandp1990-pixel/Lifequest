@@ -120,9 +120,9 @@ export default function TasksTab({
         setHabitGroups(data.groups ?? [])
         setBonusGroupIds(new Set(data.bonusGroupIds ?? []))
       } else if (type === "todo") {
-        const items = await apiDelete<TodoItem[]>("/api/todos", { id })
-        setTodoItems(items)
-        setCompletedTodoCount(items.filter((t) => t.is_completed).length)
+        const data = await apiDelete<{ items: TodoItem[] }>("/api/todos", { id })
+        setTodoItems(data.items)
+        setCompletedTodoCount(data.items.filter((t) => t.is_completed).length)
       } else {
         const action = type === "routine" ? "deleteRoutine" : "deleteItem"
         const data = await apiDelete<{ routines?: typeof routines; checkedItemIds?: number[]; bonusRoutineIds?: number[] }>(

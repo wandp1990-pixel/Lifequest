@@ -1,7 +1,7 @@
 /**
  * @module hooks/useTodos
  * @purpose /api/todos 데이터(todoItems) + 완료 카운터 상태 + refetch.
- *          API 응답이 { items: TodoItem[] } 또는 TodoItem[] (legacy) 양쪽을 허용하므로 양쪽 형식 모두 수용.
+ *          모든 메서드(GET/POST/PUT/DELETE)가 { items: TodoItem[] } 로 통일됨.
  */
 
 import { useCallback, useState } from "react"
@@ -14,8 +14,8 @@ export function useTodos() {
 
   const refetch = useCallback(async () => {
     try {
-      const data = await apiGet<{ items?: TodoItem[] } | TodoItem[]>("/api/todos")
-      const items = Array.isArray(data) ? data : (data.items ?? [])
+      const data = await apiGet<{ items: TodoItem[] }>("/api/todos")
+      const items = data.items ?? []
       setTodoItems(items)
       setCompletedTodoCount(items.filter((t) => t.is_completed).length)
     } catch (e) {
