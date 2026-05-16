@@ -1,7 +1,7 @@
 /**
  * @module components/game/home/StatsGrid
  * @purpose 홈 미니 스탯 그리드 (4칸). 습관/루틴/프로젝트/할 일 진척률을 SVG 원형 게이지로.
- *          각 항목 자체 fetch.
+ *          habits/routines/todos 는 자체 fetch, projects 는 부모(HomeTab)에서 props 로 받는다(중복 호출 방지).
  */
 
 "use client"
@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback } from "react"
 interface Props {
   refreshTick?: number
   onTabChange?: (tab: "home" | "tasks" | "battle" | "items" | "skills") => void
+  projects: { status: string }[]
 }
 
 interface StatEntry {
@@ -24,21 +25,21 @@ interface StatEntry {
   trackColor: string
 }
 
-export default function StatsGrid({ refreshTick, onTabChange }: Props) {
+export default function StatsGrid({ refreshTick, onTabChange, projects }: Props) {
   const [habitsDone, setHabitsDone] = useState(0)
   const [habitsTotal, setHabitsTotal] = useState(0)
   const [routinesDone, setRoutinesDone] = useState(0)
   const [routinesTotal, setRoutinesTotal] = useState(0)
-  const [projectsDone, setProjectsDone] = useState(0)
-  const [projectsTotal, setProjectsTotal] = useState(0)
   const [todosDone, setTodosDone] = useState(0)
   const [todosTotal, setTodosTotal] = useState(0)
 
+  const projectsTotal = projects.length
+  const projectsDone = projects.filter((p) => p.status === "done").length
+
   const fetchAll = useCallback(async () => {
-    const [hRes, rRes, pRes, tRes] = await Promise.all([
+    const [hRes, rRes, tRes] = await Promise.all([
       fetch("/api/checklist"),
       fetch("/api/routines"),
-      fetch("/api/projects"),
       fetch("/api/todos"),
     ])
     if (hRes.ok) {
@@ -50,12 +51,6 @@ export default function StatsGrid({ refreshTick, onTabChange }: Props) {
       const d = await rRes.json()
       setRoutinesTotal((d.routines ?? []).length)
       setRoutinesDone((d.bonusRoutineIds ?? []).length)
-    }
-    if (pRes.ok) {
-      const d = await pRes.json()
-      const all = (d.projects ?? []) as { status: string }[]
-      setProjectsTotal(all.length)
-      setProjectsDone(all.filter((p) => p.status === "done").length)
     }
     if (tRes.ok) {
       const d = await tRes.json()
