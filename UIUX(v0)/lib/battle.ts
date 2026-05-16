@@ -1,4 +1,5 @@
 import type { Character } from "./db"
+import { SKILL_TRIGGERS } from "./skills/triggers"
 
 // ─── Skill types ──────────────────────────────────────────────────────────────
 
@@ -622,10 +623,10 @@ export function runBattle(
   for (const s of activeSkills) {
     if (s.invested <= 0) continue
     const val = getSkillValue(s)
-    if (s.trigger_condition === "전투 시작") {
+    if (s.trigger_condition === SKILL_TRIGGERS.BATTLE_START) {
       if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
     }
-    if (s.trigger_condition === "선공 획득" && first === "플레이어") {
+    if (s.trigger_condition === SKILL_TRIGGERS.FIRST_STRIKE && first === "플레이어") {
       if (s.effect_code === "PATK_PCT") battleStartPatkBonus *= 1 + val / 100
     }
   }
@@ -656,7 +657,7 @@ export function runBattle(
       const hpRatio = playerHp / playerCombat.max_hp
       if (hpRatio <= 0.25) {
         for (const s of activeSkills) {
-          if (s.trigger_condition !== "HP 25% 이하" || s.effect_code !== "HP_HEAL") continue
+          if (s.trigger_condition !== SKILL_TRIGGERS.HP_BELOW_25 || s.effect_code !== "HP_HEAL") continue
           if (skillUsed.has(s.id)) continue
           if (s.invested <= 0) continue
            const actualMpCost = getSkillMpCost(s)
@@ -684,7 +685,7 @@ export function runBattle(
       dmg = Math.round(dmg * battleStartPatkBonus)
 
       for (const s of activeSkills) {
-        if (s.trigger_condition !== "매 3턴") continue
+        if (s.trigger_condition !== SKILL_TRIGGERS.EVERY_3_TURNS) continue
         if (s.invested <= 0 || playerTurnCount % 3 !== 0) continue
         const val = getSkillValue(s)
         if (s.effect_code === "MATK_PCT") {
@@ -698,7 +699,7 @@ export function runBattle(
 
       if (res.critical) {
         for (const s of activeSkills) {
-          if (s.trigger_condition !== "치명타 시") continue
+          if (s.trigger_condition !== SKILL_TRIGGERS.ON_CRIT) continue
           if (s.invested <= 0) continue
           const val = getSkillValue(s)
           if (s.effect_code === "MATK_PCT") {
@@ -712,7 +713,7 @@ export function runBattle(
       }
 
       for (const s of activeSkills) {
-        if (s.trigger_condition !== "명중 시" || s.effect_code !== "EXTRA_HIT") continue
+        if (s.trigger_condition !== SKILL_TRIGGERS.ON_HIT || s.effect_code !== "EXTRA_HIT") continue
         if (s.invested <= 0) continue
         const actualMpCost = getSkillMpCost(s)
         if (playerMp - mpCost < actualMpCost) break
@@ -741,7 +742,7 @@ export function runBattle(
 
       if (playerHp <= 0) {
         for (const s of activeSkills) {
-          if (s.trigger_condition !== "사망 시" || s.effect_code !== "SURVIVE") continue
+          if (s.trigger_condition !== SKILL_TRIGGERS.ON_DEATH || s.effect_code !== "SURVIVE") continue
           if (skillUsed.has(s.id) || s.invested <= 0) continue
           playerHp = 1
           skillUsed.add(s.id)
@@ -767,7 +768,7 @@ export function runBattle(
     // "회피 시" 반격: 몬스터 공격을 회피했을 때 즉시 반격
     if (attLabel === "몬스터" && !res.hit && res.reason === "evaded") {
       for (const s of activeSkills) {
-        if (s.trigger_condition !== "회피 시" || s.effect_code !== "EXTRA_HIT") continue
+        if (s.trigger_condition !== SKILL_TRIGGERS.ON_EVADE || s.effect_code !== "EXTRA_HIT") continue
         if (s.invested <= 0) break
         const actualMpCost = getSkillMpCost(s)
         if (playerMp < actualMpCost) break
