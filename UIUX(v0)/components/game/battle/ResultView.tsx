@@ -74,19 +74,19 @@ export default function ResultView({ result, restoreMode, onFight, onNewBattle }
       <div className="px-4 py-3 bg-background border-b border-border">
         <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 능력치 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
         {([
-          { icon: <Sword  className="w-3 h-3" />, label: "PATK", pv: result.player_stats.patk, mv: monster.stats.patk },
-          { icon: <Brain  className="w-3 h-3" />, label: "MATK", pv: result.player_stats.matk, mv: monster.stats.matk },
-          { icon: <Shield className="w-3 h-3" />, label: "PDEF", pv: result.player_stats.pdef, mv: monster.stats.pdef },
-          { icon: <Zap    className="w-3 h-3" />, label: "MDEF", pv: result.player_stats.mdef, mv: monster.stats.mdef },
-          { icon: <Wind   className="w-3 h-3" />, label: "DEX",  pv: result.player_stats.dex,  mv: monster.stats.dex  },
-          { icon: <Star   className="w-3 h-3" />, label: "LUK",  pv: result.player_stats.luk,  mv: monster.stats.luk  },
+          { icon: <Sword  className="w-3 h-3" />, label: "물리공격", pv: result.player_stats.patk, mv: monster.stats.patk },
+          { icon: <Brain  className="w-3 h-3" />, label: "마법공격", pv: result.player_stats.matk, mv: monster.stats.matk },
+          { icon: <Shield className="w-3 h-3" />, label: "물리방어", pv: result.player_stats.pdef, mv: monster.stats.pdef },
+          { icon: <Zap    className="w-3 h-3" />, label: "마법방어", pv: result.player_stats.mdef, mv: monster.stats.mdef },
+          { icon: <Wind   className="w-3 h-3" />, label: "민첩",     pv: result.player_stats.dex,  mv: monster.stats.dex  },
+          { icon: <Star   className="w-3 h-3" />, label: "운",       pv: result.player_stats.luk,  mv: monster.stats.luk  },
         ]).map(({ icon, label, pv, mv }) => {
           const total = pv + mv
           const pPct  = total > 0 ? Math.round((pv / total) * 100) : 50
           const pWin  = pv >= mv
           return (
             <div key={label} className="flex items-center gap-1.5 my-1">
-              <span className="text-[10px] text-muted-foreground w-12 shrink-0 flex items-center gap-1">{icon} {label}</span>
+              <span className="text-[10px] text-muted-foreground w-16 shrink-0 flex items-center gap-1">{icon} {label}</span>
               <span className={`text-[10px] w-8 text-right shrink-0 ${pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{pv}</span>
               <div className="flex-1 h-2 overflow-hidden rounded-full flex bg-muted">
                 <div className="bg-blue-400 rounded-l-full" style={{ width: `${pPct}%` }} />

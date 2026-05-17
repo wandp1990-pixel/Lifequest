@@ -33,12 +33,12 @@ export default function LobbyView({ char, scales, savedMonster, loading, error, 
         <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 스탯</p>
         <div className="grid grid-cols-3 gap-1.5">
           {([
-            { icon: <Sword  className="w-3 h-3" />, label: "PATK", value: Math.round(eff?.patk ?? 0), color: "text-red-500",     bg: "bg-red-50",     border: "border-red-200" },
-            { icon: <Brain  className="w-3 h-3" />, label: "MATK", value: Math.round(eff?.matk ?? 0), color: "text-violet-500",  bg: "bg-violet-50",  border: "border-violet-200" },
-            { icon: <Wind   className="w-3 h-3" />, label: "DEX",  value: Math.round(eff?.dex  ?? 0), color: "text-sky-500",     bg: "bg-sky-50",     border: "border-sky-200" },
-            { icon: <Shield className="w-3 h-3" />, label: "PDEF", value: Math.round(eff?.pdef ?? 0), color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
-            { icon: <Zap    className="w-3 h-3" />, label: "MDEF", value: Math.round(eff?.mdef ?? 0), color: "text-teal-500",    bg: "bg-teal-50",    border: "border-teal-200" },
-            { icon: <Star   className="w-3 h-3" />, label: "LUK",  value: Math.round(eff?.luk  ?? 0), color: "text-amber-500",   bg: "bg-amber-50",   border: "border-amber-200" },
+            { icon: <Sword  className="w-3 h-3" />, label: "물리공격", value: Math.round(eff?.patk ?? 0), color: "text-red-500",     bg: "bg-red-50",     border: "border-red-200" },
+            { icon: <Brain  className="w-3 h-3" />, label: "마법공격", value: Math.round(eff?.matk ?? 0), color: "text-violet-500",  bg: "bg-violet-50",  border: "border-violet-200" },
+            { icon: <Wind   className="w-3 h-3" />, label: "민첩",     value: Math.round(eff?.dex  ?? 0), color: "text-sky-500",     bg: "bg-sky-50",     border: "border-sky-200" },
+            { icon: <Shield className="w-3 h-3" />, label: "물리방어", value: Math.round(eff?.pdef ?? 0), color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
+            { icon: <Zap    className="w-3 h-3" />, label: "마법방어", value: Math.round(eff?.mdef ?? 0), color: "text-teal-500",    bg: "bg-teal-50",    border: "border-teal-200" },
+            { icon: <Star   className="w-3 h-3" />, label: "운",       value: Math.round(eff?.luk  ?? 0), color: "text-amber-500",   bg: "bg-amber-50",   border: "border-amber-200" },
           ]).map(({ icon, label, value, color, bg, border }) => (
             <div key={label} className={`text-center rounded-xl py-2 border ${bg} ${border}`}>
               <div className={`flex justify-center mb-0.5 ${color}`}>{icon}</div>
