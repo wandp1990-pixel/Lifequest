@@ -5,7 +5,7 @@
 
 "use client"
 
-import { Sword, Heart, Wind, Brain, Star } from "lucide-react"
+import { Sword, Brain, Wind, Shield, Zap, Star } from "lucide-react"
 import { GRADE_KEYS, GRADE_META, type CharData, type Monster } from "./types"
 
 interface Props {
@@ -22,13 +22,7 @@ export default function LobbyView({ char, scales, savedMonster, loading, error, 
   const level      = char?.level ?? 1
   const coeff      = ((1 + clearCount * scales.clearScale) * (1 + Math.max(0, level - 1) * scales.levelScale)).toFixed(2)
 
-  const bonus  = char?.item_stat_bonuses
-  const eff    = char?.effective
-  const effStr = (char?.str      ?? 0) + (bonus?.str      ?? 0)
-  const effVit = (char?.vit      ?? 0) + (bonus?.vit      ?? 0)
-  const effDex = eff?.dex ?? ((char?.dex      ?? 0) + (bonus?.dex      ?? 0))
-  const effInt = (char?.int_stat ?? 0) + (bonus?.int_stat ?? 0)
-  const effLuk = eff?.luk ?? ((char?.luk      ?? 0) + (bonus?.luk      ?? 0))
+  const eff = char?.effective
 
   const maxClearedIdx  = char?.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
   const unlockedGrades = GRADE_KEYS.slice(0, maxClearedIdx + 2)
@@ -36,27 +30,22 @@ export default function LobbyView({ char, scales, savedMonster, loading, error, 
   return (
     <div className="flex flex-col gap-0">
       <div className="px-4 py-3 bg-background border-b border-border">
-        <p className="text-[10px] text-muted-foreground font-bold mb-2">캐릭터 스탯</p>
-        <div className="grid grid-cols-5 gap-1.5">
+        <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 스탯</p>
+        <div className="grid grid-cols-3 gap-1.5">
           {([
-            { icon: <Sword className="w-3 h-3" />, label: "STR", eff: effStr, base: char?.str ?? 0,      color: "text-red-500",     bg: "bg-red-50",     border: "border-red-200" },
-            { icon: <Heart className="w-3 h-3" />, label: "VIT", eff: effVit, base: char?.vit ?? 0,      color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
-            { icon: <Wind  className="w-3 h-3" />, label: "DEX", eff: effDex, base: char?.dex ?? 0,      color: "text-sky-500",     bg: "bg-sky-50",     border: "border-sky-200" },
-            { icon: <Brain className="w-3 h-3" />, label: "INT", eff: effInt, base: char?.int_stat ?? 0, color: "text-violet-500",  bg: "bg-violet-50",  border: "border-violet-200" },
-            { icon: <Star  className="w-3 h-3" />, label: "LUK", eff: effLuk, base: char?.luk ?? 0,      color: "text-amber-500",   bg: "bg-amber-50",   border: "border-amber-200" },
-          ]).map(({ icon, label, eff, base, color, bg, border }) => {
-            const b = eff - base
-            return (
-              <div key={label} className={`text-center rounded-xl py-2 border ${bg} ${border}`}>
-                <div className={`flex justify-center mb-0.5 ${color}`}>{icon}</div>
-                <div className={`text-[9px] mb-0.5 font-bold ${color}`}>{label}</div>
-                <div className="text-sm font-bold text-foreground">
-                  {eff}
-                  {b > 0 && <span className="text-[9px] text-emerald-500 ml-0.5">+{b}</span>}
-                </div>
-              </div>
-            )
-          })}
+            { icon: <Sword  className="w-3 h-3" />, label: "PATK", value: Math.round(eff?.patk ?? 0), color: "text-red-500",     bg: "bg-red-50",     border: "border-red-200" },
+            { icon: <Brain  className="w-3 h-3" />, label: "MATK", value: Math.round(eff?.matk ?? 0), color: "text-violet-500",  bg: "bg-violet-50",  border: "border-violet-200" },
+            { icon: <Wind   className="w-3 h-3" />, label: "DEX",  value: Math.round(eff?.dex  ?? 0), color: "text-sky-500",     bg: "bg-sky-50",     border: "border-sky-200" },
+            { icon: <Shield className="w-3 h-3" />, label: "PDEF", value: Math.round(eff?.pdef ?? 0), color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
+            { icon: <Zap    className="w-3 h-3" />, label: "MDEF", value: Math.round(eff?.mdef ?? 0), color: "text-teal-500",    bg: "bg-teal-50",    border: "border-teal-200" },
+            { icon: <Star   className="w-3 h-3" />, label: "LUK",  value: Math.round(eff?.luk  ?? 0), color: "text-amber-500",   bg: "bg-amber-50",   border: "border-amber-200" },
+          ]).map(({ icon, label, value, color, bg, border }) => (
+            <div key={label} className={`text-center rounded-xl py-2 border ${bg} ${border}`}>
+              <div className={`flex justify-center mb-0.5 ${color}`}>{icon}</div>
+              <div className={`text-[9px] mb-0.5 font-bold ${color}`}>{label}</div>
+              <div className="text-sm font-bold text-foreground">{value}</div>
+            </div>
+          ))}
         </div>
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-1">

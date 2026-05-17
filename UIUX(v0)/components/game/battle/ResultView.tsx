@@ -7,7 +7,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Sword, Heart, Wind, Brain, Star } from "lucide-react"
+import { Sword, Brain, Wind, Shield, Zap, Star } from "lucide-react"
 import TurnItem, { MiniBar } from "./TurnItem"
 import type { BattleResultData, CharData, RestoreMode } from "./types"
 
@@ -19,7 +19,7 @@ interface Props {
   onNewBattle: () => void
 }
 
-export default function ResultView({ result, char, restoreMode, onFight, onNewBattle }: Props) {
+export default function ResultView({ result, restoreMode, onFight, onNewBattle }: Props) {
   const [visibleTurns, setVisibleTurns] = useState(0)
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -41,8 +41,6 @@ export default function ResultView({ result, char, restoreMode, onFight, onNewBa
   const pMpFinal    = lastLog?.player_mp  ?? result.player_start_mp
   const mFinal      = lastLog?.monster_hp ?? monster_max_hp
   const animDone    = visibleTurns >= logs.length
-
-  const playerEffStats = char?.effective
 
   return (
     <div className="flex flex-col gap-0">
@@ -76,11 +74,12 @@ export default function ResultView({ result, char, restoreMode, onFight, onNewBa
       <div className="px-4 py-3 bg-background border-b border-border">
         <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 능력치 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
         {([
-          { icon: <Sword className="w-3 h-3" />, label: "PATK", pv: playerEffStats?.patk  ?? result.player_stats.patk,  mv: monster.stats.patk },
-          { icon: <Heart className="w-3 h-3" />, label: "HP",   pv: player_max_hp,                                       mv: monster_max_hp },
-          { icon: <Wind  className="w-3 h-3" />, label: "DEX",  pv: playerEffStats?.dex   ?? result.player_stats.dex,   mv: monster.stats.dex },
-          { icon: <Brain className="w-3 h-3" />, label: "MATK", pv: playerEffStats?.matk  ?? result.player_stats.matk,  mv: monster.stats.matk },
-          { icon: <Star  className="w-3 h-3" />, label: "LUK",  pv: playerEffStats?.luk   ?? result.player_stats.luk,   mv: monster.stats.luk },
+          { icon: <Sword  className="w-3 h-3" />, label: "PATK", pv: result.player_stats.patk, mv: monster.stats.patk },
+          { icon: <Brain  className="w-3 h-3" />, label: "MATK", pv: result.player_stats.matk, mv: monster.stats.matk },
+          { icon: <Shield className="w-3 h-3" />, label: "PDEF", pv: result.player_stats.pdef, mv: monster.stats.pdef },
+          { icon: <Zap    className="w-3 h-3" />, label: "MDEF", pv: result.player_stats.mdef, mv: monster.stats.mdef },
+          { icon: <Wind   className="w-3 h-3" />, label: "DEX",  pv: result.player_stats.dex,  mv: monster.stats.dex  },
+          { icon: <Star   className="w-3 h-3" />, label: "LUK",  pv: result.player_stats.luk,  mv: monster.stats.luk  },
         ]).map(({ icon, label, pv, mv }) => {
           const total = pv + mv
           const pPct  = total > 0 ? Math.round((pv / total) * 100) : 50
