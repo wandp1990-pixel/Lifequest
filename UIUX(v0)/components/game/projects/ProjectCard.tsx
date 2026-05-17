@@ -45,6 +45,7 @@ export default function ProjectCard({
   const [newTaskName, setNewTaskName] = useState("")
   const [newTaskExp, setNewTaskExp] = useState("0")
   const [completing, setCompleting] = useState<number | null>(null)
+  const [completingProject, setCompletingProject] = useState(false)
   // 낙관적 완료 ID — props.project.tasks가 동기화되기 전 즉시 체크 표시
   const [optimisticDoneIds, setOptimisticDoneIds] = useState<Set<number>>(new Set())
   const [editingChapter, setEditingChapter] = useState(false)
@@ -61,6 +62,7 @@ export default function ProjectCard({
   const activeChapters = chapters.filter((c) => c.status === "active")
 
   const handleStatusChange = async (status: "todo" | "in_progress" | "done") => {
+    setCompletingProject(true)
     try {
       const data = await apiPatch<{ projects?: Project[]; bonusExp?: number }>(
         `/api/projects/${project.id}`, { status })
@@ -72,6 +74,8 @@ export default function ProjectCard({
     } catch (e) {
       if (e instanceof ApiError) showError(e.message)
       else throw e
+    } finally {
+      setCompletingProject(false)
     }
   }
 
@@ -165,7 +169,20 @@ export default function ProjectCard({
         className="flex items-start gap-3 p-3 cursor-pointer active:bg-muted/40 transition-colors"
         onClick={toggleExpand}
       >
-        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${PROJECT_COLOR_CLS[project.color] ?? "bg-violet-500"}`} />
+        <button
+          onClick={(e) => { e.stopPropagation(); handleStatusChange(project.status === "done" ? "todo" : "done") }}
+          disabled={completingProject}
+          className="shrink-0 w-7 h-7 flex items-center justify-center touch-manipulation"
+        >
+          {completingProject ? (
+            <Circle size={18} className="text-muted-foreground animate-pulse" />
+          ) : project.status === "done" ? (
+            <CheckCircle2 size={18} className="text-emerald-500" />
+          ) : (
+            <Circle size={18} className="text-muted-foreground" />
+          )}
+        </button>
+        <div className={`w-2 h-2 rounded-full mt-2.5 shrink-0 ${PROJECT_COLOR_CLS[project.color] ?? "bg-violet-500"}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-sm font-bold ${project.status === "done" ? "line-through text-muted-foreground" : ""}`}>
@@ -336,9 +353,9 @@ export default function ProjectCard({
               return (
                 <div key={task.id} className={`flex items-center gap-2 py-1 ${visuallyDone ? "opacity-50" : ""}`}>
                   <button
-                    onClick={() => !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id)}
+                    onClick={(e) => { e.stopPropagation(); !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id) }}
                     disabled={visuallyDone || project.status === "done" || completing !== null}
-                    className="shrink-0"
+                    className="shrink-0 w-7 h-7 flex items-center justify-center touch-manipulation"
                   >
                     {visuallyDone ? (
                       <CheckCircle2 size={16} className="text-emerald-500" />
