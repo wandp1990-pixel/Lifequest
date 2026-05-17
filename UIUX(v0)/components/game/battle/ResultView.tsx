@@ -14,12 +14,13 @@ import type { BattleResultData, CharData, RestoreMode } from "./types"
 interface Props {
   result: BattleResultData
   char: CharData | null
+  scales: { clearScale: number; levelScale: number; accPerDex: number; critPerLuk: number }
   restoreMode: RestoreMode
   onFight: () => void
   onNewBattle: () => void
 }
 
-export default function ResultView({ result, restoreMode, onFight, onNewBattle }: Props) {
+export default function ResultView({ result, scales, restoreMode, onFight, onNewBattle }: Props) {
   const [visibleTurns, setVisibleTurns] = useState(0)
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -74,25 +75,25 @@ export default function ResultView({ result, restoreMode, onFight, onNewBattle }
       <div className="px-4 py-3 bg-background border-b border-border">
         <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 능력치 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
         {([
-          { icon: <Sword  className="w-3 h-3" />, label: "물리공격", pv: result.player_stats.patk, mv: monster.stats.patk },
-          { icon: <Brain  className="w-3 h-3" />, label: "마법공격", pv: result.player_stats.matk, mv: monster.stats.matk },
-          { icon: <Shield className="w-3 h-3" />, label: "물리방어", pv: result.player_stats.pdef, mv: monster.stats.pdef },
-          { icon: <Zap    className="w-3 h-3" />, label: "마법방어", pv: result.player_stats.mdef, mv: monster.stats.mdef },
-          { icon: <Wind   className="w-3 h-3" />, label: "민첩",     pv: result.player_stats.dex,  mv: monster.stats.dex  },
-          { icon: <Star   className="w-3 h-3" />, label: "운",       pv: result.player_stats.luk,  mv: monster.stats.luk  },
-        ]).map(({ icon, label, pv, mv }) => {
+          { icon: <Sword  className="w-3 h-3" />, label: "물리공격", pv: result.player_stats.patk,                          mv: monster.stats.patk,                          display: (v: number) => `${Math.round(v)}` },
+          { icon: <Brain  className="w-3 h-3" />, label: "마법공격", pv: result.player_stats.matk,                          mv: monster.stats.matk,                          display: (v: number) => `${Math.round(v)}` },
+          { icon: <Shield className="w-3 h-3" />, label: "물리방어", pv: result.player_stats.pdef,                          mv: monster.stats.pdef,                          display: (v: number) => `${Math.round(v)}` },
+          { icon: <Zap    className="w-3 h-3" />, label: "마법방어", pv: result.player_stats.mdef,                          mv: monster.stats.mdef,                          display: (v: number) => `${Math.round(v)}` },
+          { icon: <Wind   className="w-3 h-3" />, label: "명중률",   pv: result.player_stats.dex * scales.accPerDex * 100,  mv: monster.stats.dex * scales.accPerDex * 100,  display: (v: number) => `${v.toFixed(1)}%` },
+          { icon: <Star   className="w-3 h-3" />, label: "치명타율", pv: result.player_stats.luk * scales.critPerLuk * 100, mv: monster.stats.luk * scales.critPerLuk * 100, display: (v: number) => `${v.toFixed(1)}%` },
+        ]).map(({ icon, label, pv, mv, display }) => {
           const total = pv + mv
           const pPct  = total > 0 ? Math.round((pv / total) * 100) : 50
           const pWin  = pv >= mv
           return (
             <div key={label} className="flex items-center gap-1.5 my-1">
               <span className="text-[10px] text-muted-foreground w-16 shrink-0 flex items-center gap-1">{icon} {label}</span>
-              <span className={`text-[10px] w-8 text-right shrink-0 ${pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{pv}</span>
+              <span className={`text-[10px] w-10 text-right shrink-0 ${pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{display(pv)}</span>
               <div className="flex-1 h-2 overflow-hidden rounded-full flex bg-muted">
                 <div className="bg-blue-400 rounded-l-full" style={{ width: `${pPct}%` }} />
                 <div className="bg-orange-400 rounded-r-full" style={{ width: `${100 - pPct}%` }} />
               </div>
-              <span className={`text-[10px] w-8 shrink-0 ${!pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{mv}</span>
+              <span className={`text-[10px] w-10 shrink-0 ${!pWin ? "font-bold text-foreground" : "text-gray-300"}`}>{display(mv)}</span>
             </div>
           )
         })}
