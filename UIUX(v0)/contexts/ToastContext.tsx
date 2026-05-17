@@ -14,28 +14,31 @@
 import { toast } from "sonner"
 import { TOAST_AUTO_DISMISS_MS } from "@/lib/constants/time"
 
+export type ToastId = string | number
+
 export function useToast() {
   return {
-    showExp: (exp: number, comment?: string, bonus?: number, penaltyExp?: number) => {
+    showExp: (exp: number, comment?: string, bonus?: number, penaltyExp?: number): ToastId => {
       const title =
         penaltyExp
           ? `+${exp} EXP · 패널티 -${penaltyExp}`
           : bonus
           ? `+${exp} EXP · 보너스 +${bonus}`
           : `+${exp} EXP!`
-      toast(title, { description: comment, duration: TOAST_AUTO_DISMISS_MS })
+      return toast(title, { description: comment, duration: TOAST_AUTO_DISMISS_MS })
     },
-    showPenalty: (exp: number, comment?: string) => {
-      toast(`${exp} EXP (기한 초과 절반)`, { description: comment, duration: TOAST_AUTO_DISMISS_MS })
+    showPenalty: (exp: number, comment?: string): ToastId => {
+      return toast(`${exp} EXP (기한 초과 절반)`, { description: comment, duration: TOAST_AUTO_DISMISS_MS })
     },
-    showLevelUp: (level: number) => {
-      toast(`레벨 업! Lv.${level}`, { duration: TOAST_AUTO_DISMISS_MS })
+    showLevelUp: (level: number): ToastId => {
+      return toast(`레벨 업! Lv.${level}`, { duration: TOAST_AUTO_DISMISS_MS })
     },
-    showError: (msg: string) => {
-      toast.error(msg, { duration: TOAST_AUTO_DISMISS_MS })
+    showError: (msg: string): ToastId => {
+      return toast.error(msg, { duration: TOAST_AUTO_DISMISS_MS })
     },
-    showInfo: (msg: string, description?: string) => {
-      toast(msg, { description, duration: TOAST_AUTO_DISMISS_MS })
+    showInfo: (msg: string, description?: string): ToastId => {
+      return toast(msg, { description, duration: TOAST_AUTO_DISMISS_MS })
     },
+    dismiss: (id: ToastId) => toast.dismiss(id),
   }
 }

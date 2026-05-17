@@ -26,9 +26,10 @@ export const POST = withInit(async (req: NextRequest) => {
       ? `🎉 ${result.routineName} 완수! 보너스 +${result.bonusExp}`
       : "루틴 항목 완료"
 
+  const fullyCompleted = result.allDone && result.bonusExp > 0
   const levelResult = await applyReward({
     source: "routine",
-    label: result.allDone ? `${result.routineName} 루틴 완수` : `루틴 항목 완료`,
+    label: fullyCompleted ? `${result.routineName} 루틴 완수` : `루틴 항목 완료`,
     exp: totalExp,
     comment,
   })

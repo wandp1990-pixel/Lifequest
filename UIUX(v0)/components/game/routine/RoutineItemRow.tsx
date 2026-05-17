@@ -12,8 +12,6 @@ import type { RoutineItem, DeleteTarget } from "./types"
 interface Props {
   item: RoutineItem
   done: boolean
-  isLoading: boolean
-  isCompletingAny: boolean
   canMoveUp: boolean
   canMoveDown: boolean
   onMoveUp: () => void
@@ -24,7 +22,7 @@ interface Props {
 }
 
 export default function RoutineItemRow({
-  item, done, isLoading, isCompletingAny,
+  item, done,
   canMoveUp, canMoveDown, onMoveUp, onMoveDown,
   onComplete, mutate, onConfirmDelete,
 }: Props) {
@@ -60,7 +58,7 @@ export default function RoutineItemRow({
       </div>
       <button
         onClick={onComplete}
-        disabled={done || isCompletingAny}
+        disabled={done}
         className="p-2 -m-2 flex items-center justify-center flex-shrink-0 transition-all active:scale-95"
         aria-label={done ? "완료됨" : "루틴 항목 완료"}
       >
@@ -69,7 +67,6 @@ export default function RoutineItemRow({
           style={{ borderColor: done ? "#5BA888" : "#D1D5DB", background: done ? "#5BA888" : "transparent" }}
         >
           {done && <span className="text-white text-[9px] font-black leading-none">✓</span>}
-          {isLoading && !done && <span className="w-2 h-2 rounded-full bg-teal-300 animate-pulse" />}
         </span>
       </button>
       <div className="flex-1 min-w-0">
@@ -98,12 +95,12 @@ export default function RoutineItemRow({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={onComplete}
-            disabled={done || isCompletingAny}
+            disabled={done}
             className="px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95"
             style={done ? { background: "#F3F4F6", color: "#9CA3AF" } : { background: "#E8F7F0", color: "#5BA888" }}
             aria-label={done ? "완료됨" : "경험치 받고 완료"}
           >
-            {done ? "✓ 완료" : isLoading ? "처리 중..." : `+${item.fixed_exp} EXP`}
+            {done ? "✓ 완료" : `+${item.fixed_exp} EXP`}
           </button>
           {!done && (
             <button

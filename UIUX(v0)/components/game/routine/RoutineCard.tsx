@@ -19,7 +19,6 @@ interface Props {
   chapters: RoutineChapter[]
   checkedItemIds: Set<number>
   bonusGranted: boolean
-  completing: number | null
   expanded: boolean
   toggleExpanded: () => void
   setRoutines: Dispatch<SetStateAction<Routine[]>>
@@ -44,7 +43,7 @@ function isActiveNow(deadline: string | null, fallbackFirst: boolean): boolean {
 
 export default function RoutineCard({
   routine: r, rIdx, chapters, checkedItemIds, bonusGranted,
-  completing, expanded, toggleExpanded,
+  expanded, toggleExpanded,
   setRoutines, mutate, onCompleteItem, onConfirmDelete,
 }: Props) {
   const [editingName, setEditingName] = useState(false)
@@ -166,8 +165,6 @@ export default function RoutineCard({
               key={item.id}
               item={item}
               done={checkedItemIds.has(item.id)}
-              isLoading={completing === item.id}
-              isCompletingAny={completing !== null}
               canMoveUp={idx > 0}
               canMoveDown={idx < r.items.length - 1}
               onMoveUp={() => moveItem(item.id, "up")}

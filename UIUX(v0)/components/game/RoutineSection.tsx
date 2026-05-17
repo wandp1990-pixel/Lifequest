@@ -1,7 +1,7 @@
 /**
  * @module components/game/RoutineSection
  * @purpose 루틴 섹션 컨테이너. mutate(PUT)/completeItem(POST) 헬퍼 + RoutineCard 목록 합성.
- *          expandedRoutineIds/completing/addingRoutine 만 컨테이너 보유.
+ *          expandedRoutineIds/addingRoutine 만 컨테이너 보유. 낙관적 UI(체크 즉시 반영).
  */
 
 "use client"
@@ -31,8 +31,7 @@ export default function RoutineSection({
   bonusRoutineIds, setBonusRoutineIds, onConfirmDelete, onExpGained,
   chapters = [],
 }: Props) {
-  const { showExp } = useToast()
-  // 낙관적 UI — completing은 더 이상 게이팅에 사용하지 않음. 체크 자체가 즉시 반영되어 시각 피드백이 됨.
+  const { showExp, showError, dismiss } = useToast()
   const [expandedRoutineIds, setExpandedRoutineIds] = useState<Set<number>>(new Set())
   const [addingRoutine, setAddingRoutine] = useState(false)
   const [newRoutineName, setNewRoutineName] = useState("")
@@ -64,7 +63,11 @@ export default function RoutineSection({
     if (checkedRoutineItemIds.has(item.id)) return
     // 낙관적 UI: 체크와 기본 EXP 토스트 즉시. 루틴 항목은 fixed_exp가 항상 클라이언트에 있음(AI 없음).
     setCheckedRoutineItemIds((prev) => new Set([...prev, item.id]))
-    showExp(item.fixed_exp, "루틴 항목 완료")
+    const toastId = showExp(item.fixed_exp, "루틴 항목 완료")
+    const rollback = () => {
+      setCheckedRoutineItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+      dismiss(toastId)
+    }
     try {
       const res = await fetch("/api/routines", {
         method: "POST",
@@ -73,7 +76,8 @@ export default function RoutineSection({
       })
       const data = await res.json()
       if (!res.ok) {
-        setCheckedRoutineItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+        rollback()
+        showError("루틴 완료 실패 — 다시 시도해주세요")
         return
       }
       // 보너스(루틴 완수/마감보너스)는 서버 산정 — 도착 후 추가 토스트
@@ -86,7 +90,8 @@ export default function RoutineSection({
       }
       onExpGained?.()
     } catch {
-      setCheckedRoutineItemIds((prev) => { const next = new Set(prev); next.delete(item.id); return next })
+      rollback()
+      showError("네트워크 오류 — 다시 시도해주세요")
     }
   }
 
@@ -153,7 +158,6 @@ export default function RoutineSection({
           chapters={chapters}
           checkedItemIds={checkedRoutineItemIds}
           bonusGranted={bonusRoutineIds.has(r.id)}
-          completing={null}
           expanded={expandedRoutineIds.has(r.id)}
           toggleExpanded={() => toggleRoutine(r.id)}
           setRoutines={setRoutines}
