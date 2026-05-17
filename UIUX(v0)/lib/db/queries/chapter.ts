@@ -62,6 +62,13 @@ export async function completeChapter(id: number): Promise<boolean> {
   return res.rowsAffected > 0
 }
 
+export async function getChapterById(id: number): Promise<{ name: string } | null> {
+  const db = getClient()
+  const res = await db.execute({ sql: "SELECT name FROM chapter WHERE id=?", args: [id] })
+  if (res.rows.length === 0) return null
+  return { name: String(res.rows[0].name) }
+}
+
 export async function deleteChapter(id: number): Promise<void> {
   const db = getClient()
   await db.execute({ sql: "UPDATE project SET chapter_id=NULL WHERE chapter_id=?", args: [id] })

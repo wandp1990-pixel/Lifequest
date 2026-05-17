@@ -7,6 +7,7 @@ import {
   getProjectById,
   updateProjectTaskExp,
 } from "@/lib/db/queries/project"
+import { getChapterById } from "@/lib/db/queries/chapter"
 import { gainExp } from "@/lib/game"
 import { addActivityLog } from "@/lib/db/queries/activity"
 import { incrementTaskCount } from "@/lib/db/queries/character"
@@ -36,16 +37,18 @@ export const PATCH = withInit(async (
 
   let expReward = Number(task.exp_reward)
   let project = await getProjectById(projectId)
+  const chapter = project?.chapter_id ? await getChapterById(project.chapter_id) : null
+  const chapterPrefix = chapter ? `[${chapter.name}] ` : ""
+  const taskLabel = `${chapterPrefix}${project?.name ?? "프로젝트"} > ${String(task.name)}`
   let aiComment: string | null = null
   if (expReward === 0) {
-    const aiInput = `${project?.name ?? "프로젝트"} - ${String(task.name)}`
-    const aiResult = await judgeActivity(aiInput)
+    const aiResult = await judgeActivity(taskLabel)
     expReward = aiResult.exp
     aiComment = aiResult.comment
     await updateProjectTaskExp(taskIdNum, expReward)
     project = await getProjectById(projectId)
   }
-  const taskComment = `[${project?.name ?? "프로젝트"}] ${task.name} 완료`
+  const taskComment = `${taskLabel} 완료`
   await addActivityLog(String(task.name), "todo", expReward, aiComment ?? taskComment)
   const levelResult = await gainExp(expReward)
 
