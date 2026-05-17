@@ -14,11 +14,20 @@ import type { BattleResultData, CharData, RestoreMode } from "./types"
 interface Props {
   result: BattleResultData
   char: CharData | null
-  scales: { clearScale: number; levelScale: number; accPerDex: number; critPerLuk: number }
+  scales: {
+    clearScale: number; levelScale: number
+    accPerDex: number; critPerLuk: number
+    baseAcc: number; critSuppress: number
+  }
   restoreMode: RestoreMode
   onFight: () => void
   onNewBattle: () => void
 }
+
+const ACC_MIN = 0.05
+const ACC_MAX = 0.99
+const CRIT_MAX = 0.75
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 export default function ResultView({ result, scales, restoreMode, onFight, onNewBattle }: Props) {
   const [visibleTurns, setVisibleTurns] = useState(0)
@@ -73,15 +82,25 @@ export default function ResultView({ result, scales, restoreMode, onFight, onNew
       </div>
 
       <div className="px-4 py-3 bg-background border-b border-border">
-        <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 능력치 비교 · 몬스터 강도 ×{monster.total_coeff.toFixed(2)}</p>
-        {([
-          { icon: <Sword  className="w-3 h-3" />, label: "물리공격", pv: result.player_stats.patk,                          mv: monster.stats.patk,                          display: (v: number) => `${Math.round(v)}` },
-          { icon: <Brain  className="w-3 h-3" />, label: "마법공격", pv: result.player_stats.matk,                          mv: monster.stats.matk,                          display: (v: number) => `${Math.round(v)}` },
-          { icon: <Shield className="w-3 h-3" />, label: "물리방어", pv: result.player_stats.pdef,                          mv: monster.stats.pdef,                          display: (v: number) => `${Math.round(v)}` },
-          { icon: <Zap    className="w-3 h-3" />, label: "마법방어", pv: result.player_stats.mdef,                          mv: monster.stats.mdef,                          display: (v: number) => `${Math.round(v)}` },
-          { icon: <Wind   className="w-3 h-3" />, label: "명중률",   pv: result.player_stats.dex * scales.accPerDex * 100,  mv: monster.stats.dex * scales.accPerDex * 100,  display: (v: number) => `${v.toFixed(1)}%` },
-          { icon: <Star   className="w-3 h-3" />, label: "치명타율", pv: result.player_stats.luk * scales.critPerLuk * 100, mv: monster.stats.luk * scales.critPerLuk * 100, display: (v: number) => `${v.toFixed(1)}%` },
-        ]).map(({ icon, label, pv, mv, display }) => {
+        <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 능력치 비교 · 몬스터 강도 ×{Math.round(monster.total_coeff)}</p>
+        {(() => {
+          const pDex = result.player_stats.dex, mDex = monster.stats.dex
+          const pLuk = result.player_stats.luk, mLuk = monster.stats.luk
+          // 명중률(내가 적 공격) / (적이 나 공격) — 실제 전투 공식 + clamp
+          const pHit  = clamp(scales.baseAcc + (pDex - mDex) * scales.accPerDex, ACC_MIN, ACC_MAX) * 100
+          const mHit  = clamp(scales.baseAcc + (mDex - pDex) * scales.accPerDex, ACC_MIN, ACC_MAX) * 100
+          // 치명타율(내가) / (적이) — 자기 LUK 가산 - 상대 LUK 억제, [0, 75%] clamp
+          const pCrit = clamp(pLuk * scales.critPerLuk - mLuk * scales.critSuppress, 0, CRIT_MAX) * 100
+          const mCrit = clamp(mLuk * scales.critPerLuk - pLuk * scales.critSuppress, 0, CRIT_MAX) * 100
+          return [
+            { icon: <Sword  className="w-3 h-3" />, label: "물리공격", pv: result.player_stats.patk, mv: monster.stats.patk, display: (v: number) => `${Math.round(v)}` },
+            { icon: <Brain  className="w-3 h-3" />, label: "마법공격", pv: result.player_stats.matk, mv: monster.stats.matk, display: (v: number) => `${Math.round(v)}` },
+            { icon: <Shield className="w-3 h-3" />, label: "물리방어", pv: result.player_stats.pdef, mv: monster.stats.pdef, display: (v: number) => `${Math.round(v)}` },
+            { icon: <Zap    className="w-3 h-3" />, label: "마법방어", pv: result.player_stats.mdef, mv: monster.stats.mdef, display: (v: number) => `${Math.round(v)}` },
+            { icon: <Wind   className="w-3 h-3" />, label: "명중률",   pv: pHit,                     mv: mHit,                display: (v: number) => `${Math.round(v)}%` },
+            { icon: <Star   className="w-3 h-3" />, label: "치명타율", pv: pCrit,                    mv: mCrit,               display: (v: number) => `${Math.round(v)}%` },
+          ]
+        })().map(({ icon, label, pv, mv, display }) => {
           const total = pv + mv
           const pPct  = total > 0 ? Math.round((pv / total) * 100) : 50
           const pWin  = pv >= mv

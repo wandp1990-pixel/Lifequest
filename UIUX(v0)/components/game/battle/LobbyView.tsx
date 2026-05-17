@@ -10,19 +10,32 @@ import { GRADE_KEYS, GRADE_META, type CharData, type Monster } from "./types"
 
 interface Props {
   char: CharData | null
-  scales: { clearScale: number; levelScale: number; accPerDex: number; critPerLuk: number }
+  scales: {
+    clearScale: number; levelScale: number
+    accPerDex: number; critPerLuk: number
+    baseAcc: number; critSuppress: number
+  }
   savedMonster: Monster | null
   loading: boolean
   error: string | null
   onFight: () => void
 }
 
+const ACC_MIN = 0.05
+const ACC_MAX = 0.99
+const CRIT_MAX = 0.75
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+
 export default function LobbyView({ char, scales, savedMonster, loading, error, onFight }: Props) {
   const clearCount = char?.clear_count ?? 0
   const level      = char?.level ?? 1
-  const coeff      = ((1 + clearCount * scales.clearScale) * (1 + Math.max(0, level - 1) * scales.levelScale)).toFixed(2)
+  const coeff      = Math.round((1 + clearCount * scales.clearScale) * (1 + Math.max(0, level - 1) * scales.levelScale))
 
   const eff = char?.effective
+
+  // 상대 없음 기준(가상 적 DEX/LUK=0): 캐릭터의 기초 명중/치명타율을 의미 있는 상한 내에서 표시
+  const baseHit  = clamp(scales.baseAcc + (eff?.dex ?? 0) * scales.accPerDex, ACC_MIN, ACC_MAX) * 100
+  const baseCrit = clamp((eff?.luk ?? 0) * scales.critPerLuk, 0, CRIT_MAX) * 100
 
   const maxClearedIdx  = char?.max_cleared_grade ? GRADE_KEYS.indexOf(char.max_cleared_grade) : -1
   const unlockedGrades = GRADE_KEYS.slice(0, maxClearedIdx + 2)
@@ -33,12 +46,12 @@ export default function LobbyView({ char, scales, savedMonster, loading, error, 
         <p className="text-[10px] text-muted-foreground font-bold mb-2">전투 스탯</p>
         <div className="grid grid-cols-3 gap-1.5">
           {([
-            { icon: <Sword  className="w-3 h-3" />, label: "물리공격", value: `${Math.round(eff?.patk ?? 0)}`,                                  color: "text-red-500",     bg: "bg-red-50",     border: "border-red-200" },
-            { icon: <Brain  className="w-3 h-3" />, label: "마법공격", value: `${Math.round(eff?.matk ?? 0)}`,                                  color: "text-violet-500",  bg: "bg-violet-50",  border: "border-violet-200" },
-            { icon: <Wind   className="w-3 h-3" />, label: "명중률",   value: `${((eff?.dex ?? 0) * scales.accPerDex * 100).toFixed(1)}%`,      color: "text-sky-500",     bg: "bg-sky-50",     border: "border-sky-200" },
-            { icon: <Shield className="w-3 h-3" />, label: "물리방어", value: `${Math.round(eff?.pdef ?? 0)}`,                                  color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
-            { icon: <Zap    className="w-3 h-3" />, label: "마법방어", value: `${Math.round(eff?.mdef ?? 0)}`,                                  color: "text-teal-500",    bg: "bg-teal-50",    border: "border-teal-200" },
-            { icon: <Star   className="w-3 h-3" />, label: "치명타율", value: `${((eff?.luk ?? 0) * scales.critPerLuk * 100).toFixed(1)}%`,     color: "text-amber-500",   bg: "bg-amber-50",   border: "border-amber-200" },
+            { icon: <Sword  className="w-3 h-3" />, label: "물리공격", value: `${Math.round(eff?.patk ?? 0)}`,  color: "text-red-500",     bg: "bg-red-50",     border: "border-red-200" },
+            { icon: <Brain  className="w-3 h-3" />, label: "마법공격", value: `${Math.round(eff?.matk ?? 0)}`,  color: "text-violet-500",  bg: "bg-violet-50",  border: "border-violet-200" },
+            { icon: <Wind   className="w-3 h-3" />, label: "명중률",   value: `${Math.round(baseHit)}%`,        color: "text-sky-500",     bg: "bg-sky-50",     border: "border-sky-200" },
+            { icon: <Shield className="w-3 h-3" />, label: "물리방어", value: `${Math.round(eff?.pdef ?? 0)}`,  color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
+            { icon: <Zap    className="w-3 h-3" />, label: "마법방어", value: `${Math.round(eff?.mdef ?? 0)}`,  color: "text-teal-500",    bg: "bg-teal-50",    border: "border-teal-200" },
+            { icon: <Star   className="w-3 h-3" />, label: "치명타율", value: `${Math.round(baseCrit)}%`,       color: "text-amber-500",   bg: "bg-amber-50",   border: "border-amber-200" },
           ]).map(({ icon, label, value, color, bg, border }) => (
             <div key={label} className={`text-center rounded-xl py-2 border ${bg} ${border}`}>
               <div className={`flex justify-center mb-0.5 ${color}`}>{icon}</div>
@@ -75,7 +88,7 @@ export default function LobbyView({ char, scales, savedMonster, loading, error, 
                 <p className="text-sm font-bold" style={{ color: savedMonster.color }}>{savedMonster.full_name}</p>
                 <p className="text-[10px] text-muted-foreground">{savedMonster.grade_code}({savedMonster.grade_name}) · {savedMonster.race_emoji} {savedMonster.race_name}</p>
               </div>
-              <span className="text-[10px] text-muted-foreground">강도 ×{savedMonster.total_coeff.toFixed(2)}</span>
+              <span className="text-[10px] text-muted-foreground">강도 ×{Math.round(savedMonster.total_coeff)}</span>
             </div>
             <button onClick={onFight} className="w-full py-3 rounded-xl font-bold text-white bg-red-500 active:scale-95 text-sm">🔄 재도전</button>
           </div>

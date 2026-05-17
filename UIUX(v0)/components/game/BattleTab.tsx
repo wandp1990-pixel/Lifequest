@@ -18,8 +18,16 @@ import {
 } from "./battle/types"
 import { useCharacterCtx } from "@/contexts/CharacterContext"
 
-type BattleScales = { clearScale: number; levelScale: number; accPerDex: number; critPerLuk: number }
-const DEFAULT_SCALES: BattleScales = { clearScale: 0.03, levelScale: 0.04, accPerDex: 0.005, critPerLuk: 0.005 }
+type BattleScales = {
+  clearScale: number; levelScale: number
+  accPerDex: number; critPerLuk: number
+  baseAcc: number; critSuppress: number
+}
+const DEFAULT_SCALES: BattleScales = {
+  clearScale: 0.03, levelScale: 0.04,
+  accPerDex: 0.005, critPerLuk: 0.005,
+  baseAcc: 0.9, critSuppress: 0.003,
+}
 
 export default function BattleTab() {
   const { char, refetch } = useCharacterCtx()
@@ -57,8 +65,10 @@ export default function BattleTab() {
           const byKey = Object.fromEntries(rows.map((r) => [r.config_key, r.config_value]))
           const rm = (byKey.restore_hp_after_battle ?? "full").toLowerCase()
           if (!cancelled && (rm === "full" || rm === "none" || rm === "half")) setRestoreMode(rm)
-          next.accPerDex  = parseFloat(byKey.accuracy_per_dex  ?? String(DEFAULT_SCALES.accPerDex))
-          next.critPerLuk = parseFloat(byKey.crit_rate_per_luk ?? String(DEFAULT_SCALES.critPerLuk))
+          next.accPerDex    = parseFloat(byKey.accuracy_per_dex                 ?? String(DEFAULT_SCALES.accPerDex))
+          next.critPerLuk   = parseFloat(byKey.crit_rate_per_luk                ?? String(DEFAULT_SCALES.critPerLuk))
+          next.baseAcc      = parseFloat(byKey.base_accuracy                    ?? String(DEFAULT_SCALES.baseAcc))
+          next.critSuppress = parseFloat(byKey.crit_suppression_per_enemy_luk   ?? String(DEFAULT_SCALES.critSuppress))
         }
         if (gcRes.ok) {
           const rows: { config_key: string; config_value: string }[] = await gcRes.json()
