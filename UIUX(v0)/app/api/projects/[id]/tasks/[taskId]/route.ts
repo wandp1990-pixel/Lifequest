@@ -38,7 +38,7 @@ export const PATCH = withInit(async (
   let expReward = Number(task.exp_reward)
   let project = await getProjectById(projectId)
   const chapter = project?.chapter_id ? await getChapterById(project.chapter_id) : null
-  const chapterPrefix = chapter ? `[${chapter.name}] ` : ""
+  const chapterPrefix = chapter ? `[${chapter.name}] ` : "[프로젝트] "
   const taskLabel = `${chapterPrefix}${project?.name ?? "프로젝트"} > ${String(task.name)}`
   let aiComment: string | null = null
   if (expReward === 0) {
