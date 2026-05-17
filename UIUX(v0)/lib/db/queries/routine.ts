@@ -23,7 +23,6 @@ export interface RoutineCheckResult {
   bonusExp: number
   allDone: boolean
   routineName: string
-  itemName: string
   deadlineBonus: boolean
 }
 
@@ -153,7 +152,7 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
   const today = todayKST()
 
   const itemRes = await db.execute({
-    sql: "SELECT id, routine_id, fixed_exp, name FROM routine_item WHERE id=? AND is_active=1",
+    sql: "SELECT id, routine_id, fixed_exp FROM routine_item WHERE id=? AND is_active=1",
     args: [itemId],
   })
   const item = itemRes.rows[0]
@@ -161,7 +160,6 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
 
   const exp = item.fixed_exp as number
   const routineId = item.routine_id as number
-  const itemName = item.name as string
 
   // race 방어: 오늘 자리 atomic 선점. 이미 체크돼있으면 null.
   const claimRes = await db.execute({
@@ -224,5 +222,5 @@ export async function checkRoutineItem(itemId: number): Promise<RoutineCheckResu
   })
   const routineName = (rRes.rows[0]?.name as string) ?? ""
 
-  return { exp, bonusExp, allDone, routineName, itemName, deadlineBonus }
+  return { exp, bonusExp, allDone, routineName, deadlineBonus }
 }
