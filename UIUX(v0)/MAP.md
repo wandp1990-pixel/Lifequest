@@ -121,6 +121,7 @@ UIUX(v0)/
 │   └── utils.ts
 ├── public/                      # 정적 자산
 ├── styles/
+├── plans/                       # 작업 플랜 문서 (기능 설계·개선안·TODO 등) — 새 계획은 반드시 여기
 ├── DESIGN_GUIDE.md              # 색상/이모지 디테일 레퍼런스 (보존)
 ├── MAP.md                       # ← 이 파일
 ├── vercel.json
@@ -374,5 +375,7 @@ STR=red · VIT=emerald · DEX=sky · INT=violet · LUK=amber
 6. **"전역 상태 어디서 읽어?"** → `contexts/CharacterContext.tsx` (캐릭터), `contexts/ToastContext.tsx` (토스트)
 7. **"서브컴포넌트 어디?"** → §2 디렉토리 지도 `components/game/` 하위 폴더 참조
 8. **"상수 어디 정의돼?"** → `lib/constants/` (game 수치는 DB `game_config`가 SoT)
+
+9. **"작업 플랜/개선 계획 어디 있어?"** → `UIUX(v0)/plans/` 폴더 — 모든 작업 계획 문서는 여기에만 저장한다
 
 이 문서는 **코드의 네비게이션 인덱스**다. 코드가 진실의 원천(SoT)이므로, 이 지도와 코드가 충돌하면 코드를 믿고 이 문서를 갱신하라.
