@@ -351,7 +351,11 @@ export default function ProjectCard({
             {project.tasks.map((task) => {
               const visuallyDone = !!task.is_completed || optimisticDoneIds.has(task.id)
               return (
-                <div key={task.id} className={`flex items-center gap-2 py-1 ${visuallyDone ? "opacity-50" : ""}`}>
+                <div
+                  key={task.id}
+                  className={`flex items-center gap-2 py-1 ${visuallyDone ? "opacity-50" : ""} ${!visuallyDone && project.status !== "done" && completing === null ? "cursor-pointer active:bg-muted/40 rounded-lg transition-colors" : ""}`}
+                  onClick={() => { !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id) }}
+                >
                   <button
                     onClick={(e) => { e.stopPropagation(); !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id) }}
                     disabled={visuallyDone || project.status === "done" || completing !== null}
@@ -368,7 +372,7 @@ export default function ProjectCard({
                   <span className={`flex-1 text-xs ${visuallyDone ? "line-through" : ""}`}>{task.name}</span>
                   <span className="text-[10px] text-amber-400 shrink-0">{task.exp_reward === 0 ? "AI 산정" : `+${task.exp_reward}XP`}</span>
                   {!visuallyDone && (
-                    <button onClick={() => handleDeleteTask(task.id)} className="text-muted-foreground shrink-0">
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id) }} className="text-muted-foreground shrink-0">
                       <X size={12} />
                     </button>
                   )}
