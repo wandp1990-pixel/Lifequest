@@ -145,7 +145,7 @@ export default function HabitGroupCard({
       {!collapsed && (
         <div className="border-t border-amber-100">
           {group.items.length === 0 ? (
-            <p className="text-center text-muted-foreground text-xs py-3">+ 버튼으로 습관을 추가하세요</p>
+            <p className="text-center text-muted-foreground text-xs py-3">습관이 없어요, + 버튼으로 추가해 보세요</p>
           ) : (
             group.items.map((item) => (
               <HabitItem

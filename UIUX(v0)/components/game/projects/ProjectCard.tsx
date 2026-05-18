@@ -11,7 +11,7 @@ import { useState } from "react"
 import { ChevronDown, ChevronRight, CheckCircle2, Circle, Pencil, Plus, Trash2, X } from "lucide-react"
 import { PRIORITY_LABEL, PRIORITY_COLOR, STATUS_LABEL, PROJECT_COLOR_CLS, PROJECT_COLOR_OPTIONS } from "@/lib/constants/ui"
 import { DEADLINE_IMMINENT_DAYS } from "@/lib/constants/time"
-import { apiDelete, apiPatch, apiPost, ApiError } from "@/hooks/useApi"
+import { apiDelete, apiPatch, apiPost, apiPut, ApiError } from "@/hooks/useApi"
 import { useToast } from "@/contexts/ToastContext"
 import type { Project, Chapter } from "@/hooks/useProjects"
 
@@ -48,6 +48,9 @@ export default function ProjectCard({
   const [completingProject, setCompletingProject] = useState(false)
   // 낙관적 완료 ID — props.project.tasks가 동기화되기 전 즉시 체크 표시
   const [optimisticDoneIds, setOptimisticDoneIds] = useState<Set<number>>(new Set())
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
+  const [editTaskName, setEditTaskName] = useState("")
+  const [editTaskExp, setEditTaskExp] = useState("0")
   const [editingChapter, setEditingChapter] = useState(false)
   const [editingProject, setEditingProject] = useState(false)
   const [editName, setEditName] = useState(project.name)
@@ -149,6 +152,20 @@ export default function ProjectCard({
       )
       onMutated(data)
       setEditingProject(false)
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e
+    }
+  }
+
+  const handleEditTask = async (taskId: number) => {
+    if (!editTaskName.trim()) return
+    try {
+      const data = await apiPut<{ projects?: Project[] }>(
+        `/api/projects/${project.id}/tasks/${taskId}`,
+        { name: editTaskName.trim(), exp_reward: Number(editTaskExp) || 0 }
+      )
+      onMutated(data)
+      setEditingTaskId(null)
     } catch (e) {
       if (!(e instanceof ApiError)) throw e
     }
@@ -350,31 +367,62 @@ export default function ProjectCard({
           <div className="space-y-1.5">
             {project.tasks.map((task) => {
               const visuallyDone = !!task.is_completed || optimisticDoneIds.has(task.id)
+              const isEditingThis = editingTaskId === task.id
               return (
-                <div
-                  key={task.id}
-                  className={`flex items-center gap-2 py-1 ${visuallyDone ? "opacity-50" : ""} ${!visuallyDone && project.status !== "done" && completing === null ? "cursor-pointer active:bg-muted/40 rounded-lg transition-colors" : ""}`}
-                  onClick={() => { !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id) }}
-                >
-                  <button
-                    onClick={(e) => { e.stopPropagation(); !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id) }}
-                    disabled={visuallyDone || project.status === "done" || completing !== null}
-                    className="shrink-0 w-7 h-7 flex items-center justify-center touch-manipulation"
-                  >
-                    {visuallyDone ? (
-                      <CheckCircle2 size={16} className="text-emerald-500" />
-                    ) : completing === task.id ? (
-                      <Circle size={16} className="text-muted-foreground animate-pulse" />
-                    ) : (
-                      <Circle size={16} className="text-muted-foreground" />
-                    )}
-                  </button>
-                  <span className={`flex-1 text-xs ${visuallyDone ? "line-through" : ""}`}>{task.name}</span>
-                  <span className="text-[10px] text-amber-400 shrink-0">{task.exp_reward === 0 ? "AI 산정" : `+${task.exp_reward}XP`}</span>
-                  {!visuallyDone && (
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id) }} className="text-muted-foreground shrink-0">
-                      <X size={12} />
-                    </button>
+                <div key={task.id}>
+                  {isEditingThis ? (
+                    <div className="flex items-center gap-1.5 py-1">
+                      <input
+                        autoFocus
+                        className="flex-1 min-w-0 text-xs bg-muted border border-border rounded-lg px-2 py-1 outline-none focus:border-violet-500"
+                        value={editTaskName}
+                        onChange={(e) => setEditTaskName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleEditTask(task.id); if (e.key === "Escape") setEditingTaskId(null) }}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-14 text-xs text-center bg-muted border border-border rounded-lg px-1 py-1 outline-none focus:border-violet-500"
+                        value={editTaskExp}
+                        onChange={(e) => setEditTaskExp(e.target.value)}
+                      />
+                      <button onClick={() => handleEditTask(task.id)} className="text-xs px-2 py-1 bg-violet-500 text-white rounded-lg font-bold flex-shrink-0">저장</button>
+                      <button onClick={() => setEditingTaskId(null)} className="text-muted-foreground flex-shrink-0"><X size={12} /></button>
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex items-center gap-2 py-1 ${visuallyDone ? "opacity-50" : ""} ${!visuallyDone && project.status !== "done" && completing === null ? "cursor-pointer active:bg-muted/40 rounded-lg transition-colors" : ""}`}
+                      onClick={() => { !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id) }}
+                    >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); !visuallyDone && project.status !== "done" && completing === null && handleCompleteTask(task.id) }}
+                        disabled={visuallyDone || project.status === "done" || completing !== null}
+                        className="shrink-0 w-7 h-7 flex items-center justify-center touch-manipulation"
+                      >
+                        {visuallyDone ? (
+                          <CheckCircle2 size={16} className="text-emerald-500" />
+                        ) : completing === task.id ? (
+                          <Circle size={16} className="text-muted-foreground animate-pulse" />
+                        ) : (
+                          <Circle size={16} className="text-muted-foreground" />
+                        )}
+                      </button>
+                      <span className={`flex-1 text-xs ${visuallyDone ? "line-through" : ""}`}>{task.name}</span>
+                      <span className="text-[10px] text-amber-400 shrink-0">{task.exp_reward === 0 ? "AI 산정" : `+${task.exp_reward}XP`}</span>
+                      {!visuallyDone && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingTaskId(task.id); setEditTaskName(task.name); setEditTaskExp(String(task.exp_reward)) }}
+                            className="text-muted-foreground shrink-0 hover:text-violet-400 transition-colors"
+                          >
+                            <Pencil size={11} />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id) }} className="text-muted-foreground shrink-0">
+                            <X size={12} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               )
@@ -383,7 +431,7 @@ export default function ProjectCard({
 
           {project.tasks.length === 0 && (
             <div className="rounded-lg bg-muted/60 px-3 py-2 text-[11px] text-muted-foreground">
-              첫 작업을 추가하면 이 프로젝트가 자동으로 진행 중으로 바뀝니다.
+              작업이 없어요, + 버튼으로 추가해 보세요
             </div>
           )}
 

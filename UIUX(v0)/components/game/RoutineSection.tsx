@@ -147,7 +147,7 @@ export default function RoutineSection({
       )}
 
       {routines.length === 0 && (
-        <p className="text-center text-muted-foreground text-sm py-4">+ 버튼으로 루틴을 추가하세요</p>
+        <p className="text-center text-muted-foreground text-sm py-4">루틴이 없어요, + 버튼으로 추가해 보세요</p>
       )}
 
       {routines.map((r, rIdx) => (

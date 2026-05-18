@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, Dispatch, SetStateAction } from "react"
-import { Plus, X, Pencil, Clock, Bell } from "lucide-react"
+import { Plus, X, Pencil, Clock, Bell, Circle, CheckCircle2 } from "lucide-react"
 import { useToast } from "@/contexts/ToastContext"
 
 export interface TodoItem {
@@ -203,7 +203,7 @@ export default function TodoSection({
       )}
 
       {todoItems.length === 0 && (
-        <p className="text-center text-muted-foreground text-sm py-4">+ 버튼으로 할 일을 추가하세요</p>
+        <p className="text-center text-muted-foreground text-sm py-4">할 일이 없어요, + 버튼으로 추가해 보세요</p>
       )}
 
       {[...todoItems].sort((a, b) => {
@@ -220,7 +220,20 @@ export default function TodoSection({
         const isEditingName = editingId === item.id
 
         return (
-          <div key={item.id} className={`flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 transition-opacity ${done ? "opacity-50" : ""}`}>
+          <div key={item.id} className={`flex items-center gap-2 px-4 py-3 border-b border-border last:border-0 transition-opacity ${done ? "opacity-50" : ""}`}>
+            <button
+              onClick={() => !done && !isLoading && completeTodo(item)}
+              disabled={done || isLoading}
+              className="shrink-0 w-7 h-7 flex items-center justify-center touch-manipulation"
+            >
+              {done ? (
+                <CheckCircle2 size={18} className="text-violet-500" />
+              ) : isLoading ? (
+                <Circle size={18} className="text-muted-foreground animate-pulse" />
+              ) : (
+                <Circle size={18} className="text-muted-foreground" />
+              )}
+            </button>
             <div className="flex-1 min-w-0">
               {isEditingName ? (
                 <div className="flex items-center gap-1.5">
@@ -291,14 +304,11 @@ export default function TodoSection({
                   <Clock className="w-3.5 h-3.5" />
                 </button>
               )}
-              <button onClick={() => completeTodo(item)} disabled={done || isLoading}
-                className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all active:scale-95 ${
-                  done ? "bg-muted text-muted-foreground cursor-not-allowed" :
-                  isLoading ? "bg-violet-200 text-violet-700 animate-pulse cursor-wait" :
-                  "bg-violet-100 text-violet-600 hover:bg-violet-200"
-                }`}>
-                {done ? "✓ 완료" : isLoading ? "처리 중..." : (item.suggested_exp ?? 0) === 0 ? "🤖 AI 판정" : `+${item.suggested_exp} EXP`}
-              </button>
+              {!done && (
+                <span className="text-[10px] text-amber-400 shrink-0">
+                  {(item.suggested_exp ?? 0) === 0 ? "AI 산정" : `+${item.suggested_exp} XP`}
+                </span>
+              )}
               <button onClick={() => onConfirmDelete({ type: "todo", id: item.id, name: item.name })}
                 className="text-gray-300 hover:text-red-400 transition-colors p-0.5" aria-label="삭제">
                 <X className="w-3.5 h-3.5" />

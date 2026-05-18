@@ -158,7 +158,7 @@ export default function RoutineCard({
       {expanded && (
         <div className="border-t border-teal-100">
           {r.items.length === 0 && !addingItem && (
-            <p className="text-center text-muted-foreground text-xs py-3">하위 항목을 추가하세요</p>
+            <p className="text-center text-muted-foreground text-xs py-3">항목이 없어요, + 버튼으로 추가해 보세요</p>
           )}
           {r.items.map((item, idx) => (
             <RoutineItemRow

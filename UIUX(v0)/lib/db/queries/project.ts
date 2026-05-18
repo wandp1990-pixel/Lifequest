@@ -98,6 +98,14 @@ export async function addProjectTask(
   })
 }
 
+export async function updateProjectTask(id: number, name: string, expReward: number): Promise<void> {
+  const db = getClient()
+  await db.execute({
+    sql: "UPDATE project_task SET name=?, exp_reward=? WHERE id=?",
+    args: [name, expReward, id],
+  })
+}
+
 export async function updateProjectTaskExp(id: number, expReward: number): Promise<void> {
   const db = getClient()
   await db.execute({

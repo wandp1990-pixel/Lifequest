@@ -6,6 +6,7 @@ import {
   checkAndCompleteProject,
   getProjectById,
   updateProjectTaskExp,
+  updateProjectTask,
 } from "@/lib/db/queries/project"
 import { getChapterById } from "@/lib/db/queries/chapter"
 import { gainExp } from "@/lib/game"
@@ -72,6 +73,20 @@ export const PATCH = withInit(async (
     ...(bonusLevelResult ? { bonusLevelResult } : {}),
     projects,
   })
+})
+
+export const PUT = withInit(async (
+  req: NextRequest,
+  ctx: { params: Promise<{ id: string; taskId: string }> },
+) => {
+  const { id, taskId } = await ctx.params
+  const body = await req.json().catch(() => ({}))
+  const name = typeof body.name === "string" ? body.name.trim() : ""
+  if (!name) return badRequest("이름 필수")
+  const expReward = Number(body.exp_reward) || 0
+  await updateProjectTask(Number(taskId), name, expReward)
+  const projects = await getProjects()
+  return ok({ projects })
 })
 
 export const DELETE = withInit(async (
