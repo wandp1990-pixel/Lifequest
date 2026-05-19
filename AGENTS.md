@@ -1,24 +1,5 @@
-# LifeQuest — 진입점 (Codex / Claude Code 공통)
+# Agents Entry
 
-## 두 에이전트 공통 규칙
+이 프로젝트의 작업 지침 단일 소스는 **`README.md`** 다. 본 파일은 외부 에이전트(OpenAI Codex, Cursor 등 AGENTS.md 자동 로드 도구)를 위한 진입점일 뿐이며, 실제 규칙·배포 절차·게임 로직 안내는 README에서 시작해 `DEPLOY_NOTES.md` / `UIUX(v0)/MAP.md` 등으로 이어진다.
 
-1. **작업 시작 전** `CLAUDE.md` → `UIUX(v0)/MAP.md` 순으로 읽고 진입.
-2. 한 에이전트가 만든 변경을 다른 에이전트가 임의로 되돌리지 말 것.
-3. 인수인계 시 공유: (a) 수정한 파일 목록 (b) 신규 파일 여부 (c) `git status` 결과.
-4. 사용자 최신 지시가 충돌하는 모든 규칙보다 우선.
-
-## 진입 문서 4종 (모든 작업의 시작점)
-
-| 문서 | 위치 | 역할 |
-|-----|-----|-----|
-| **MAP** | `UIUX(v0)/MAP.md` | 모듈/기능/디자인 통합 지도 |
-| **DESIGN_GUIDE** | `UIUX(v0)/DESIGN_GUIDE.md` | 색상/이모지 디테일 |
-| **DEPLOY_NOTES** | `DEPLOY_NOTES.md` | 배포 SOP |
-| **PLANS** | `UIUX(v0)/plans/` | 작업 플랜 문서 폴더 — 기능 설계·개선안·TODO |
-
-핵심 원칙·환경변수·배포 명령은 `CLAUDE.md`와 동일 — 그쪽을 SoT로 본다.
-
-## 작업 플랜 규칙
-
-- 새 기능 설계·개선안·작업 계획은 **반드시** `UIUX(v0)/plans/` 폴더에 마크다운으로 저장한다.
-- 작업 시작 전 `plans/` 폴더 안의 파일을 먼저 확인해 기존 계획과 충돌하지 않는지 검토한다.
+→ 먼저 `README.md`를 읽고 작업한다.
